@@ -58,11 +58,11 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "Device 1",
+          title: "Dispositivo",
           url: "#",
         },
         {
-          title: "Device 2",
+          title: "Graficos",
           url: "#",
         },
       ],

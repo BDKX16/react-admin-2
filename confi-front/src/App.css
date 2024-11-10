@@ -16,6 +16,9 @@
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
+.h-screen-dvh {
+  height: 100dvh;
+}
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);

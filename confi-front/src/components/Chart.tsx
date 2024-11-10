@@ -1,7 +1,8 @@
 "use client";
 
 import { TrendingUp } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+
+import { CartesianGrid, Line, LineChart, XAxis, Area } from "recharts";
 
 import {
   Card,
@@ -16,41 +17,185 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
 } from "@/components/ui/chart";
-const chartData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
-];
+
+import useFetchAndLoad from "@/hooks/useFetchAndLoad";
+import { useEffect, useState } from "react";
+import { getChartsData } from "../services/private";
+import {
+  createChartDataAdapter,
+  createChartDateTimeAdapter,
+  createChartDateTimeAdapterActuator,
+} from "@/adapters/chart-data";
+import { time } from "console";
 
 const chartConfig = {
-  desktop: {
-    label: "Desktop",
+  temp: {
+    label: "Temperatura",
+    color: "hsl(var(--chart-5))",
+  },
+  hum: {
+    label: "Humedad relativa",
     color: "hsl(var(--chart-1))",
   },
-  mobile: {
-    label: "Mobile",
+  soilhum: {
+    label: "Humedad del suelo",
     color: "hsl(var(--chart-2))",
+  },
+  light: {
+    label: "Luces",
+    color: "hsl(var(--chart-3))",
   },
 } satisfies ChartConfig;
 
 export default function Chart() {
+  const { loading, callEndpoint } = useFetchAndLoad();
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      var timeAgo = 9000; //9000;
+      const result = await callEndpoint(
+        getChartsData("sr8A3ZskGQ", "OHFEn7XH3K", timeAgo)
+      );
+
+      const result2 = await callEndpoint(
+        getChartsData("sr8A3ZskGQ", "i3gutmDSSB", timeAgo)
+      );
+
+      const result3 = await callEndpoint(
+        getChartsData("sr8A3ZskGQ", "tHNdg4S8sV", timeAgo)
+      );
+
+      const result4 = await callEndpoint(
+        getChartsData("sr8A3ZskGQ", "ONPAgFDsIA", timeAgo)
+      );
+
+      if (!result || Object.keys(result)?.length === 0) {
+        return;
+      } else {
+        if (result.data.length === 0) {
+          setData([]);
+        } else {
+          //setData(result.data.data.map((item) => createChartDataAdapter(item)));
+
+          const combined = combineArrays([
+            result.data.data.map((item) => createChartDateTimeAdapter(item)),
+            result2.data.data.map((item) => createChartDateTimeAdapter(item)),
+            result3.data.data.map((item) => createChartDateTimeAdapter(item)),
+            result4.data.data.map((item) =>
+              createChartDateTimeAdapterActuator(item)
+            ),
+          ]);
+
+          addSteppedValues(combined);
+          setData(
+            combined.map((item) => ({
+              ...item,
+              time: new Date(item.time).toLocaleString(),
+            }))
+          );
+        }
+      }
+    };
+    fetchData();
+  }, []);
+
+  const combineArrays = (arrays, threshold = 7000000) => {
+    //golden ratio: 7000000
+    const combined = {};
+
+    const getVariableName = (variable) => {
+      if (variable === "OHFEn7XH3K") return "temp";
+      if (variable === "tHNdg4S8sV") return "soilhum";
+      if (variable === "i3gutmDSSB") return "hum";
+      if (variable === "ONPAgFDsIA") return "light";
+      return variable;
+    };
+
+    const addToCombined = (item) => {
+      const time = item.time.getTime();
+      let found = false;
+
+      for (const key in combined) {
+        if (Math.abs(key - time) <= threshold) {
+          combined[key][getVariableName(item.variable)] = item.value;
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        combined[time] = { time: item.time };
+        combined[time][getVariableName(item.variable)] = item.value;
+      }
+    };
+
+    if (!Array.isArray(arrays)) {
+      throw new TypeError("Expected an array of arrays");
+    }
+
+    arrays.forEach((array) => {
+      if (!Array.isArray(array)) {
+        throw new TypeError("Each element of arrays should be an array");
+      }
+      array.forEach(addToCombined);
+    });
+
+    return Object.values(combined);
+  };
+
+  const addSteppedValues = (data, interval = 7000000) => {
+    if (data.length === 0) return data;
+
+    const steppedData = [];
+    let lastKnownValues = {};
+
+    for (let i = 0; i < data.length; i++) {
+      const currentItem = data[i];
+      const currentTime = currentItem.time.getTime();
+
+      // Check if light has a definition, if not, add the last known light value
+      if (
+        currentItem.light === undefined &&
+        lastKnownValues.light !== undefined
+      ) {
+        currentItem.light = lastKnownValues.light;
+      }
+
+      // Update the last known values for all variables
+      lastKnownValues = { ...lastKnownValues, ...currentItem };
+
+      // If this is not the last item, add interpolated values
+      if (i < data.length - 1) {
+        const nextTime = data[i + 1].time.getTime();
+        let time = currentTime + interval;
+
+        while (time < nextTime) {
+          const interpolatedItem = { time: new Date(time), ...lastKnownValues };
+          steppedData.push(interpolatedItem);
+          time += interval;
+        }
+      }
+    }
+
+    return steppedData;
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Area Chart - Gradient</CardTitle>
-        <CardDescription>
-          Showing total visitors for the last 6 months
-        </CardDescription>
+        <CardTitle>Line Chart - Multiple</CardTitle>
+        <CardDescription>Ultima semana</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
-          <AreaChart
+          <LineChart
             accessibilityLayer
-            data={chartData}
+            data={data}
+            title="Line Chart -"
             margin={{
               left: 12,
               right: 12,
@@ -58,70 +203,46 @@ export default function Chart() {
           >
             <CartesianGrid vertical={false} />
             <XAxis
-              dataKey="month"
+              allowDataOverflow={false}
+              dataKey="time"
+              interval="preserveStartEnd"
               tickLine={false}
-              axisLine={false}
+              axisLine={true}
               tickMargin={8}
-              tickFormatter={(value) => value.slice(0, 3)}
             />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <defs>
-              <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-desktop)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-desktop)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-              <linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-mobile)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-mobile)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-            </defs>
-            <Area
-              dataKey="mobile"
+            <ChartLegend content={<ChartLegendContent />} />
+            <Line
+              dataKey="temp"
               type="natural"
-              fill="url(#fillMobile)"
-              fillOpacity={0.4}
-              stroke="var(--color-mobile)"
-              stackId="a"
+              stroke="var(--color-temp)"
+              strokeWidth={2}
+              dot={false}
             />
-            <Area
-              dataKey="desktop"
+            <Line
+              dataKey="hum"
               type="natural"
-              fill="url(#fillDesktop)"
-              fillOpacity={0.4}
-              stroke="var(--color-desktop)"
-              stackId="a"
+              stroke="var(--color-hum)"
+              strokeWidth={2}
+              dot={false}
             />
-          </AreaChart>
+            <Line
+              dataKey="soilhum"
+              type="natural"
+              stroke="var(--color-soilhum)"
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              dataKey="light"
+              type="step"
+              stroke="var(--color-light)"
+              strokeWidth={2}
+              dot={false}
+            />
+          </LineChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter>
-        <div className="flex w-full items-start gap-2 text-sm">
-          <div className="grid gap-2">
-            <div className="flex items-center gap-2 font-medium leading-none">
-              Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-            </div>
-            <div className="flex items-center gap-2 leading-none text-muted-foreground">
-              January - June 2024
-            </div>
-          </div>
-        </div>
-      </CardFooter>
     </Card>
   );
 }
