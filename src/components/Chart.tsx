@@ -23,13 +23,13 @@ import {
 
 import useFetchAndLoad from "@/hooks/useFetchAndLoad";
 import { useEffect, useState } from "react";
-import { getChartsData } from "../services/private";
+import { getChartsData, getDayChartsData } from "../services/private";
 import {
   createChartDataAdapter,
   createChartDateTimeAdapter,
   createChartDateTimeAdapterActuator,
 } from "@/adapters/chart-data";
-import { time } from "console";
+import useCalendar from "@/hooks/useCalendar";
 
 const chartConfig = {
   temp: {
@@ -51,8 +51,59 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function Chart() {
+  const { selectedDate } = useCalendar();
   const { loading, callEndpoint } = useFetchAndLoad();
+  const { pageTreshold, setPageTreshold } = useState(7000000);
   const [data, setData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const result = await callEndpoint(
+        getDayChartsData("sr8A3ZskGQ", "OHFEn7XH3K", selectedDate)
+      );
+
+      const result2 = await callEndpoint(
+        getDayChartsData("sr8A3ZskGQ", "i3gutmDSSB", selectedDate)
+      );
+
+      const result3 = await callEndpoint(
+        getDayChartsData("sr8A3ZskGQ", "tHNdg4S8sV", selectedDate)
+      );
+
+      const result4 = await callEndpoint(
+        getDayChartsData("sr8A3ZskGQ", "ONPAgFDsIA", selectedDate)
+      );
+
+      if (!result || Object.keys(result)?.length === 0) {
+        return;
+      } else {
+        if (
+          result.data.data.length !== 0 ||
+          result2.data.data.length !== 0 ||
+          result3.data.data.length !== 0 ||
+          result4.data.data.length !== 0
+        ) {
+          const combined = combineArrays([
+            result.data.data.map((item) => createChartDateTimeAdapter(item)),
+            result2.data.data.map((item) => createChartDateTimeAdapter(item)),
+            result3.data.data.map((item) => createChartDateTimeAdapter(item)),
+            result4.data.data.map((item) =>
+              createChartDateTimeAdapterActuator(item)
+            ),
+          ]);
+
+          addSteppedValues(combined);
+          setData(
+            combined.map((item) => ({
+              ...item,
+              time: new Date(item.time).toLocaleString(),
+            }))
+          );
+        }
+      }
+    };
+    fetchData();
+  }, [selectedDate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -76,19 +127,22 @@ export default function Chart() {
       if (!result || Object.keys(result)?.length === 0) {
         return;
       } else {
-        if (result.data.length === 0) {
+        if (result.data.data.length === 0) {
           setData([]);
         } else {
           //setData(result.data.data.map((item) => createChartDataAdapter(item)));
 
-          const combined = combineArrays([
-            result.data.data.map((item) => createChartDateTimeAdapter(item)),
-            result2.data.data.map((item) => createChartDateTimeAdapter(item)),
-            result3.data.data.map((item) => createChartDateTimeAdapter(item)),
-            result4.data.data.map((item) =>
-              createChartDateTimeAdapterActuator(item)
-            ),
-          ]);
+          const combined = combineArrays(
+            [
+              result.data.data.map((item) => createChartDateTimeAdapter(item)),
+              result2.data.data.map((item) => createChartDateTimeAdapter(item)),
+              result3.data.data.map((item) => createChartDateTimeAdapter(item)),
+              result4.data.data.map((item) =>
+                createChartDateTimeAdapterActuator(item)
+              ),
+            ],
+            pageTreshold
+          );
 
           addSteppedValues(combined);
           setData(
@@ -147,15 +201,24 @@ export default function Chart() {
     return Object.values(combined);
   };
 
-  const addSteppedValues = (data, interval = 7000000) => {
+  const addSteppedValues = (data) => {
     if (data.length === 0) return data;
 
-    const steppedData = [];
     let lastKnownValues = {};
-
+    let firstKnownValues = null;
     for (let i = 0; i < data.length; i++) {
       const currentItem = data[i];
-      const currentTime = currentItem.time.getTime();
+
+      if (
+        lastKnownValues.light === undefined &&
+        currentItem.light !== undefined &&
+        firstKnownValues === null
+      ) {
+        firstKnownValues = { ...currentItem };
+        for (let count = 0; count < i; count++) {
+          data[count] = { ...data[count], light: firstKnownValues.light };
+        }
+      }
 
       // Check if light has a definition, if not, add the last known light value
       if (
@@ -167,21 +230,7 @@ export default function Chart() {
 
       // Update the last known values for all variables
       lastKnownValues = { ...lastKnownValues, ...currentItem };
-
-      // If this is not the last item, add interpolated values
-      if (i < data.length - 1) {
-        const nextTime = data[i + 1].time.getTime();
-        let time = currentTime + interval;
-
-        while (time < nextTime) {
-          const interpolatedItem = { time: new Date(time), ...lastKnownValues };
-          steppedData.push(interpolatedItem);
-          time += interval;
-        }
-      }
     }
-
-    return steppedData;
   };
 
   return (

@@ -7,15 +7,18 @@ import { Provider } from "react-redux";
 import { SnackbarProvider } from "notistack";
 import Layout from "./Layout";
 import { AuthProvider } from "./providers/AuthProvider";
+import { CalendarProvider } from "./providers/CalendarProvider";
 
 function App({ children }) {
   return (
     <SnackbarProvider>
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <Provider store={store}>
-          <AuthProvider>
-            <Layout />
-          </AuthProvider>
+          <CalendarProvider>
+            <AuthProvider>
+              <Layout />
+            </AuthProvider>
+          </CalendarProvider>
         </Provider>
       </ThemeProvider>
     </SnackbarProvider>

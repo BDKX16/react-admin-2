@@ -10,7 +10,7 @@ const Dashboard = () => {
         <div className="aspect-ratio-pill flex-1 rounded-xl bg-muted/50" />
       </div>
       <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min">
-        <Chart />
+        Hola
       </div>
     </div>
   );

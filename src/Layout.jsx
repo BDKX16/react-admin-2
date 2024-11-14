@@ -10,8 +10,14 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 const Layout = () => {
   const userState = useSelector((state) => state.user);
+
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_relativeSplatPath: true,
+        v7_startTransition: true,
+      }}
+    >
       <Routes>
         <Route
           path="/login"
@@ -24,8 +30,9 @@ const Layout = () => {
             <SidebarProvider>
               <AppSidebar>
                 <Routes>
-                  <Route path={`/dash`} element={<Dashboard />}></Route>
-                  <Route path={`/*`} element={<ChartDashboard />}></Route>
+                  <Route path={`/dashboard`} element={<Dashboard />}></Route>
+                  <Route path={`/charts`} element={<ChartDashboard />}></Route>
+                  <Route path={`/*`} element={<Dashboard />}></Route>
                 </Routes>
               </AppSidebar>
             </SidebarProvider>

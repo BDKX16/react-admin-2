@@ -1,13 +1,52 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker } from "react-day-picker";
 
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import { es } from "date-fns/locale";
+import useCalendar from "@/hooks/useCalendar";
+import { set } from "date-fns";
+export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+/*
+
+funcionalidades a agregar
+ - seleccion del dia
+ - seeleccion de rango
+
+  * DayPicker supports different selection mode that can be toggled using the
+ * `mode` prop:
+ *
+ * - `mode="single"`: only one day can be selected. Use `required` to make the
+ *   selection required. Use the `onSelect` event handler to get the selected
+ *   days.
+ * - `mode="multiple"`: users can select one or more days. Limit the amount of
+ *   days that can be selected with the `min` or the `max` props.
+ * - `mode="range"`: users can select a range of days. Limit the amount of days
+ *   in the range with the `min` or the `max` props.
+ * - `mode="default"` (default): the built-in selections are disabled. Implement
+ *   your own selection mode with `onDayClick`
+ * }: CalendarProps) {
+  const { setSelectedDate } = useCalendar();
+  const [date, setDate] = React.useState<Date | Date[] | undefined>(undefined);
+  return (
+    <DayPicker
+      locale={es}
+      mode="range"
+      selected={date}
+      onSelect={setDate}
+      showOutsideDays={showOutsideDays}
+
+
+
+
+      Cargar los templates
+      Cargar los timers, ciclos y programaciones
+      Mostrar el dashboard
+*/
 
 function Calendar({
   className,
@@ -15,8 +54,11 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
+  const { setSelectedDate } = useCalendar();
   return (
     <DayPicker
+      locale={es}
+      onDayClick={(day) => setSelectedDate(day)}
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       classNames={{
@@ -65,8 +107,8 @@ function Calendar({
       }}
       {...props}
     />
-  )
+  );
 }
-Calendar.displayName = "Calendar"
+Calendar.displayName = "Calendar";
 
-export { Calendar }
+export { Calendar };

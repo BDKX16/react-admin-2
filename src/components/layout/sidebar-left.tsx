@@ -59,11 +59,11 @@ const data = {
       items: [
         {
           title: "Dispositivo",
-          url: "#",
+          url: "/dashboard",
         },
         {
           title: "Graficos",
-          url: "#",
+          url: "/charts",
         },
       ],
     },

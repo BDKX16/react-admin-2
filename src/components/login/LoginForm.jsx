@@ -35,6 +35,7 @@ const LoginFormulario = () => {
       return;
     } else {
       setUserData(createUserAdapter(result));
+      window.location.href = "/";
     }
   };
 

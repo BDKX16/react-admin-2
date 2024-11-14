@@ -43,6 +43,25 @@ export const getChartsData = (dId, variable, chartTimeAgo) => {
   };
 };
 
+export const getDayChartsData = (dId, variable, day) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  headers.params = { dId, variable, day };
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/get-day-charts-data", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+      }),
+    controller,
+  };
+};
+
 export const editContent = (data) => {
   const controller = loadAbort();
 

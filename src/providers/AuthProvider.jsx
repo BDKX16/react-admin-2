@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import user, { createUser } from "../redux/states/user";
+import { enqueueSnackbar } from "notistack";
 
 const AuthContext = createContext();
 
@@ -37,6 +38,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    enqueueSnackbar("Logout successfully", { variant: "success" });
     localStorage.removeItem("token");
     localStorage.removeItem("userData");
     setAuth({});
