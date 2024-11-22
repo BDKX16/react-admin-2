@@ -8,6 +8,9 @@ import { useSelector } from "react-redux";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { DevicesProvider } from "./providers/DevicesProvider";
+
+import { MqttProvider } from "./providers/MqttProvider";
 const Layout = () => {
   const userState = useSelector((state) => state.user);
 
@@ -27,15 +30,25 @@ const Layout = () => {
         <Route
           path="/*"
           element={
-            <SidebarProvider>
-              <AppSidebar>
-                <Routes>
-                  <Route path={`/dashboard`} element={<Dashboard />}></Route>
-                  <Route path={`/charts`} element={<ChartDashboard />}></Route>
-                  <Route path={`/*`} element={<Dashboard />}></Route>
-                </Routes>
-              </AppSidebar>
-            </SidebarProvider>
+            <DevicesProvider>
+              <MqttProvider>
+                <SidebarProvider>
+                  <AppSidebar>
+                    <Routes>
+                      <Route
+                        path={`/dashboard`}
+                        element={<Dashboard />}
+                      ></Route>
+                      <Route
+                        path={`/charts`}
+                        element={<ChartDashboard />}
+                      ></Route>
+                      <Route path={`/*`} element={<Dashboard />}></Route>
+                    </Routes>
+                  </AppSidebar>
+                </SidebarProvider>
+              </MqttProvider>
+            </DevicesProvider>
           }
         ></Route>
       </Routes>

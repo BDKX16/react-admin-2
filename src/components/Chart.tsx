@@ -1,7 +1,3 @@
-"use client";
-
-import { TrendingUp } from "lucide-react";
-
 import { CartesianGrid, Line, LineChart, XAxis, Area } from "recharts";
 
 import {
@@ -50,109 +46,104 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export default function Chart() {
+export default function Chart({ device }) {
   const { selectedDate } = useCalendar();
   const { loading, callEndpoint } = useFetchAndLoad();
   const { pageTreshold, setPageTreshold } = useState(7000000);
   const [data, setData] = useState([]);
-
   useEffect(() => {
-    const fetchData = async () => {
-      const result = await callEndpoint(
-        getDayChartsData("sr8A3ZskGQ", "OHFEn7XH3K", selectedDate)
-      );
+    const fetchDaysData = async () => {
+      let widgets = [];
 
-      const result2 = await callEndpoint(
-        getDayChartsData("sr8A3ZskGQ", "i3gutmDSSB", selectedDate)
-      );
-
-      const result3 = await callEndpoint(
-        getDayChartsData("sr8A3ZskGQ", "tHNdg4S8sV", selectedDate)
-      );
-
-      const result4 = await callEndpoint(
-        getDayChartsData("sr8A3ZskGQ", "ONPAgFDsIA", selectedDate)
-      );
-
-      if (!result || Object.keys(result)?.length === 0) {
-        return;
-      } else {
+      device.template.widgets.forEach((element) => {
         if (
-          result.data.data.length !== 0 ||
-          result2.data.data.length !== 0 ||
-          result3.data.data.length !== 0 ||
-          result4.data.data.length !== 0
+          (element.variableFullName === "Luces" &&
+            element.widgetType === "Indicator") ||
+          element.variableFullName === "Temp" ||
+          element.variableFullName === "Hum" ||
+          element.variableFullName === "Hum suelo"
         ) {
-          const combined = combineArrays([
-            result.data.data.map((item) => createChartDateTimeAdapter(item)),
-            result2.data.data.map((item) => createChartDateTimeAdapter(item)),
-            result3.data.data.map((item) => createChartDateTimeAdapter(item)),
-            result4.data.data.map((item) =>
-              createChartDateTimeAdapterActuator(item)
-            ),
-          ]);
-
-          addSteppedValues(combined);
-          setData(
-            combined.map((item) => ({
-              ...item,
-              time: new Date(item.time).toLocaleString(),
-            }))
-          );
+          widgets.push(element);
         }
-      }
+      });
+      const response = await Promise.all(
+        widgets.map(async (element) => {
+          const data = await callEndpoint(
+            getDayChartsData(device.dId, element.variable, selectedDate)
+          );
+          if (
+            element.variableFullName === "Luces" &&
+            element.widgetType === "Indicator"
+          ) {
+            return data.data.data.map((item) =>
+              createChartDateTimeAdapterActuator(item)
+            );
+          } else {
+            return data.data.data.map((item) =>
+              createChartDateTimeAdapter(item)
+            );
+          }
+        })
+      );
+
+      const combined = combineArrays(response, pageTreshold);
+
+      addSteppedValues(combined);
+      setData(
+        combined.map((item) => ({
+          ...item,
+          time: new Date(item.time).toLocaleString(),
+        }))
+      );
     };
-    fetchData();
+    fetchDaysData();
   }, [selectedDate]);
 
   useEffect(() => {
     const fetchData = async () => {
-      var timeAgo = 9000; //9000;
-      const result = await callEndpoint(
-        getChartsData("sr8A3ZskGQ", "OHFEn7XH3K", timeAgo)
-      );
+      var timeAgo = 12000; //9000;
+      let widgets = [];
 
-      const result2 = await callEndpoint(
-        getChartsData("sr8A3ZskGQ", "i3gutmDSSB", timeAgo)
-      );
-
-      const result3 = await callEndpoint(
-        getChartsData("sr8A3ZskGQ", "tHNdg4S8sV", timeAgo)
-      );
-
-      const result4 = await callEndpoint(
-        getChartsData("sr8A3ZskGQ", "ONPAgFDsIA", timeAgo)
-      );
-
-      if (!result || Object.keys(result)?.length === 0) {
-        return;
-      } else {
-        if (result.data.data.length === 0) {
-          setData([]);
-        } else {
-          //setData(result.data.data.map((item) => createChartDataAdapter(item)));
-
-          const combined = combineArrays(
-            [
-              result.data.data.map((item) => createChartDateTimeAdapter(item)),
-              result2.data.data.map((item) => createChartDateTimeAdapter(item)),
-              result3.data.data.map((item) => createChartDateTimeAdapter(item)),
-              result4.data.data.map((item) =>
-                createChartDateTimeAdapterActuator(item)
-              ),
-            ],
-            pageTreshold
-          );
-
-          addSteppedValues(combined);
-          setData(
-            combined.map((item) => ({
-              ...item,
-              time: new Date(item.time).toLocaleString(),
-            }))
-          );
+      device.template.widgets.forEach((element) => {
+        if (
+          (element.variableFullName === "Luces" &&
+            element.widgetType === "Indicator") ||
+          element.variableFullName === "Temp" ||
+          element.variableFullName === "Hum" ||
+          element.variableFullName === "Hum suelo"
+        ) {
+          widgets.push(element);
         }
-      }
+      });
+      const response = await Promise.all(
+        widgets.map(async (element) => {
+          const data = await callEndpoint(
+            getChartsData(device.dId, element.variable, timeAgo)
+          );
+          if (
+            element.variableFullName === "Luces" &&
+            element.widgetType === "Indicator"
+          ) {
+            return data.data.data.map((item) =>
+              createChartDateTimeAdapterActuator(item)
+            );
+          } else {
+            return data.data.data.map((item) =>
+              createChartDateTimeAdapter(item)
+            );
+          }
+        })
+      );
+
+      const combined = combineArrays(response, pageTreshold);
+
+      addSteppedValues(combined);
+      setData(
+        combined.map((item) => ({
+          ...item,
+          time: new Date(item.time).toLocaleString(),
+        }))
+      );
     };
     fetchData();
   }, []);
@@ -236,11 +227,11 @@ export default function Chart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Line Chart - Multiple</CardTitle>
+        <CardTitle>{device.name}</CardTitle>
         <CardDescription>Ultima semana</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
+        <ChartContainer config={chartConfig} className="max-h-[78dvh] w-[100%]">
           <LineChart
             accessibilityLayer
             data={data}

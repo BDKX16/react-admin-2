@@ -1,11 +1,15 @@
 import React from "react";
 import Chart from "@/components/chart";
+import useDevices from "@/hooks/useDevices";
 
 const ChartDashboard = () => {
+  const { selectedDevice } = useDevices();
   return (
     <div>
       <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min">
-        <Chart />
+        {Object.keys(selectedDevice)?.length !== 0 && (
+          <Chart device={selectedDevice} />
+        )}
       </div>
     </div>
   );

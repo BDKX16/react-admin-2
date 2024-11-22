@@ -25,6 +25,7 @@ export const getWebContent = () => {
       })
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -41,6 +42,7 @@ export const login = (username, password) => {
       )
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -57,6 +59,7 @@ export const register = (name, username, password) => {
       )
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -77,6 +80,7 @@ export const getContent = () => {
       })
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -96,6 +100,7 @@ export const getVideo = (id) => {
       })
       .catch((error) => {
         //notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -113,6 +118,7 @@ export const searchVideos = (id, page) => {
       )
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -132,6 +138,7 @@ export const getPendingPayments = () => {
       )
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -146,6 +153,7 @@ export const getTheme = () => {
       })
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -160,6 +168,7 @@ export const getCarousel = () => {
       })
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -174,6 +183,7 @@ export const editCarousel = (data) => {
       })
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -188,6 +198,7 @@ export const addCarousel = (data) => {
       })
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -202,6 +213,7 @@ export const deleteCarousel = (id) => {
       })
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -220,6 +232,7 @@ export const getPayment = (id) => {
       })
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -238,6 +251,7 @@ export const sendPayment = (formData) => {
       })
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
@@ -261,6 +275,7 @@ export const capturePaypalPayment = (orderID) => {
       )
       .catch((error) => {
         notifyError(error);
+        return { error: true };
       }),
     controller,
   };
