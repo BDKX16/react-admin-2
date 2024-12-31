@@ -2,8 +2,23 @@ import React from "react";
 import Chart from "@/components/chart";
 import { InputCard } from "@/components/InputCard";
 import useDevices from "@/hooks/useDevices";
+
+import ActuatorCard from "../components/ActuatorCard";
+import useAuth from "../hooks/useAuth";
 const Dashboard = () => {
   const { selectedDevice } = useDevices();
+  const { auth } = useAuth();
+  const calculateActuatorsCols = (widgets) => {
+    const cant = widgets.filter(
+      (widget) => widget.widgetType === "Switch" || widget.widgetType === "Pump"
+    ).length;
+
+    if (cant == 4) {
+      return 2;
+    } else if (cant == 3) {
+      return 3;
+    }
+  };
   return (
     <>
       <div className="grid auto-rows-min gap-4 md:grid-cols-3">
@@ -24,9 +39,30 @@ const Dashboard = () => {
             }
           })}
       </div>
-      <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min">
-        Hola
-      </div>
+      {Object.keys(selectedDevice)?.length !== 0 && (
+        <div
+          className={
+            "grid auto-rows-min gap-4 md:grid-cols-" +
+            calculateActuatorsCols(selectedDevice.template.widgets)
+          }
+        >
+          {selectedDevice.template.widgets
+            .filter(
+              (widget) =>
+                widget.widgetType === "Switch" || widget.widgetType === "Pump"
+            )
+            .map((item) => {
+              return (
+                <ActuatorCard
+                  key={item.variable}
+                  widget={item}
+                  dId={selectedDevice.dId}
+                  userId={auth.userData.id}
+                />
+              );
+            })}
+        </div>
+      )}
     </>
   );
 };

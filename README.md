@@ -1,8 +1,28 @@
-# React + Vite
+ToDo:
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Cuando entras y el token esta expirado pedir logueo nuevamente
 
-Currently, two official plugins are available:
+Agregar widget de clima
+Agregar widgets de actuadores
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Switch/Pump:
+Popover
+Drawer
+Tabs
+Combobox
+Dialog
+
+Will be Tabs but if the screen is not wide enough will put a drawer
+
+Opciones:
+Switch: on off timer ciclos
+Pump: regar por tiempo, calcular riego, ciclos
+
+ToDo:
+Sliders para los ciclos y timers
+
+Menu de timers y ciclos por separado
+
+Menu de reglas y automatizaciones
+
+Menu de ajustes

@@ -34,7 +34,7 @@ export const DevicesProvider = ({ children }) => {
   const getDevices = async () => {
     const result = await callEndpoint(getInitialDevices());
 
-    if (!result || Object.keys(result)?.length === 0) {
+    if (!result || Object.keys(result)?.length === 0 || result.error) {
       return;
     } else {
       setDevicesArr(result.data.data);

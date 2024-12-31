@@ -107,6 +107,29 @@ export const getEmqxCredentials = () => {
   };
 };
 
+export const getEmqxCredentialsReconnect = () => {
+  const controller = loadAbort();
+
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL + "/getmqttcredentialsforreconnection",
+        {},
+        headers,
+        { signal: controller.signal }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 /**********
  * FUNCTIONS
  ************/

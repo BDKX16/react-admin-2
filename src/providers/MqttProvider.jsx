@@ -4,7 +4,10 @@ import { useSnackbar } from "notistack";
 import useAuth from "../hooks/useAuth";
 import axios from "axios";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
-import { getEmqxCredentials } from "../services/private";
+import {
+  getEmqxCredentials,
+  getEmqxCredentialsReconnect,
+} from "../services/private";
 
 const MqttContext = createContext();
 
@@ -122,7 +125,7 @@ export const MqttProvider = ({ children }) => {
   const initMqtt = async () => {
     const deviceSubscribeTopic = auth.userData.id + "/+/+/sdata";
     const notifSubscribeTopic = auth.userData.id + "/+/+/notif";
-
+    console.log("connecting....");
     mqttClientRef.current.on("connect", function () {
       setConnectingMqtt(false);
       setLoadingMqtt(false);
@@ -276,7 +279,7 @@ export const MqttProvider = ({ children }) => {
           password: res.data.password,
           clean: true,
           reconnectPeriod: 5000,
-          connectTimeout: 5000,
+          connectTimeout: 10000, // Increased from 5000 to 10000
         };
         setOptions(options);
         setConnectingMqtt(false);
@@ -293,27 +296,12 @@ export const MqttProvider = ({ children }) => {
     if (!pestanaSegundoPlano) {
       setConnectingMqtt(true);
 
-      const axiosHeaders = {
-        headers: {
-          token: auth.token,
-        },
-      };
-      const credentials = await axios
-        .post(
-          import.meta.env.VITE_BASE_URL + "/getmqttcredentialsforreconnection",
-          null,
-          axiosHeaders
-        )
-        .then((res) => {
-          if (res.data.status == "success") {
-            mqttClientRef.current.options.password = res.data.password;
-            mqttClientRef.current.options.username = res.data.username;
-          }
-        })
-        .catch((error) => {
-          setConnectingMqtt(false);
-          console.log(error);
-        });
+      const credentials = await callEndpoint(getEmqxCredentialsReconnect());
+      console.log(credentials);
+      if (credentials.data.status == "success") {
+        mqttClientRef.current.options.password = credentials.data.password;
+        mqttClientRef.current.options.username = credentials.data.username;
+      }
     }
   };
 

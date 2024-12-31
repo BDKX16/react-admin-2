@@ -23,7 +23,7 @@ import MiniChart from "./MiniChart";
 import useMqtt from "../hooks/useMqtt";
 
 export const InputCard = ({ widget, dId }) => {
-  const valueRef = React.useRef(55);
+  const valueRef = React.useRef(null);
   const setValue = (newValue) => {
     valueRef.current = newValue;
   };
@@ -58,7 +58,9 @@ export const InputCard = ({ widget, dId }) => {
           {mapName(widget.variableFullName)}
         </CardDescription>
         <CardTitle className="text-3xl">
-          {valueRef.current + " " + widget.unidad}
+          {valueRef.current
+            ? valueRef.current + " " + widget.unidad
+            : " - " + widget.unidad}
         </CardTitle>
       </CardHeader>
       <CardContent className=" flex-1 p-0">
