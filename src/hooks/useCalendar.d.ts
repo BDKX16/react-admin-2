@@ -1,5 +1,5 @@
-declare module "@/hooks/useAuth" {
-  export function useAuth(): {
+declare module "@/hooks/useCalendar" {
+  export function useCalendar(): {
     selectedDate: Date;
     setSelectedDate: (date: Date) => void;
     filters: {

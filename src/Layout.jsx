@@ -11,6 +11,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { DevicesProvider } from "./providers/DevicesProvider";
 
 import { MqttProvider } from "./providers/MqttProvider";
+import Notifications from "./pages/Notifications.jsx";
 const Layout = () => {
   const userState = useSelector((state) => state.user);
 
@@ -42,6 +43,10 @@ const Layout = () => {
                       <Route
                         path={`/charts`}
                         element={<ChartDashboard />}
+                      ></Route>
+                      <Route
+                        path={`/notifications`}
+                        element={<Notifications />}
                       ></Route>
                       <Route path={`/*`} element={<Dashboard />}></Route>
                     </Routes>

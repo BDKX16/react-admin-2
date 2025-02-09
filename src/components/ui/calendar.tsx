@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { es } from "date-fns/locale";
 import useCalendar from "@/hooks/useCalendar";
-import { set } from "date-fns";
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 /*

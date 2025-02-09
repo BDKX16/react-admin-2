@@ -200,8 +200,7 @@ export const MqttProvider = ({ children }) => {
           return;
         } else if (msgType == "sdata") {
           const valor = JSON.parse(message);
-
-          if (valor.value == null) {
+          if (valor == null || valor.value == null || valor.value == "") {
             return;
           }
           const newItem = {

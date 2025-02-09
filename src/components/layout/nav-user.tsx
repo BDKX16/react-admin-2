@@ -17,6 +17,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+import { Moon, Sun } from "lucide-react";
+
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -27,6 +30,7 @@ import {
 import { ThemeModeToggle } from "@/components/theme-mode-toggle";
 import useAuth from "@/hooks/useAuth";
 
+import { useTheme } from "@/providers/theme-provider";
 export function NavUser({
   user,
 }: {
@@ -36,8 +40,18 @@ export function NavUser({
     avatar: string;
   };
 }) {
+  const { theme, setTheme } = useTheme();
+
   const { isMobile } = useSidebar();
   const { logout, auth } = useAuth();
+
+  const changeTheme = () => {
+    if (theme === "light") {
+      setTheme("dark");
+    } else {
+      setTheme("light");
+    }
+  };
 
   return (
     <SidebarMenu>
@@ -87,30 +101,36 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <ThemeModeToggle />
+              <DropdownMenuItem
+                variant="outline"
+                size="icon"
+                onClick={() => changeTheme()}
+              >
+                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                Tema
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem disabled>
                 <BadgeCheck />
-                Account
+                Cuenta
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem disabled>
                 <CreditCard />
-                Billing
+                Pagos
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem disabled>
                 <Bell />
-                Notifications
+                Notificationes
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
 
             <DropdownMenuItem onClick={() => logout()}>
               <LogOut />
-              Log out
+              Cerrar sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

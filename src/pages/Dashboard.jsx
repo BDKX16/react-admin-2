@@ -5,9 +5,11 @@ import useDevices from "@/hooks/useDevices";
 
 import ActuatorCard from "../components/ActuatorCard";
 import useAuth from "../hooks/useAuth";
+
 const Dashboard = () => {
   const { selectedDevice } = useDevices();
   const { auth } = useAuth();
+  console.log(selectedDevice);
   const calculateActuatorsCols = (widgets) => {
     const cant = widgets.filter(
       (widget) => widget.widgetType === "Switch" || widget.widgetType === "Pump"
@@ -21,7 +23,7 @@ const Dashboard = () => {
   };
   return (
     <>
-      <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+      <div className="grid auto-rows-min gap-4 md:grid-cols-3 sm:grid-cols-2">
         {Object.keys(selectedDevice)?.length !== 0 &&
           selectedDevice.template.widgets.map((item) => {
             if (
@@ -42,7 +44,7 @@ const Dashboard = () => {
       {Object.keys(selectedDevice)?.length !== 0 && (
         <div
           className={
-            "grid auto-rows-min gap-4 md:grid-cols-" +
+            "grid auto-rows-min gap-4 sm:grid-cols-2 md:grid-cols-" +
             calculateActuatorsCols(selectedDevice.template.widgets)
           }
         >
@@ -56,6 +58,12 @@ const Dashboard = () => {
                 <ActuatorCard
                   key={item.variable}
                   widget={item}
+                  timer={selectedDevice.timers.find(
+                    (timer) => timer.variable === item.variable
+                  )}
+                  ciclo={selectedDevice.ciclos.find(
+                    (ciclo) => ciclo.variable === item.variable
+                  )}
                   dId={selectedDevice.dId}
                   userId={auth.userData.id}
                 />

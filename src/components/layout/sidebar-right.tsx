@@ -16,6 +16,8 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 
+import { Download } from "lucide-react";
+
 // This is sample data.
 const data = {
   user: {
@@ -25,16 +27,12 @@ const data = {
   },
   calendars: [
     {
-      name: "My Calendars",
-      items: ["Personal", "Work", "Family"],
+      name: "Mis Eventos",
+      items: ["Defoliar", "Fermentar", "Revisar plagas"],
     },
     {
-      name: "Favorites",
-      items: ["Holidays", "Birthdays"],
-    },
-    {
-      name: "Other",
-      items: ["Travel", "Reminders", "Deadlines"],
+      name: "Riegos",
+      items: ["Regar 5pm", "Regar 1am"],
     },
   ],
 };
@@ -49,7 +47,14 @@ export function SidebarRight({
       {...props}
     >
       <SidebarHeader className="h-16 border-b border-sidebar-border">
-        <NavUser user={data.user} />
+        <a
+          href="https://play.google.com/store/apps/details?id=com.xavigmp.confiplant"
+          target="_blank"
+          className="flex gap-2 items-center justify-center h-full text-primary-500"
+        >
+          <Download size={20} />
+          <p>Instalar aplicacion</p>
+        </a>
       </SidebarHeader>
       <SidebarContent>
         <DatePicker />
@@ -61,7 +66,7 @@ export function SidebarRight({
           <SidebarMenuItem>
             <SidebarMenuButton>
               <Plus />
-              <span>New Calendar</span>
+              <span>Añadir evento</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

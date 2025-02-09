@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 
 import {
   Card,
@@ -20,8 +21,10 @@ import {
 } from "@/components/ui/select";
 
 import useMqtt from "../hooks/useMqtt";
+import CiclosForm from "./CiclosForm";
+import TimersForm from "./TimersForm";
 
-export const ActuatorCard = ({ widget, dId, userId }) => {
+export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
   const valueRef = React.useRef(null);
   const setValue = (newValue) => {
     valueRef.current = newValue;
@@ -45,7 +48,7 @@ export const ActuatorCard = ({ widget, dId, userId }) => {
   };
 
   const mapValue = (value) => {
-    if (value === 1 || value == true) {
+    if (value === 1 || value === true) {
       return "on";
     } else if (value === 0 || value === false) {
       return "off";
@@ -80,7 +83,7 @@ export const ActuatorCard = ({ widget, dId, userId }) => {
     } else if (value === "cicles") {
       value = 5;
     }
-    console.log(value);
+
     //return;
     const toSend = {
       topic: userId + "/" + dId + "/" + widget.variable + "/actdata",
@@ -116,10 +119,11 @@ export const ActuatorCard = ({ widget, dId, userId }) => {
               </TabsList>
               <TabsContent value="on"></TabsContent>
               <TabsContent value="off"></TabsContent>
-              <TabsContent value="timers">Set timers hours</TabsContent>
+              <TabsContent value="timers">
+                <TimersForm timers={timer} dId={dId} />
+              </TabsContent>
               <TabsContent value="cicles">
-                <p>Set time on</p>
-                <p>Set time off</p>
+                <CiclosForm ciclo={ciclo} dId={dId} />
               </TabsContent>
             </Tabs>
           </div>

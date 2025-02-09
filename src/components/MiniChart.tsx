@@ -46,6 +46,7 @@ export default function MiniChart({ color, variable, dId }) {
       const combined = combineArrays(
         data.data.data.map((item) => createChartDateTimeAdapter(item))
       );
+
       setChartData(
         combined.map((item) => ({
           ...item,

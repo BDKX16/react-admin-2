@@ -4,14 +4,14 @@ import * as React from "react";
 import {
   AudioWaveform,
   BookOpen,
+  LayoutDashboard,
   Bot,
   Command,
-  Frame,
   GalleryVerticalEnd,
-  Map,
-  PieChart,
+  ChartNoAxesGanttIcon,
+  ChartNoAxesCombined,
+  Calendar,
   Settings2,
-  SquareTerminal,
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/nav-main";
@@ -25,6 +25,8 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import useDevices from "@/hooks/useDevices";
+import { Skeleton } from "../ui/skeleton";
 
 // This is sample data.
 const data = {
@@ -33,28 +35,12 @@ const data = {
     email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  teams: [
-    {
-      name: "Sweet home alabahama",
-      logo: GalleryVerticalEnd,
-      plan: "AutoKit 1",
-    },
-    {
-      name: "Living",
-      logo: AudioWaveform,
-      plan: "AutoKit 2",
-    },
-    {
-      name: "Hidroponia",
-      logo: Command,
-      plan: "ConfiWater",
-    },
-  ],
+  teams: [],
   navMain: [
     {
       title: "Dashboard",
       url: "#",
-      icon: SquareTerminal,
+      icon: LayoutDashboard,
       isActive: true,
       items: [
         {
@@ -67,90 +53,130 @@ const data = {
         },
       ],
     },
-    {
-      title: "Devices",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Lista de dispositivos",
-          url: "#",
-        },
-        {
-          title: "Agregar dispositivo",
-          url: "#",
-        },
-      ],
-    },
+
     {
       title: "Automatizaciones",
       url: "#",
       icon: BookOpen,
       items: [
         {
-          title: "Limites",
+          title: "Reglas",
           url: "#",
         },
+        // {
+        //   title: "Timers",
+        //   url: "#",
+        // },
+        // {
+        //   title: "Ciclos",
+        //   url: "#",
+        // },
         {
-          title: "Timers",
-          url: "#",
-        },
-        {
-          title: "Ciclos",
-          url: "#",
-        },
-        {
-          title: "Alertas",
-          url: "#",
+          title: "Notificaciones",
+          url: "/notifications",
         },
       ],
     },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "Contraseña dispositivo",
-          url: "#",
-        },
-        {
-          title: "Calibrar sensores",
-          url: "#",
-        },
-      ],
-    },
+    // {
+    //   title: "Dispositivos",
+    //   url: "#",
+    //   icon: Bot,
+    //   items: [
+    //     {
+    //       title: "Lista de dispositivos",
+    //       url: "#",
+    //     },
+    //     {
+    //       title: "Agregar dispositivo",
+    //       url: "#",
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: "Configuracion",
+    //   url: "#",
+    //   icon: Settings2,
+    //   items: [
+    //     {
+    //       title: "Calibrar sensores",
+    //       url: "#",
+    //     },
+
+    //     {
+    //       title: "Notificaciones",
+    //       url: "#",
+    //     },
+    //     {
+    //       title: "Contraseña dispositivo",
+    //       url: "#",
+    //     },
+    //   ],
+    // },
   ],
   projects: [
     {
-      name: "Design Engineering",
+      name: "Calendario",
       url: "#",
-      icon: Frame,
+      icon: Calendar,
     },
     {
-      name: "Sales & Marketing",
+      name: "Eventos",
       url: "#",
-      icon: PieChart,
+      icon: ChartNoAxesGanttIcon,
     },
     {
-      name: "Travel",
+      name: "Estadisticas",
       url: "#",
-      icon: Map,
+      icon: ChartNoAxesCombined,
     },
   ],
+};
+
+const parsePlansName = (plan) => {
+  if (plan === "default") {
+    return "AutoKit v1";
+  } else if (plan === "default v2") {
+    return "AutoKit v2";
+  } else if (plan === "hidroponics") {
+    return "Confi Hydro";
+  }
 };
 
 export function SidebarLeft({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const { devicesArr } = useDevices();
+
+  const updatedTeams = devicesArr.map((item) => {
+    return {
+      name: item.name,
+      dId: item.dId,
+      logo: GalleryVerticalEnd,
+      plan: parsePlansName(item.modelId),
+      selected: item.selected,
+    };
+  });
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        {devicesArr.length > 0 ? (
+          <TeamSwitcher teams={updatedTeams} />
+        ) : (
+          <>
+            <div className="flex items-center space-x-3 py-2 pl-2">
+              <Skeleton className="h-8 w-8 square-full " />
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-[130px]" />
+                <Skeleton className="h-3 w-[80px]" />
+              </div>
+            </div>
+          </>
+        )}
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

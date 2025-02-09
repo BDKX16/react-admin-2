@@ -11,13 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 import MiniChart from "./MiniChart";
 import useMqtt from "../hooks/useMqtt";
@@ -51,6 +44,16 @@ export const InputCard = ({ widget, dId }) => {
     }
   };
 
+  const errorHandeOnValue = (value, unidad) => {
+    if (value == -2) {
+      return "Error";
+    } else if (value == -3) {
+      return "Disconnected";
+    }
+
+    return value ? value + " " + unidad : " - " + unidad;
+  };
+
   return (
     <Card className="text-left flex md:flex-col p-6">
       <CardHeader className="p-0 pb-3 pl-1 min-w-[130px]">
@@ -58,9 +61,7 @@ export const InputCard = ({ widget, dId }) => {
           {mapName(widget.variableFullName)}
         </CardDescription>
         <CardTitle className="text-3xl">
-          {valueRef.current
-            ? valueRef.current + " " + widget.unidad
-            : " - " + widget.unidad}
+          {errorHandeOnValue(valueRef.current, widget.unidad)}
         </CardTitle>
       </CardHeader>
       <CardContent className=" flex-1 p-0">

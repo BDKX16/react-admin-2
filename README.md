@@ -3,7 +3,8 @@ ToDo:
 Cuando entras y el token esta expirado pedir logueo nuevamente
 
 Agregar widget de clima
-Agregar widgets de actuadores
+Agregar widgets de actuadores CHECK
+Loading spinner o skeleton en ActuatorCard
 
 Switch/Pump:
 Popover
