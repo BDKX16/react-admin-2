@@ -61,7 +61,7 @@ const data = {
       items: [
         {
           title: "Reglas",
-          url: "#",
+          url: "/rule-engine",
         },
         // {
         //   title: "Timers",
@@ -74,6 +74,10 @@ const data = {
         {
           title: "Notificaciones",
           url: "/notifications",
+        },
+        {
+          title: "Configuración",
+          url: "/device-config",
         },
       ],
     },

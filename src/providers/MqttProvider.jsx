@@ -36,6 +36,9 @@ export const MqttProvider = ({ children }) => {
 
   const [reconnecting, setReconnecting] = useState(false);
 
+  //mensajes a enviar mqtt
+  const [status, setStatus] = useState("disconnected");
+
   useEffect(() => {
     try {
       window.addEventListener("visibilitychange", handleVisibilityChange);
@@ -127,6 +130,7 @@ export const MqttProvider = ({ children }) => {
     const notifSubscribeTopic = auth.userData.id + "/+/+/notif";
     console.log("connecting....");
     mqttClientRef.current.on("connect", function () {
+      setStatus("connected");
       setConnectingMqtt(false);
       setLoadingMqtt(false);
       setReconnecting(false);
@@ -137,6 +141,8 @@ export const MqttProvider = ({ children }) => {
         deviceSubscribeTopic,
         { qos: 0 },
         (error) => {
+          setStatus("online");
+
           if (error) {
             console.error("Error en deviceSubscription", error);
           }
@@ -158,6 +164,7 @@ export const MqttProvider = ({ children }) => {
 
     mqttClientRef.current.on("reconnect", (error) => {
       if (!connectingMqtt) {
+        setStatus("disconnected");
         reconnectMqtt();
         //enqueueSnackbar("MQTT CONNECIONT FAIL, RECONNECTING -> ", { variant: "default" });
         setReconnecting(true);
@@ -165,6 +172,7 @@ export const MqttProvider = ({ children }) => {
     });
 
     mqttClientRef.current.on("error", (error) => {
+      setStatus("disconnected");
       //enqueueSnackbar("MQTT CONNECIONT FAIL -> ", { variant: "default" });
       setReconnecting(true);
       if (error.code == 5) {
@@ -193,7 +201,7 @@ export const MqttProvider = ({ children }) => {
             value: valor.msg,
             topic: topic,
           };
-          enqueueSnackbar(valor.msg, { variant: "default" });
+          enqueueSnackbar(valor.msg, { variant: "info" });
 
           addNotification(newItem);
 
@@ -210,23 +218,23 @@ export const MqttProvider = ({ children }) => {
             topic: topic,
           };
 
-          const existingItem = recived.find(
-            (item) => item.topic === newItem.topic
-          );
-
-          if (existingItem) {
-            // Si existe, actualizar el valor del item existente
-            const updatedItems = recived.map((item) =>
-              item.topic === newItem.topic
-                ? { ...item, value: newItem.value }
-                : item
+          setRecived((prevRecived) => {
+            const existingItem = prevRecived.find(
+              (item) => item.topic === newItem.topic
             );
-            setRecived(updatedItems);
-          } else {
-            // Si no existe, agregar el nuevo item al estado
-            setRecived([...recived, newItem]);
-          }
 
+            if (existingItem) {
+              // Si existe, actualizar el valor del item existente
+              return prevRecived.map((item) =>
+                item.topic === newItem.topic
+                  ? { ...item, value: newItem.value }
+                  : item
+              );
+            } else {
+              // Si no existe, agregar el nuevo item al estado
+              return [...prevRecived, newItem];
+            }
+          });
           return;
         }
       } catch (error) {
@@ -306,6 +314,7 @@ export const MqttProvider = ({ children }) => {
 
   const mqttContextValue = {
     mqttClient: mqttClientRef.current,
+    mqttStatus: status,
     setSend,
     recived,
     notifications,

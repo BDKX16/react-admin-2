@@ -9,7 +9,6 @@ import useAuth from "../hooks/useAuth";
 const Dashboard = () => {
   const { selectedDevice } = useDevices();
   const { auth } = useAuth();
-  console.log(selectedDevice);
   const calculateActuatorsCols = (widgets) => {
     const cant = widgets.filter(
       (widget) => widget.widgetType === "Switch" || widget.widgetType === "Pump"

@@ -4,6 +4,7 @@ import useAuth from "../hooks/useAuth";
 import axios from "axios";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
 import { getInitialDevices } from "../services/private";
+import useMqtt from "../hooks/useMqtt";
 
 const DevicesContext = createContext();
 
@@ -15,9 +16,25 @@ export const DevicesProvider = ({ children }) => {
   const { auth } = useAuth();
   const { closeSnackbar } = useSnackbar();
 
+  const { mqttStatus, setSend } = useMqtt();
+
   useEffect(() => {
     getDevices();
   }, []);
+
+  useEffect(() => {
+    if (mqttStatus === "online") {
+      //return;
+      const toSend = {
+        topic: auth.userData.id + "/" + selectedDevice.dId + "/updater/actdata",
+        msg: {
+          value: true,
+        },
+      };
+
+      setSend({ msg: toSend.msg, topic: toSend.topic });
+    }
+  }, [mqttStatus]);
 
   useEffect(() => {
     if (reload === true) {
@@ -41,6 +58,7 @@ export const DevicesProvider = ({ children }) => {
       setSelectedDevice(
         result.data.data.filter((device) => device.selected === true)[0]
       );
+      console.log("Selected Device");
     }
   };
 

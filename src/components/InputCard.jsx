@@ -24,6 +24,7 @@ export const InputCard = ({ widget, dId }) => {
 
   React.useEffect(() => {
     if (recived) {
+      //console.log(recived);
       recived.map((item) => {
         if (item.dId === dId && item.variable === widget.variable) {
           //setConfig({ ...config, value: item.value });

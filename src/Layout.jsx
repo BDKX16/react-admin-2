@@ -12,6 +12,8 @@ import { DevicesProvider } from "./providers/DevicesProvider";
 
 import { MqttProvider } from "./providers/MqttProvider";
 import Notifications from "./pages/Notifications.jsx";
+import RuleEngine from "./pages/RuleEngine.jsx";
+import DeviceConfig from "./pages/DeviceConfig.jsx";
 const Layout = () => {
   const userState = useSelector((state) => state.user);
 
@@ -31,8 +33,8 @@ const Layout = () => {
         <Route
           path="/*"
           element={
-            <DevicesProvider>
-              <MqttProvider>
+            <MqttProvider>
+              <DevicesProvider>
                 <SidebarProvider>
                   <AppSidebar>
                     <Routes>
@@ -48,12 +50,20 @@ const Layout = () => {
                         path={`/notifications`}
                         element={<Notifications />}
                       ></Route>
+                      <Route
+                        path={`/rule-engine`}
+                        element={<RuleEngine />}
+                      ></Route>
+                      <Route
+                        path={`/device-config`}
+                        element={<DeviceConfig />}
+                      ></Route>
                       <Route path={`/*`} element={<Dashboard />}></Route>
                     </Routes>
                   </AppSidebar>
                 </SidebarProvider>
-              </MqttProvider>
-            </DevicesProvider>
+              </DevicesProvider>
+            </MqttProvider>
           }
         ></Route>
       </Routes>

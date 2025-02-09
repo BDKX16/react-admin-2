@@ -4,6 +4,22 @@ import { Plus } from "lucide-react";
 import { Calendars } from "@/components/layout/calendars";
 import { DatePicker } from "@/components/layout/date-picker";
 import { NavUser } from "@/components/layout/nav-user";
+import { Bell, BellDot } from "lucide-react";
+import {
+  Menubar,
+  MenubarCheckboxItem,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarRadioGroup,
+  MenubarRadioItem,
+  MenubarSeparator,
+  MenubarShortcut,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
+  MenubarTrigger,
+} from "@/components/ui/menubar";
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +33,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { Download } from "lucide-react";
+import { NotificationMenu } from "../NotificationMenu";
 
 // This is sample data.
 const data = {
@@ -69,6 +86,55 @@ export function SidebarRight({
               <span>Añadir evento</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
+        </SidebarMenu>
+        <SidebarMenu>
+          <Menubar>
+            <MenubarMenu>
+              <MenubarTrigger>
+                <Bell size={17} />
+              </MenubarTrigger>
+              <MenubarContent className="w-[380px]">
+                <NotificationMenu />
+              </MenubarContent>
+            </MenubarMenu>
+
+            <MenubarMenu>
+              <MenubarTrigger>View</MenubarTrigger>
+              <MenubarContent>
+                <MenubarCheckboxItem>
+                  Always Show Bookmarks Bar
+                </MenubarCheckboxItem>
+                <MenubarCheckboxItem checked>
+                  Always Show Full URLs
+                </MenubarCheckboxItem>
+                <MenubarSeparator />
+                <MenubarItem inset>
+                  Reload <MenubarShortcut>⌘R</MenubarShortcut>
+                </MenubarItem>
+                <MenubarItem disabled inset>
+                  Force Reload <MenubarShortcut>⇧⌘R</MenubarShortcut>
+                </MenubarItem>
+                <MenubarSeparator />
+                <MenubarItem inset>Toggle Fullscreen</MenubarItem>
+                <MenubarSeparator />
+                <MenubarItem inset>Hide Sidebar</MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+              <MenubarTrigger>Profiles</MenubarTrigger>
+              <MenubarContent>
+                <MenubarRadioGroup value="benoit">
+                  <MenubarRadioItem value="andy">Andy</MenubarRadioItem>
+                  <MenubarRadioItem value="benoit">Benoit</MenubarRadioItem>
+                  <MenubarRadioItem value="Luis">Luis</MenubarRadioItem>
+                </MenubarRadioGroup>
+                <MenubarSeparator />
+                <MenubarItem inset>Edit...</MenubarItem>
+                <MenubarSeparator />
+                <MenubarItem inset>Add Profile...</MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
+          </Menubar>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>

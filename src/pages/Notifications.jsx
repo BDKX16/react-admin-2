@@ -295,63 +295,7 @@ const Notifications = () => {
     .slice(0, 9);
 
   return (
-    <div className="flex gap-6 flex-col">
-      <div className="max-h-[600px] overflow-y-scroll">
-        <Label>Notificaciones.</Label>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">Variable</TableHead>
-              <TableHead>Condicion</TableHead>
-              <TableHead>Valor Actual</TableHead>
-              <TableHead className="text-right">Fecha</TableHead>
-              <TableHead className="text-right">Marcar como leida</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {latestNotifications.map((item) => (
-              <TableRow key={item.time}>
-                <TableCell className="font-medium text-left">
-                  {formatName(item.variableFullName)}
-                </TableCell>
-                <TableCell className="text-left">
-                  {formatNotification(item)}
-                </TableCell>
-                <TableCell className="text-left">
-                  {item.payload.value}
-                </TableCell>
-                <TableCell className="text-right">
-                  {new Date(item.time).toLocaleDateString("es-ES", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="outline">
-                    {item.status ? "Visto" : "No visto"}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell className="text-left" colSpan={4}>
-                Total {notifications.length}
-              </TableCell>
-              <TableCell className="text-right">
-                {" "}
-                <Button onClick={handleDeleteNotifications} variant="outline">
-                  Eliminar todas
-                </Button>
-              </TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
-      </div>
+    <div className="flex gap-6 flex-col w-full max-w-4xl mx-auto">
       <div>
         <Label>Configurar Alertas.</Label>
         <Table>
@@ -471,7 +415,7 @@ const Notifications = () => {
         </Table>
       </div>
       <div>
-        <Label>Dispositivos conectados.</Label>
+        <Label>Dispositivos asociados.</Label>
         <Table>
           <TableHeader>
             <TableRow>
