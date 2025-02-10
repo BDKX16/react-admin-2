@@ -72,14 +72,14 @@ const DeviceConfig = () => {
         </Label>
       </div>
       <div className="flex flex-col items-start gap-3 mb-8">
-        <Label className="mr-4 font-bold">Relay 1:</Label>
-        <Input placeholder="Aireador"></Input>
-        <Label className="text-gray-500">
+        <Label className="mr-4 font-bold text-md">Relay 1:</Label>
+        <Input placeholder="Aireador" className="w-[240px]"></Input>
+        <Label className="text-gray-500 mb-3">
           El nombre del relay es para identificarlo en la aplicacion. Puedes
           dejarlo en blanco y aparecera la opcion por defecto.
         </Label>
         <Select value={config1} onValueChange={setConfig1}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-[240px]">
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
           <SelectContent>
@@ -90,18 +90,18 @@ const DeviceConfig = () => {
           </SelectContent>
         </Select>
         <Label className="text-gray-500">
-          Si desactivas esta opcion dejaras de guardar datos de tus sensores.
+          Puedes configurar el estado inicial de la salida.
         </Label>
       </div>
       <div className="flex flex-col items-start gap-3 mb-10">
-        <Label className="mr-4 font-bold">Relay 2:</Label>
-        <Input placeholder="Aireador"></Input>
-        <Label className="text-gray-500">
+        <Label className="mr-4 font-bold text-md">Relay 2:</Label>
+        <Input placeholder="Aireador" className="w-[240px]"></Input>
+        <Label className="text-gray-500 mb-3">
           El nombre del relay es para identificarlo en la aplicacion. Puedes
           dejarlo en blanco y aparecera la opcion por defecto.
         </Label>
         <Select value={config2} onValueChange={setConfig2}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-[240px]">
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
           <SelectContent>
@@ -111,16 +111,19 @@ const DeviceConfig = () => {
             <SelectItem value="ciclos">Ciclos</SelectItem>
           </SelectContent>
         </Select>
+        <Label className="text-gray-500">
+          Puedes configurar el estado inicial de la salida.
+        </Label>
       </div>
       <div className="flex flex-col items-start gap-3 mb-10">
-        <Label className="mr-4 font-bold">Relay 3:</Label>
-        <Input placeholder="Aireador"></Input>
-        <Label className="text-gray-500">
+        <Label className="mr-4 font-bold text-md">Relay 3:</Label>
+        <Input placeholder="Aireador" className="w-[240px]"></Input>
+        <Label className="text-gray-500 mb-3">
           El nombre del relay es para identificarlo en la aplicacion. Puedes
           dejarlo en blanco y aparecera la opcion por defecto.
         </Label>
         <Select value={config3} onValueChange={setConfig3}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-[240px]">
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
           <SelectContent>
@@ -130,16 +133,19 @@ const DeviceConfig = () => {
             <SelectItem value="ciclos">Ciclos</SelectItem>
           </SelectContent>
         </Select>
+        <Label className="text-gray-500">
+          Puedes configurar el estado inicial de la salida.
+        </Label>
       </div>
       <div className="flex flex-col items-start gap-3 mb-10">
-        <Label className="mr-4 font-bold">Relay 4:</Label>
-        <Input placeholder="Aireador"></Input>
-        <Label className="text-gray-500">
+        <Label className="mr-4 font-bold text-md">Relay 4:</Label>
+        <Input placeholder="Aireador" className="w-[240px]"></Input>
+        <Label className="text-gray-500 mb-3">
           El nombre del relay es para identificarlo en la aplicacion. Puedes
           dejarlo en blanco y aparecera la opcion por defecto.
         </Label>
         <Select value={config4} onValueChange={setConfig4}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-[240px]">
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
           <SelectContent>
@@ -149,18 +155,21 @@ const DeviceConfig = () => {
             <SelectItem value="ciclos">Ciclos</SelectItem>
           </SelectContent>
         </Select>
+        <Label className="text-gray-500">
+          Puedes configurar el estado inicial de la salida.
+        </Label>
       </div>
       <Button type="primary" onClick={handleSave}>
         Guardar Configuración
       </Button>
-      <div className="mt-8 border-t pt-4">
+      <div className="mt-8 border-[0.5px] rounded-lg p-4 border-red-600 border-opacity-25">
         <h3 className="text-xl font-semibold text-red-600">Danger Zone</h3>
-        <p className="text-gray-500 mb-4">
+        <p className="text-gray-500 mb-6 leading-tight">
           Esta zona es peligrosa. Aquí puedes eliminar el dispositivo. Esta
           acción no se puede deshacer.
         </p>
         <div className="flex justify-between  items-center">
-          <Label className="font-normal">
+          <Label className="font-normal leading-tight">
             Una vez que eliminas un dispositivo, no hay vuelta atrás. Por favor
             esté seguro.
           </Label>
