@@ -139,6 +139,73 @@ export const newDevice = (serial, name) => {
   };
 };
 
+export const createRule = (alarmRule) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .post(import.meta.env.VITE_BASE_URL + "/alarm-rule", alarmRule, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const updateRule = (rule) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  return {
+    call: axios
+      .put(
+        import.meta.env.VITE_BASE_URL + "/edit-automatization",
+        { newRule: rule },
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const deleteRule = (ruleId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  return {
+    call: axios
+      .delete(
+        import.meta.env.VITE_BASE_URL + "/alarm-rule?emqxRuleId=" + ruleId,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
 /**********
  * FUNCTIONS
  ************/

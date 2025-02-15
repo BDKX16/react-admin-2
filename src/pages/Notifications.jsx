@@ -29,219 +29,164 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect, useState } from "react";
+import {
+  getNotifications,
+  setNotificationRead,
+  setAllNotificationsRead,
+  addNotificationAlert,
+  deleteMobileDevice,
+  updateNotificationAlert,
+  getMobileDevices,
+} from "../services/private";
 
-const notifications = [
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 20 },
-    value: "-2",
-    readed: false,
-    time: 1699051290505,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-  {
-    condition: "<",
-    dId: "PaJg0l2ueu",
-    emqxRuleId: "rule:f164d786",
-    payload: { value: 30 },
-    value: "-2",
-    readed: false,
-    time: 1699051290504,
-    topic: "64e3c5873c628728f9d1e13d/PaJg0l2ueu/G7DxrJ4VS2/sdata",
-    userId: "64e3c5873c628728f9d1e13d",
-    variable: "G7DxrJ4VS2",
-    variableFullName: "Hum suelo",
-  },
-];
+import { deleteRule, createRule } from "../services/public";
 
-const devices = [
-  {
-    name: "Samsung S22",
-    expoToken: "asd2da",
-    _id: "asad3dd2d",
-  },
-  {
-    name: "Nokie S22",
-    expoToken: "asd2da",
-    _id: "asad6dd2d",
-  },
-  {
-    name: "Android S22",
-    expoToken: "asd2da",
-    _id: "asadud2d",
-  },
-  {
-    name: "Motorola S22",
-    expoToken: "asd2da",
-    _id: "ashd2dd2d",
-  },
-  {
-    name: "Xiaomi S22",
-    expoToken: "asd2da",
-    _id: "aaad2dd2d",
-  },
-];
-
-const alerts = [
-  {
-    emqxRuleId: "rule:f164d786",
-    variableFullName: "Hum suelo",
-    triggerTime: 20,
-    status: true,
-    value: 10,
-    condition: "<",
-  },
-];
+import useFetchAndLoad from "../hooks/useFetchAndLoad";
+import useDevices from "../hooks/useDevices";
 
 const Notifications = () => {
+  const { loading, callEndpoint } = useFetchAndLoad();
+  const { selectedDevice } = useDevices();
+  const [notifications, setNotifications] = useState([]);
+  const [devices, setDevices] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [formData, setFormData] = useState({
+    variable: "",
+    condition: "",
+    value: "",
+    triggerTime: 60,
+  });
+
+  const [errors, setErrors] = useState({
+    variable: false,
+    condition: false,
+    value: false,
+    triggerTime: false,
+  });
+
+  const handleChange = (field) => (value) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [field]: value,
+    }));
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      [field]: false,
+    }));
+  };
+
+  useEffect(() => {
+    if (selectedDevice) {
+      setAlerts(
+        selectedDevice.alarmRules.filter((a) => a.actionVariable == "")
+      );
+    }
+  }, [selectedDevice]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const response = await callEndpoint(getNotifications());
+
+      if (response && !response.error) {
+        setNotifications(response.data.data);
+      }
+    };
+
+    const fetchDevices = async () => {
+      const response = await callEndpoint(getMobileDevices());
+
+      if (response && !response.error) {
+        setDevices(response.data.devices);
+      }
+    };
+
+    fetchNotifications();
+    fetchDevices();
+  }, []);
+
+  const handleAddAlert = async () => {
+    const newErrors = {
+      variable: !formData.variable,
+      condition: !formData.condition,
+      value: !formData.value || formData.value < 0 || formData.value > 100,
+      triggerTime: !formData.triggerTime || formData.triggerTime < 10,
+    };
+
+    if (Object.values(newErrors).some((error) => error)) {
+      setErrors(newErrors);
+      return;
+    }
+
+    const newRule = {
+      variable: formData.variable,
+      condition: formData.condition,
+      value: formData.value,
+      triggerTime: formData.triggerTime,
+
+      dId: selectedDevice.dId,
+      status: true,
+      variableFullName: selectedDevice.template.widgets.find(
+        (x) => x.variable === formData.variable
+      ).variableFullName,
+
+      action: 0,
+      actionVariable: "",
+    };
+
+    const response = await callEndpoint(createRule({ newRule }));
+    console.log(response);
+    if (!response.error) {
+      setAlerts([...alerts, newRule]);
+    }
+  };
+
+  const handleDeleteNotifications = async () => {
+    const response = await callEndpoint(setAllNotificationsRead());
+
+    if (!response.error) {
+      setNotifications([]);
+    }
+  };
+
+  const handleDeleteDevice = async (deviceId) => {
+    const { call } = deleteMobileDevice(deviceId);
+    const response = await call;
+    if (!response.error) {
+      setDevices(devices.filter((device) => device._id !== deviceId));
+    }
+  };
+
+  const setNotificationReaded = async (notificationId) => {
+    const response = await callEndpoint(setNotificationRead(notificationId));
+
+    if (!response.error && response.data.status === "success") {
+      setNotifications(notifications.filter((n) => n._id !== notificationId));
+    }
+  };
+
+  const handleUpdateAlert = async (alert) => {
+    const updatedAlert = { ...alert, status: !alert.status };
+    const response = await callEndpoint(updateNotificationAlert(alert));
+
+    if (!response.error && response.data.status === "success") {
+      setAlerts(
+        alerts.map((a) =>
+          a.emqxRuleId === alert.emqxRuleId ? updatedAlert : a
+        )
+      );
+    }
+  };
+
+  const handleDeleteAlert = async (emqxRuleId) => {
+    const response = await callEndpoint(deleteRule(emqxRuleId));
+
+    if (!response.error && response.data.status === "success") {
+      setAlerts(alerts.filter((a) => a.emqxRuleId !== emqxRuleId));
+    }
+  };
+
   const formatNotification = (notif) => {
     let fullName = notif.variableFullName;
     if (notif.variableFullName === "Hum") {
@@ -276,23 +221,30 @@ const Notifications = () => {
     } else if (name === "Hum suelo") {
       return "Humedad del suelo";
     } else if (name === "Temp") {
-      return "Hemperatura";
+      return "Temperatura";
     }
-  };
-
-  const handleAddAlert = () => {
-    // Lógica para agregar una nueva alerta
-    console.log("Agregar nueva alerta");
-  };
-
-  const handleDeleteNotifications = () => {
-    // Lógica para agregar una nueva alerta
-    console.log("handleDeleteNotifications");
   };
 
   const latestNotifications = notifications
     .sort((a, b) => b.time - a.time)
     .slice(0, 9);
+
+  if (
+    loading &&
+    notifications.length === 0 &&
+    devices.length === 0 &&
+    alerts.length === 0 &&
+    !selectedDevice
+  ) {
+    return (
+      <div className="flex gap-12 flex-col w-full max-w-4xl mx-auto">
+        <h2 className="text-xl font-semibold">Notificaciones</h2>
+        <Skeleton className="h-10 w-full mb-2" />
+        <Skeleton className="h-10 w-full mb-2" />
+        <Skeleton className="h-10 w-full mb-2" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-12 flex-col w-full max-w-4xl mx-auto">
@@ -322,10 +274,19 @@ const Notifications = () => {
                   {formatNotification(alert)}
                 </TableCell>
                 <TableCell className="text-left">
-                  <Switch checked={alert.status}></Switch>
+                  <Switch
+                    checked={alert.status}
+                    disabled={loading}
+                    onCheckedChange={() => handleUpdateAlert(alert)}
+                  ></Switch>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="outline">Eliminar</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDeleteAlert(alert.emqxRuleId)}
+                  >
+                    Eliminar
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -353,57 +314,91 @@ const Notifications = () => {
                       <div className="p-4 pb-0 gap-2 flex flex-col">
                         <div className="flex items-center justify-end space-x-2">
                           <Label>Variable:</Label>
-                          <Select
-                            defaultValue={"Hum"}
-                            onValueChange={(value) => console.log(value)}
-                          >
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue placeholder="" />
+                          <Select onValueChange={handleChange("variable")}>
+                            <SelectTrigger
+                              className={
+                                errors.variable
+                                  ? "border-red-500 w-[180px]"
+                                  : "w-[180px]"
+                              }
+                            >
+                              <SelectValue placeholder="Seleccionar variable" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Hum">Humedad</SelectItem>
-                              <SelectItem value="Temp">Temperatura</SelectItem>
-                              <SelectItem value="Hum Soil">
-                                Humedad del suelo
-                              </SelectItem>
+                              {selectedDevice?.template?.widgets?.map(
+                                (widget) => {
+                                  if (
+                                    widget.variableFullName !== "Hum" &&
+                                    widget.variableFullName !== "Temp" &&
+                                    widget.variableFullName !== "Hum suelo"
+                                  )
+                                    return;
+                                  return (
+                                    <SelectItem
+                                      key={widget.variable}
+                                      value={widget.variable}
+                                    >
+                                      {formatName(widget.variableFullName)}
+                                    </SelectItem>
+                                  );
+                                }
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
+
                         <div className="flex items-center justify-end space-x-2">
                           <Label>Condicion:</Label>
-                          <Select
-                            defaultValue={"<"}
-                            onValueChange={(value) => console.log(value)}
-                          >
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue placeholder="" />
+                          <Select onValueChange={handleChange("condition")}>
+                            <SelectTrigger
+                              className={
+                                errors.condition
+                                  ? "border-red-500 w-[180px]"
+                                  : "w-[180px]"
+                              }
+                            >
+                              <SelectValue placeholder="Seleccionar condición" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="=">Igual a</SelectItem>
-                              <SelectItem value="<">Mayor que</SelectItem>
-                              <SelectItem value=">">Menor que</SelectItem>
+                              <SelectItem value="<">Menor que</SelectItem>
+                              <SelectItem value=">">Mayor que</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
+
                         <div className="flex items-center justify-end space-x-2">
                           <Label>Valor:</Label>
                           <Input
                             type="number"
                             placeholder="Valor"
-                            className="w-[180px] border border-gray-300 rounded-md p-2"
+                            className={`w-[180px] border border-gray-300 rounded-md p-2 ${
+                              errors.value ? "border-red-500" : ""
+                            }`}
+                            value={formData.value}
+                            onChange={(e) =>
+                              handleChange("value")(e.target.value)
+                            }
                           />
                         </div>
+
                         <div className="flex items-center justify-end space-x-2">
                           <Label>Minutos entre avisos:</Label>
                           <Input
                             type="number"
                             placeholder="Por defecto 60"
-                            className="w-[180px] border border-gray-300 rounded-md p-2"
+                            className={`w-[180px] border border-gray-300 rounded-md p-2 ${
+                              errors.triggerTime ? "border-red-500" : ""
+                            }`}
+                            value={formData.triggerTime}
+                            onChange={(e) =>
+                              handleChange("triggerTime")(e.target.value)
+                            }
                           />
                         </div>
                       </div>
                       <DrawerFooter>
-                        <Button>Submit</Button>
+                        <Button onClick={handleAddAlert}>Submit</Button>
                         <DrawerClose asChild>
                           <Button variant="outline">Cancel</Button>
                         </DrawerClose>
@@ -427,12 +422,17 @@ const Notifications = () => {
           </TableHeader>
           <TableBody>
             {devices.map((device) => (
-              <TableRow key={device._id}>
+              <TableRow key={device.expoToken}>
                 <TableCell className="font-medium text-left">
                   {device.name}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="outline">Eliminar</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDeleteDevice(device._id)}
+                  >
+                    Eliminar
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -480,8 +480,11 @@ const Notifications = () => {
                   })}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="outline">
-                    {item.status ? "Visto" : "No visto"}
+                  <Button
+                    variant="outline"
+                    onClick={() => setNotificationReaded(item._id)}
+                  >
+                    Eliminar
                   </Button>
                 </TableCell>
               </TableRow>

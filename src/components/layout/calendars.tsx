@@ -30,7 +30,6 @@ export function Calendars({
 
   return (
     <>
-      <div>{new Date(selectedDate).toDateString()}</div>
       {calendars.map((calendar, index) => (
         <React.Fragment key={calendar.name}>
           <SidebarGroup key={calendar.name} className="py-0">

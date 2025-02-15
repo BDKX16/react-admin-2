@@ -130,18 +130,309 @@ export const getEmqxCredentialsReconnect = () => {
   };
 };
 
+export const getMobileDevices = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/mobiledata", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const deleteMobileDevice = (deviceId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .delete(
+        import.meta.env.VITE_BASE_URL + `/mobiledata?id=${deviceId}`,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const getNotifications = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/notifications", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const addNotificationAlert = (alertData) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL + "/notification-alert",
+        alertData,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const updateNotificationAlert = (rule) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  rule.status = !rule.status;
+  const toSend = {
+    rule: rule,
+  };
+
+  return {
+    call: axios
+      .put(import.meta.env.VITE_BASE_URL + `/alarm-rule`, toSend, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const deleteNotificationAlert = (rule) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  return {
+    call: axios
+      .delete(
+        import.meta.env.VITE_BASE_URL + `/alarm-rule?emqxRuleId`,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const setNotificationRead = (notificationId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  const toSend = {
+    notifId: notificationId,
+  };
+  return {
+    call: axios
+      .put(import.meta.env.VITE_BASE_URL + `/notifications`, toSend, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const setAllNotificationsRead = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .delete(
+        import.meta.env.VITE_BASE_URL + "/notifications",
+
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const getSchedules = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/schedules", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const updateDeviceConfig = (deviceData) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(
+        import.meta.env.VITE_BASE_URL + `/device-config`,
+        deviceData,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const updateSaverRule = (ruleId, ruleData) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(
+        import.meta.env.VITE_BASE_URL + `/saver-rule/${ruleId}`,
+        ruleData,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const deleteDevice = (dId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .post(import.meta.env.VITE_BASE_URL + "/device/?dId=" + dId, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const addDeviceSchedule = (deviceId, scheduleData) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL + `/device/${deviceId}/schedule`,
+        scheduleData,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 /**********
  * FUNCTIONS
  ************/
 
 const notifyError = (error) => {
-  console.log("error");
+  //console.log(error);
   if (error.status === 401) {
     enqueueSnackbar("No autorizado", {
       variant: "error",
     });
   } else if (error.status !== 200) {
-    enqueueSnackbar(error.response.data.error.message, {
+    enqueueSnackbar(error.response.statusText, {
       variant: "error",
     });
   }

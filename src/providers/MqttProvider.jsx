@@ -37,36 +37,7 @@ export const MqttProvider = ({ children }) => {
   const [reconnecting, setReconnecting] = useState(false);
 
   //mensajes a enviar mqtt
-  const [status, setStatus] = useState("disconnected");
-
-  useEffect(() => {
-    try {
-      window.addEventListener("visibilitychange", handleVisibilityChange);
-
-      async function getCredentials() {
-        await getMqttCredentials();
-      }
-
-      if (!connectingMqtt) {
-        //getCredentials();
-      }
-
-      // Limpiar la conexión al desmontar el componente
-      return () => {
-        window.removeEventListener("visibilitychange", handleVisibilityChange);
-
-        if (mqttClientRef.current) {
-          mqttClientRef.current.end();
-        }
-      };
-    } catch (error) {
-      console.log(error);
-      enqueueSnackbar("Error al conectar al servicio mqtt", {
-        variant: "error",
-        persist: true,
-      });
-    }
-  }, []);
+  const [status, setStatus] = useState("iniciando");
 
   useEffect(() => {
     try {
@@ -115,22 +86,12 @@ export const MqttProvider = ({ children }) => {
     }
   }, [send]);
 
-  const handleVisibilityChange = () => {
-    if (document.visibilityState == "hidden") {
-      // User came back to the page
-      setPestanaSegundoPlano(true);
-    } else {
-      setPestanaSegundoPlano(false);
-      // User switched tabs or left the page
-    }
-  };
-
   const initMqtt = async () => {
+    setStatus("connecting");
     const deviceSubscribeTopic = auth.userData.id + "/+/+/sdata";
     const notifSubscribeTopic = auth.userData.id + "/+/+/notif";
     console.log("connecting....");
     mqttClientRef.current.on("connect", function () {
-      setStatus("connected");
       setConnectingMqtt(false);
       setLoadingMqtt(false);
       setReconnecting(false);
@@ -208,7 +169,7 @@ export const MqttProvider = ({ children }) => {
           return;
         } else if (msgType == "sdata") {
           const valor = JSON.parse(message);
-          if (valor == null || valor.value == null || valor.value == "") {
+          if (valor === null || valor.value === null || valor.value === "") {
             return;
           }
           const newItem = {
@@ -217,7 +178,6 @@ export const MqttProvider = ({ children }) => {
             value: valor.value,
             topic: topic,
           };
-
           setRecived((prevRecived) => {
             const existingItem = prevRecived.find(
               (item) => item.topic === newItem.topic
@@ -303,8 +263,9 @@ export const MqttProvider = ({ children }) => {
     if (!pestanaSegundoPlano) {
       setConnectingMqtt(true);
 
+      setStatus("connecting");
       const credentials = await callEndpoint(getEmqxCredentialsReconnect());
-      console.log(credentials);
+      //console.log(credentials);
       if (credentials.data.status == "success") {
         mqttClientRef.current.options.password = credentials.data.password;
         mqttClientRef.current.options.username = credentials.data.username;
@@ -318,9 +279,6 @@ export const MqttProvider = ({ children }) => {
     setSend,
     recived,
     notifications,
-    removeNotification,
-    loadingMqtt,
-    reconnecting,
   };
 
   return (

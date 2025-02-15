@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,20 +24,185 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import useFetchAndLoad from "../hooks/useFetchAndLoad";
+import { Slider } from "@/components/ui/slider";
+import useDevices from "../hooks/useDevices";
+import UpdateRuleDialog from "@/components/UpdateRuleDialog";
+
+import { createRule, deleteRule } from "../services/public";
 
 const RuleEngine = () => {
+  const { loading, callEndpoint } = useFetchAndLoad();
+  const { selectedDevice } = useDevices();
+  const [rules, setRules] = useState([]);
+
+  useEffect(() => {
+    setRules(
+      selectedDevice?.alarmRules?.sort((a, b) =>
+        b.variableFullName.localeCompare(a.variableFullName)
+      )
+    );
+  }, [selectedDevice]);
+
+  const [formData, setFormData] = useState({
+    variable: "",
+    condition: "",
+    value: "",
+    action: "",
+    actuator: "",
+    triggerTime: 20,
+  });
+
+  const [errors, setErrors] = useState({
+    variable: false,
+    condition: false,
+    value: false,
+    action: false,
+    actuator: false,
+  });
+
+  const handleChange = (field) => (value) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [field]: value,
+    }));
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      [field]: false,
+    }));
+  };
+
+  const handleCreate = async () => {
+    const newErrors = {
+      variable: !formData.variable,
+      condition: !formData.condition,
+      value: !formData.value,
+      action: !formData.action,
+      actuator: !formData.actuator,
+    };
+
+    if (Object.values(newErrors).some((error) => error)) {
+      setErrors(newErrors);
+      return;
+    }
+
+    const alarmRule = {
+      dId: selectedDevice.dId,
+      status: true,
+      variableFullName: formData.variable,
+      variable: formData.variable,
+      value: formData.value,
+      condition: formData.condition,
+      triggerTime: formData.triggerTime,
+      action: formData.action,
+      actionVariable: formData.actuator,
+    };
+
+    const res = await callEndpoint(createRule({ newRule: alarmRule }));
+  };
+
+  const handleDelete = async (ruleId) => {
+    const res = await callEndpoint(deleteRule(ruleId));
+
+    if (!res.error) {
+      setRules((prevRules) =>
+        prevRules.filter((rule) => rule.emqxRuleId !== ruleId)
+      );
+    }
+  };
+
+  const formatRule = (notif) => {
+    let fullName = notif.variableFullName;
+    if (notif.variableFullName === "Hum") {
+      fullName = "humedad ambiente";
+    } else if (notif.variableFullName === "Hum suelo") {
+      fullName = "humedad del suelo";
+    } else if (notif.variableFullName === "Temp") {
+      fullName = "temperatura";
+    }
+
+    let condicion = notif.condition;
+    if (notif.condition === "<") {
+      condicion = "menor";
+    } else if (notif.condition === ">") {
+      condicion = "mayor";
+    } else if (notif.condition === "=>") {
+      condicion = "mayor o igual a";
+    } else if (notif.condition === "=<") {
+      condicion = "menor o igual";
+    } else if (notif.condition === "=") {
+      condicion = "igual";
+    } else if (notif.condition === "!=") {
+      condicion = "distinto";
+    }
+
+    return "Si la " + fullName + " es " + condicion + " que " + notif.value;
+  };
+
+  const formatAction = (action) => {
+    if (action === "true" || action === 0) {
+      return "Encender ";
+    } else if (action === "false" || action === 1) {
+      return "Apagar ";
+    } else if (action === "3") {
+      return "Poner en modo Timer ";
+    } else if (action === "5") {
+      return "Poner en modo Ciclos ";
+    }
+  };
+
+  if (!selectedDevice) {
+    return (
+      <div className="flex flex-col items-center p-4">
+        <h1 className="text-2xl font-bold mb-2 text-left">Motor de reglas</h1>
+        <div className="w-full max-w-3xl">
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle className="text-left mb-2">Cargando...</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="flex flex-col gap-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="flex flex-col gap-2 align-center justify-center">
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Existing Rules</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-10 w-full mb-2" />
+              <Skeleton className="h-10 w-full mb-2" />
+              <Skeleton className="h-10 w-full mb-2" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center p-4">
       <h1 className="text-2xl font-bold mb-2 text-left">Motor de reglas</h1>
 
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl">
         <Card className="mb-4">
           <CardHeader>
             <CardTitle className="text-left mb-2">
               Agregar Nueva Regla
             </CardTitle>
             <Label className="mb-4 text-left text-gray-500">
-              {" "}
               Aca podes crear reglas para automatizar acciones basadas en
               condiciones específicas.
             </Label>
@@ -45,18 +210,41 @@ const RuleEngine = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="flex flex-col gap-2">
-                <Select onValueChange={() => {}}>
-                  <SelectTrigger className="w-full">
+                <Select onValueChange={handleChange("variable")}>
+                  <SelectTrigger
+                    className={
+                      errors.variable ? "border-red-500 w-full" : "w-full"
+                    }
+                  >
                     <SelectValue placeholder="Variable" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Temp">Temperatura</SelectItem>
-                    <SelectItem value="Hum">Humedad</SelectItem>
-                    <SelectItem value="Soil Hum">Humedad del suelo</SelectItem>
+                    {selectedDevice?.template?.widgets?.map((widget) => {
+                      if (
+                        widget.variableFullName !== "Hum" &&
+                        widget.variableFullName !== "Temp" &&
+                        widget.variableFullName !== "Hum suelo"
+                      )
+                        return null;
+
+                      return (
+                        <SelectItem
+                          key={widget.variable}
+                          value={widget.variable}
+                        >
+                          {widget.variableFullName}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
-                <Select onValueChange={() => {}}>
-                  <SelectTrigger className="w-full">
+
+                <Select onValueChange={handleChange("condition")}>
+                  <SelectTrigger
+                    className={
+                      errors.condition ? "border-red-500 w-full" : "w-full"
+                    }
+                  >
                     <SelectValue placeholder="Condición" />
                   </SelectTrigger>
                   <SelectContent>
@@ -65,14 +253,37 @@ const RuleEngine = () => {
                     <SelectItem value="<">Menor que</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.variable && (
+                  <Label className="text-red-500">
+                    Campo variable requerido
+                  </Label>
+                )}
+                {errors.condition && (
+                  <Label className="text-red-500">
+                    Campo condicion requerido
+                  </Label>
+                )}
               </div>
               <div className="flex flex-col gap-2 align-center justify-center">
-                <Input placeholder="Valor" type="number" className="mx-auto" />
+                <Input
+                  placeholder="Valor"
+                  type="number"
+                  className={`mx-auto ${errors.value ? "border-red-500" : ""}`}
+                  value={formData.value}
+                  onChange={(e) => handleChange("value")(e.target.value)}
+                />
+                {errors.value && (
+                  <Label className="text-red-500">Campo requerido</Label>
+                )}
               </div>
               <div className="flex flex-col gap-2">
-                <Select onValueChange={() => {}}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Action" />
+                <Select onValueChange={handleChange("action")}>
+                  <SelectTrigger
+                    className={
+                      errors.action ? "border-red-500 w-full" : "w-full"
+                    }
+                  >
+                    <SelectValue placeholder="Acción" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="true">Encender</SelectItem>
@@ -81,22 +292,60 @@ const RuleEngine = () => {
                     <SelectItem value="5">Poner en modo Ciclos</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select onValueChange={() => {}}>
-                  <SelectTrigger className="w-full">
+
+                <Select onValueChange={handleChange("actuator")}>
+                  <SelectTrigger
+                    className={
+                      errors.actuator ? "border-red-500 w-full" : "w-full"
+                    }
+                  >
                     <SelectValue placeholder="Actuador" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="true">Luces</SelectItem>
-                    <SelectItem value="false">Ventilador</SelectItem>
-                    <SelectItem value="3">Extractor</SelectItem>
-                    <SelectItem value="5">Intractor</SelectItem>
+                    {selectedDevice?.template?.widgets?.map((widget) => {
+                      if (widget.widgetType !== "Switch") return null;
+
+                      return (
+                        <SelectItem
+                          key={widget.variable}
+                          value={widget.variable}
+                        >
+                          {widget.variableFullName}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
+                {errors.action && (
+                  <Label className="text-red-500">Campo acción requerido</Label>
+                )}
+                {errors.actuator && (
+                  <Label className="text-red-500">
+                    Campo actuador requerido
+                  </Label>
+                )}
               </div>
+            </div>
+            <div className="flex flex-col gap-2 w-full">
+              <Label className="font-bold">
+                Tiempo entre activaciones: {formData.triggerTime} minutos
+              </Label>
+              <Slider
+                min={10}
+                max={60}
+                step={1}
+                value={[formData.triggerTime]}
+                onValueChange={(value) => handleChange("triggerTime")(value[0])}
+              />
+              <Label className="text-gray-500 text-left">
+                Ajustá este valor para definir el tiempo que debe pasar entre
+                activaciones una vez sobrepasado el limite. LLegar a un valor
+                ideal para tu equipo hara que el sistema sea mas eficiente.
+              </Label>
             </div>
           </CardContent>
           <CardFooter className="justify-end">
-            <Button>Add Rule</Button>
+            <Button onClick={handleCreate}>Add Rule</Button>
           </CardFooter>
         </Card>
         <Card>
@@ -107,23 +356,48 @@ const RuleEngine = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Rule Name</TableHead>
-                  <TableHead>Condition</TableHead>
+                  <TableHead>Regla</TableHead>
                   <TableHead>Action</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Actuador</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {/* Example row */}
-                <TableRow>
-                  <TableCell>Example Rule</TableCell>
-                  <TableCell>Example Condition</TableCell>
-                  <TableCell>Example Action</TableCell>
-                  <TableCell>
-                    <Button>Edit</Button>
-                    <Button>Delete</Button>
-                  </TableCell>
-                </TableRow>
+                {rules &&
+                  rules.map((rule) => {
+                    if (rule.actionVariable === "") return null;
+                    return (
+                      <TableRow key={rule._id}>
+                        <TableCell className="text-left">
+                          {formatRule(rule)}
+                        </TableCell>
+
+                        <TableCell className="text-left">
+                          {formatAction(rule.action)}
+                        </TableCell>
+
+                        <TableCell className="text-left">
+                          {
+                            selectedDevice.template.widgets.find(
+                              (x) => x.variable === rule.actionVariable
+                            ).variableFullName
+                          }
+                        </TableCell>
+                        <TableCell className="flex gap-2 justify-end">
+                          <UpdateRuleDialog
+                            rule={rule}
+                            selectedDevice={selectedDevice.template.widgets}
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={() => handleDelete(rule.emqxRuleId)}
+                          >
+                            Delete
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
           </CardContent>

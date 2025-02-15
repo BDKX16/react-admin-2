@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Plus } from "lucide-react";
+import { Plus, ServerOff, Server, Router } from "lucide-react";
 
 import { Calendars } from "@/components/layout/calendars";
 import { DatePicker } from "@/components/layout/date-picker";
@@ -34,6 +34,7 @@ import {
 
 import { Download } from "lucide-react";
 import { NotificationMenu } from "../NotificationMenu";
+import useMqtt from "@/hooks/useMqtt";
 
 // This is sample data.
 const data = {
@@ -44,8 +45,8 @@ const data = {
   },
   calendars: [
     {
-      name: "Mis Eventos",
-      items: ["Defoliar", "Fermentar", "Revisar plagas"],
+      name: "Proximos Eventos",
+      items: ["Defoliar", "Fertilizar", "Revisar plagas"],
     },
     {
       name: "Riegos",
@@ -57,6 +58,7 @@ const data = {
 export function SidebarRight({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const { mqttStatus } = useMqtt();
   return (
     <Sidebar
       collapsible="none"
@@ -88,7 +90,7 @@ export function SidebarRight({
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>
-          <Menubar>
+          <Menubar className="flex justify-evenly">
             <MenubarMenu>
               <MenubarTrigger>
                 <Bell size={17} />
@@ -99,40 +101,19 @@ export function SidebarRight({
             </MenubarMenu>
 
             <MenubarMenu>
-              <MenubarTrigger>View</MenubarTrigger>
-              <MenubarContent>
-                <MenubarCheckboxItem>
-                  Always Show Bookmarks Bar
-                </MenubarCheckboxItem>
-                <MenubarCheckboxItem checked>
-                  Always Show Full URLs
-                </MenubarCheckboxItem>
-                <MenubarSeparator />
-                <MenubarItem inset>
-                  Reload <MenubarShortcut>⌘R</MenubarShortcut>
-                </MenubarItem>
-                <MenubarItem disabled inset>
-                  Force Reload <MenubarShortcut>⇧⌘R</MenubarShortcut>
-                </MenubarItem>
-                <MenubarSeparator />
-                <MenubarItem inset>Toggle Fullscreen</MenubarItem>
-                <MenubarSeparator />
-                <MenubarItem inset>Hide Sidebar</MenubarItem>
-              </MenubarContent>
+              <MenubarTrigger>
+                {mqttStatus === "online" && "Online"}
+
+                {mqttStatus === "disconnected" && "Desconectado"}
+                {mqttStatus === "connecting" && "Conectando..."}
+              </MenubarTrigger>
             </MenubarMenu>
             <MenubarMenu>
-              <MenubarTrigger>Profiles</MenubarTrigger>
-              <MenubarContent>
-                <MenubarRadioGroup value="benoit">
-                  <MenubarRadioItem value="andy">Andy</MenubarRadioItem>
-                  <MenubarRadioItem value="benoit">Benoit</MenubarRadioItem>
-                  <MenubarRadioItem value="Luis">Luis</MenubarRadioItem>
-                </MenubarRadioGroup>
-                <MenubarSeparator />
-                <MenubarItem inset>Edit...</MenubarItem>
-                <MenubarSeparator />
-                <MenubarItem inset>Add Profile...</MenubarItem>
-              </MenubarContent>
+              <MenubarTrigger>
+                {mqttStatus === "online" && <Server size={17} />}
+                {mqttStatus === "disconnected" && <ServerOff size={17} />}
+                {mqttStatus === "connecting" && <Router size={17} />}
+              </MenubarTrigger>
             </MenubarMenu>
           </Menubar>
         </SidebarMenu>

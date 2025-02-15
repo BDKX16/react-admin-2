@@ -23,7 +23,7 @@ const Dashboard = () => {
   return (
     <>
       <div className="grid auto-rows-min gap-4 md:grid-cols-3 sm:grid-cols-2">
-        {Object.keys(selectedDevice)?.length !== 0 &&
+        {selectedDevice &&
           selectedDevice.template.widgets.map((item) => {
             if (
               item.variableFullName === "Temp" ||
@@ -40,7 +40,7 @@ const Dashboard = () => {
             }
           })}
       </div>
-      {Object.keys(selectedDevice)?.length !== 0 && (
+      {selectedDevice && (
         <div
           className={
             "grid auto-rows-min gap-4 sm:grid-cols-2 md:grid-cols-" +

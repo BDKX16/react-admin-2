@@ -65,7 +65,8 @@ export const DevicesProvider = ({ children }) => {
   const deviceContextValue = {
     setDevicesArr,
     devicesArr,
-    selectedDevice,
+    selectedDevice:
+      Object.keys(selectedDevice).length > 0 ? selectedDevice : null,
     setReload,
     loading,
   };

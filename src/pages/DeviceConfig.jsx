@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,39 +21,82 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
+import useFetchAndLoad from "../hooks/useFetchAndLoad";
+import {
+  deleteDevice,
+  updateSaverRule,
+  updateDeviceConfig,
+} from "../services/private";
+import useDevices from "../hooks/useDevices";
 
 const DeviceConfig = () => {
+  const { selectedDevice } = useDevices();
+  const { loading, callEndpoint } = useFetchAndLoad();
   const [saveToDatabase, setSaveToDatabase] = useState(false);
-  const [config1, setConfig1] = useState("timer");
-  const [config2, setConfig2] = useState("timer");
-  const [config3, setConfig3] = useState("timer");
-  const [config4, setConfig4] = useState("timer");
+  const [deviceName, setDeviceName] = useState("");
+  const [configs, setConfigs] = useState([]);
+  useEffect(() => {
+    if (selectedDevice) {
+      setDeviceName(selectedDevice.name);
+      setConfigs(
+        selectedDevice.template.widgets
+          .filter((w) => w.widgetType === "Switch")
+          .map((w) => {
+            return {
+              variable: w.variable,
+              variableFullName: w.variableFullName,
+              initial: w.initialValue,
+            };
+          })
+      );
+    }
+  }, [selectedDevice]);
 
-  const handleSave = () => {
-    // Logic to save the configuration
-    console.log({
-      saveToDatabase,
-      config1,
-      config2,
-      config3,
-      config4,
-    });
+  const handleSave = async () => {
+    const toSend = {
+      dId: selectedDevice.dId,
+      deviceName,
+      configs,
+    };
+
+    // Example of calling an endpoint function
+    const response = await callEndpoint(updateDeviceConfig(toSend));
+    console.log(response);
+    if (!response.error) {
+      window.location.reload();
+    }
   };
 
-  const handleDelete = () => {
-    // Logic to delete the device
-    console.log("Device deleted");
+  const handleDelete = async () => {
+    const res = await callEndpoint(deleteDevice);
+    if (res.error) return;
+    else {
+      window.location.reload();
+    }
+  };
+
+  const handleConfigChange = (index, key, value) => {
+    const newConfigs = [...configs];
+    newConfigs[index] = {
+      ...newConfigs[index],
+      [key]: key === "initial" ? parseInt(value) : value,
+    };
+    setConfigs(newConfigs);
   };
 
   return (
-    <div className="p-4 rounded-lg shadow-md text-left w-full max-w-lg mx-auto">
+    <div className="p-4 rounded-lg shadow-md text-left w-full max-w-2xl mx-auto">
       <h2 className="text-xl font-semibold mb-2">
         Configuración del dispositivo
       </h2>
       <Separator></Separator>
       <div className="flex flex-col items-start gap-3 mb-6 mt-6">
         <Label className="mr-4 font-bold">Nombre del dispositivo</Label>
-        <Input placeholder="Sweet Home Alabahama"></Input>
+        <Input
+          placeholder="Sweet Home Alabahama"
+          value={deviceName}
+          onChange={(e) => setDeviceName(e.target.value)}
+        ></Input>
         <Label className="text-gray-500">
           Puedes cambiar el nombre del dispositivo para identificarlo en todas
           las plataformas.
@@ -71,94 +114,46 @@ const DeviceConfig = () => {
           Si desactivas esta opcion dejaras de guardar datos de tus sensores.
         </Label>
       </div>
-      <div className="flex flex-col items-start gap-3 mb-8">
-        <Label className="mr-4 font-bold text-md">Relay 1:</Label>
-        <Input placeholder="Aireador" className="w-[240px]"></Input>
-        <Label className="text-gray-500 mb-3">
-          El nombre del relay es para identificarlo en la aplicacion. Puedes
-          dejarlo en blanco y aparecera la opcion por defecto.
-        </Label>
-        <Select value={config1} onValueChange={setConfig1}>
-          <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="true">Encendido</SelectItem>
-            <SelectItem value="false">Apagado</SelectItem>
-            <SelectItem value="timer">Timer</SelectItem>
-            <SelectItem value="ciclos">Ciclos</SelectItem>
-          </SelectContent>
-        </Select>
-        <Label className="text-gray-500">
-          Puedes configurar el estado inicial de la salida.
-        </Label>
-      </div>
-      <div className="flex flex-col items-start gap-3 mb-10">
-        <Label className="mr-4 font-bold text-md">Relay 2:</Label>
-        <Input placeholder="Aireador" className="w-[240px]"></Input>
-        <Label className="text-gray-500 mb-3">
-          El nombre del relay es para identificarlo en la aplicacion. Puedes
-          dejarlo en blanco y aparecera la opcion por defecto.
-        </Label>
-        <Select value={config2} onValueChange={setConfig2}>
-          <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="true">Encendido</SelectItem>
-            <SelectItem value="false">Apagado</SelectItem>
-            <SelectItem value="timer">Timer</SelectItem>
-            <SelectItem value="ciclos">Ciclos</SelectItem>
-          </SelectContent>
-        </Select>
-        <Label className="text-gray-500">
-          Puedes configurar el estado inicial de la salida.
-        </Label>
-      </div>
-      <div className="flex flex-col items-start gap-3 mb-10">
-        <Label className="mr-4 font-bold text-md">Relay 3:</Label>
-        <Input placeholder="Aireador" className="w-[240px]"></Input>
-        <Label className="text-gray-500 mb-3">
-          El nombre del relay es para identificarlo en la aplicacion. Puedes
-          dejarlo en blanco y aparecera la opcion por defecto.
-        </Label>
-        <Select value={config3} onValueChange={setConfig3}>
-          <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="true">Encendido</SelectItem>
-            <SelectItem value="false">Apagado</SelectItem>
-            <SelectItem value="timer">Timer</SelectItem>
-            <SelectItem value="ciclos">Ciclos</SelectItem>
-          </SelectContent>
-        </Select>
-        <Label className="text-gray-500">
-          Puedes configurar el estado inicial de la salida.
-        </Label>
-      </div>
-      <div className="flex flex-col items-start gap-3 mb-10">
-        <Label className="mr-4 font-bold text-md">Relay 4:</Label>
-        <Input placeholder="Aireador" className="w-[240px]"></Input>
-        <Label className="text-gray-500 mb-3">
-          El nombre del relay es para identificarlo en la aplicacion. Puedes
-          dejarlo en blanco y aparecera la opcion por defecto.
-        </Label>
-        <Select value={config4} onValueChange={setConfig4}>
-          <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="true">Encendido</SelectItem>
-            <SelectItem value="false">Apagado</SelectItem>
-            <SelectItem value="timer">Timer</SelectItem>
-            <SelectItem value="ciclos">Ciclos</SelectItem>
-          </SelectContent>
-        </Select>
-        <Label className="text-gray-500">
-          Puedes configurar el estado inicial de la salida.
-        </Label>
-      </div>
+      {configs.map((config, index) => (
+        <div
+          key={config.variable}
+          className="flex flex-col items-start gap-3 mb-10"
+        >
+          <Label className="mr-4 font-bold text-md">{`Actuador ${
+            index + 1
+          }:`}</Label>
+          <Input
+            placeholder={config.variableFullName}
+            onChange={(e) =>
+              handleConfigChange(index, "variableFullName", e.target.value)
+            }
+            className="w-[240px]"
+          ></Input>
+          <Label className="text-gray-500 mb-3">
+            El nombre del relay es para identificarlo en la aplicacion. Puedes
+            dejarlo en blanco y aparecera la opcion por defecto.
+          </Label>
+          <Select
+            value={config.initial.toString()}
+            onValueChange={(value) =>
+              handleConfigChange(index, "initial", value)
+            }
+          >
+            <SelectTrigger className="w-[240px]">
+              <SelectValue placeholder="Select an option" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Apagado</SelectItem>
+              <SelectItem value="1">Encendido</SelectItem>
+              <SelectItem value="3">Timer</SelectItem>
+              <SelectItem value="5">Ciclos</SelectItem>
+            </SelectContent>
+          </Select>
+          <Label className="text-gray-500">
+            Puedes configurar el estado inicial de la salida.
+          </Label>
+        </div>
+      ))}
       <Button type="primary" onClick={handleSave}>
         Guardar Configuración
       </Button>

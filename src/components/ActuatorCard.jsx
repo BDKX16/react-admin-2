@@ -30,7 +30,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
     valueRef.current = newValue;
   };
   const { recived, setSend } = useMqtt();
-
+  console.log(recived);
   //console.log(widget);
   React.useEffect(() => {
     if (recived) {

@@ -7,9 +7,7 @@ const ChartDashboard = () => {
   return (
     <div>
       <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min">
-        {Object.keys(selectedDevice)?.length !== 0 && (
-          <Chart device={selectedDevice} />
-        )}
+        {selectedDevice && <Chart device={selectedDevice} />}
       </div>
     </div>
   );
