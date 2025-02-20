@@ -45,6 +45,7 @@ import { deleteRule, createRule } from "../services/public";
 
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
 import useDevices from "../hooks/useDevices";
+import { formatNotification } from "../utils/formatNotification";
 
 const Notifications = () => {
   const { loading, callEndpoint } = useFetchAndLoad();
@@ -185,34 +186,6 @@ const Notifications = () => {
     if (!response.error && response.data.status === "success") {
       setAlerts(alerts.filter((a) => a.emqxRuleId !== emqxRuleId));
     }
-  };
-
-  const formatNotification = (notif) => {
-    let fullName = notif.variableFullName;
-    if (notif.variableFullName === "Hum") {
-      fullName = "humedad ambiente";
-    } else if (notif.variableFullName === "Hum suelo") {
-      fullName = "humedad del suelo";
-    } else if (notif.variableFullName === "Temp") {
-      fullName = "temperatura";
-    }
-
-    let condicion = notif.condition;
-    if (notif.condition === "<") {
-      condicion = "menor";
-    } else if (notif.condition === ">") {
-      condicion = "mayor";
-    } else if (notif.condition === "=>") {
-      condicion = "mayor o igual a";
-    } else if (notif.condition === "=<") {
-      condicion = "menor o igual";
-    } else if (notif.condition === "=") {
-      condicion = "igual";
-    } else if (notif.condition === "!=") {
-      condicion = "distinto";
-    }
-
-    return "La " + fullName + " es " + condicion + " que " + notif.value;
   };
 
   const formatName = (name) => {

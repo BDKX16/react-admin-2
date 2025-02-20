@@ -1,6 +1,5 @@
 import * as React from "react";
 import { Plus, ServerOff, Server, Router } from "lucide-react";
-
 import { Calendars } from "@/components/layout/calendars";
 import { DatePicker } from "@/components/layout/date-picker";
 import { NavUser } from "@/components/layout/nav-user";
@@ -31,10 +30,27 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
 import { Download } from "lucide-react";
 import { NotificationMenu } from "../NotificationMenu";
 import useMqtt from "@/hooks/useMqtt";
+import useFetchAndLoad from "@/hooks/useFetchAndLoad";
+import { getSchedules, addDeviceSchedule } from "@/services/private";
+import useDevices from "@/hooks/useDevices";
 
 // This is sample data.
 const data = {
@@ -46,11 +62,11 @@ const data = {
   calendars: [
     {
       name: "Proximos Eventos",
-      items: ["Defoliar", "Fertilizar", "Revisar plagas"],
+      items: [],
     },
     {
       name: "Riegos",
-      items: ["Regar 5pm", "Regar 1am"],
+      items: [],
     },
   ],
 };
@@ -59,6 +75,96 @@ export function SidebarRight({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const { mqttStatus } = useMqtt();
+  const { loading, callEndpoint } = useFetchAndLoad();
+  const { selectedDevice } = useDevices();
+  const [calendars, setCalendar] = React.useState(data.calendars);
+  const [eventData, setEventData] = React.useState({
+    startDate: "",
+    text: "",
+    title: "",
+    riegoActivo: false,
+    color: "blue",
+  });
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      const res = await callEndpoint(getSchedules(selectedDevice.dId));
+
+      let nextEvents = {
+        name: "Proximos Eventos",
+        items: res.data.nextEvents.map((x) => ({
+          title: x.title,
+          date: x.startDate,
+          checked: x.read,
+          id: x._id,
+        })),
+      };
+      let riegos = {
+        name: "Riegos",
+        items: res.data.irrigationEvents.map((x) => ({
+          title: x.title,
+          date: x.startDate,
+          checked: x.read,
+          id: x._id,
+        })),
+      };
+      setCalendar([nextEvents, riegos]);
+    };
+    if (selectedDevice) {
+      fetchData();
+    }
+  }, [selectedDevice]);
+
+  const handleEventChange = (key, value) => {
+    setEventData({ ...eventData, [key]: value });
+  };
+
+  const handleCreateEvent = async () => {
+    const toSend = {
+      ...eventData,
+      endDate: eventData.startDate,
+      dId: selectedDevice.dId,
+      color: "blue",
+    };
+    const response = await callEndpoint(
+      addDeviceSchedule({ newSchedule: toSend })
+    );
+
+    if (!response.error) {
+      setEventData({
+        startDate: "",
+        text: "",
+        title: "",
+        riegoActivo: false,
+        color: "blue",
+      });
+
+      const res = await callEndpoint(getSchedules(selectedDevice.dId));
+
+      let nextEvents = {
+        name: "Proximos Eventos",
+        items: res.data.nextEvents.map((x) => ({
+          title: x.title,
+          date: x.startDate,
+          checked: x.read,
+          id: x._id,
+        })),
+      };
+      let riegos = {
+        name: "Riegos",
+        items: res.data.irrigationEvents.map((x) => ({
+          title: x.title,
+          date: x.startDate,
+          checked: x.read,
+          id: x._id,
+        })),
+      };
+      setCalendar([nextEvents, riegos]);
+      setIsDialogOpen(false);
+    }
+  };
+
   return (
     <Sidebar
       collapsible="none"
@@ -78,15 +184,64 @@ export function SidebarRight({
       <SidebarContent>
         <DatePicker />
         <SidebarSeparator className="mx-0" />
-        <Calendars calendars={data.calendars} />
+        <Calendars calendars={calendars} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton>
-              <Plus />
-              <span>Añadir evento</span>
-            </SidebarMenuButton>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <SidebarMenuButton>
+                  <Plus />
+                  <span>Añadir evento</span>
+                </SidebarMenuButton>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Crear Evento</DialogTitle>
+                  <DialogDescription>
+                    Rellena los campos para crear un nuevo evento.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-4">
+                  <Label>Fecha del evento</Label>
+                  <Calendar
+                    selected={
+                      eventData.startDate
+                        ? new Date(eventData.startDate)
+                        : undefined
+                    }
+                    onDayClick={(date) => handleEventChange("startDate", date)}
+                  />
+
+                  <Label>Título</Label>
+                  <Input
+                    value={eventData.title}
+                    onChange={(e) => handleEventChange("title", e.target.value)}
+                  />
+                  <Label>Descripción</Label>
+                  <Input
+                    value={eventData.text}
+                    onChange={(e) => handleEventChange("text", e.target.value)}
+                  />
+                  <Label>Evento de riego</Label>
+                  <Switch
+                    checked={eventData.riegoActivo}
+                    onCheckedChange={(value) =>
+                      handleEventChange("riegoActivo", value)
+                    }
+                  />
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancelar</Button>
+                  </DialogClose>
+                  <Button variant="default" onClick={handleCreateEvent}>
+                    Crear
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>

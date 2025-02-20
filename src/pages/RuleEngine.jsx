@@ -155,7 +155,9 @@ const RuleEngine = () => {
   if (!selectedDevice) {
     return (
       <div className="flex flex-col items-center p-4">
-        <h1 className="text-2xl font-bold mb-2 text-left">Motor de reglas</h1>
+        <h1 className="text-2xl font-bold mb-2 text-left">
+          Control Automatico
+        </h1>
         <div className="w-full max-w-3xl">
           <Card className="mb-4">
             <CardHeader>
@@ -194,7 +196,7 @@ const RuleEngine = () => {
 
   return (
     <div className="flex flex-col items-center p-4">
-      <h1 className="text-2xl font-bold mb-2 text-left">Motor de reglas</h1>
+      <h1 className="text-2xl font-bold mb-2 text-left">Control Automatico</h1>
 
       <div className="w-full max-w-3xl">
         <Card className="mb-4">

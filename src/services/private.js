@@ -215,6 +215,31 @@ export const addNotificationAlert = (alertData) => {
   };
 };
 
+export const updateUserNotificationsStatus = (status) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  return {
+    call: axios
+      .put(
+        import.meta.env.VITE_BASE_URL + `/user-notifications`,
+        { status: status },
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 export const updateNotificationAlert = (rule) => {
   const controller = loadAbort();
   const headers = getAxiosHeaders();
@@ -311,7 +336,7 @@ export const setAllNotificationsRead = () => {
   };
 };
 
-export const getSchedules = () => {
+export const getSchedules = (dId) => {
   const controller = loadAbort();
   const headers = getAxiosHeaders();
   if (!headers) {
@@ -319,9 +344,57 @@ export const getSchedules = () => {
   }
   return {
     call: axios
-      .get(import.meta.env.VITE_BASE_URL + "/schedules", headers, {
+      .get(import.meta.env.VITE_BASE_URL + "/schedules/?dId=" + dId, headers, {
         signal: controller.signal,
       })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const checkSchedule = (schedule) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(
+        import.meta.env.VITE_BASE_URL + `/schedule-check`,
+        { schedule },
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const deleteSchedule = (id) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .delete(
+        import.meta.env.VITE_BASE_URL + `/schedule?scheduleId=${id}`,
+
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
       .catch((error) => {
         notifyError(error);
         return { error: true };
@@ -397,7 +470,7 @@ export const deleteDevice = (dId) => {
   };
 };
 
-export const addDeviceSchedule = (deviceId, scheduleData) => {
+export const addDeviceSchedule = (scheduleData) => {
   const controller = loadAbort();
   const headers = getAxiosHeaders();
   if (!headers) {
@@ -406,7 +479,7 @@ export const addDeviceSchedule = (deviceId, scheduleData) => {
   return {
     call: axios
       .post(
-        import.meta.env.VITE_BASE_URL + `/device/${deviceId}/schedule`,
+        import.meta.env.VITE_BASE_URL + `/schedule`,
         scheduleData,
         headers,
         {

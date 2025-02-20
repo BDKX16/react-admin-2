@@ -45,7 +45,7 @@ const DeviceConfig = () => {
             return {
               variable: w.variable,
               variableFullName: w.variableFullName,
-              initial: w.initialValue,
+              initial: w.initialValue === undefined ? 3 : w.initialValue,
             };
           })
       );
@@ -55,13 +55,12 @@ const DeviceConfig = () => {
   const handleSave = async () => {
     const toSend = {
       dId: selectedDevice.dId,
-      deviceName,
+      deviceName: deviceName !== selectedDevice.name ? deviceName : null,
       configs,
     };
-
     // Example of calling an endpoint function
     const response = await callEndpoint(updateDeviceConfig(toSend));
-    console.log(response);
+
     if (!response.error) {
       window.location.reload();
     }
@@ -150,7 +149,8 @@ const DeviceConfig = () => {
             </SelectContent>
           </Select>
           <Label className="text-gray-500">
-            Puedes configurar el estado inicial de la salida.
+            Puedes configurar el estado al encender el dispositivo. Ante cortes
+            de luz el dispositivo iniciara en este modo.
           </Label>
         </div>
       ))}

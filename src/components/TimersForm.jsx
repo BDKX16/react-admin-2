@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { setSingleTimer } from "../services/public";
 
 import useFetchAndLoad from "@/hooks/useFetchAndLoad";
+import useMqtt from "@/hooks/useMqtt";
 import { Label } from "@/components/ui/label";
-const TimersForm = ({ timers, dId }) => {
+const TimersForm = ({ userId, timers, dId }) => {
   const { loading, callEndpoint } = useFetchAndLoad();
   const [horaEncendido, setHoraEncendido] = useState(null);
   const [horaApagado, setHoraApagado] = useState(null);
+  const { setSend } = useMqtt();
 
   useEffect(() => {
     if (timers) {
@@ -51,19 +53,29 @@ const TimersForm = ({ timers, dId }) => {
       variable: timers.variable,
     };
 
-    await callEndpoint(setSingleTimer(timer, dId));
+    const res = await callEndpoint(setSingleTimer(timer, dId));
+    if (res?.data.status === "success") {
+      const toSend = {
+        topic: userId + "/" + dId + "/" + timer.variable + "/actdata",
+        msg: {
+          value: 4,
+        },
+      };
+
+      setSend({ msg: toSend.msg, topic: toSend.topic });
+    }
   };
 
   if (!horaEncendido || !horaApagado) return null;
   return (
-    <div className="flex flex-row space-x-3 items-end">
+    <div className="flex flex-row space-x-3 items-end justify-evenly">
       <div>
-        <Label>Hora de encendido</Label>
+        <Label>Encendido</Label>
         <Select
           defaultValue={horaEncendido}
           onValueChange={(value) => setHoraEncendido(value)}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="Hora de encendido" />
           </SelectTrigger>
           <SelectContent>
@@ -96,12 +108,12 @@ const TimersForm = ({ timers, dId }) => {
       </div>
 
       <div>
-        <Label>Hora de apagado</Label>
+        <Label>Apagado</Label>
         <Select
           onValueChange={(value) => setHoraApagado(value)}
           defaultValue={horaApagado}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="Hora de apagado" />
           </SelectTrigger>
           <SelectContent>
@@ -134,7 +146,7 @@ const TimersForm = ({ timers, dId }) => {
       </div>
 
       <Button variant="outline" disabled={buttonLogic()} onClick={handleSubmit}>
-        Button
+        Guardar
       </Button>
     </div>
   );

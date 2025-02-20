@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BellRing, Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -12,66 +12,102 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import {
+  getNotifications,
+  setAllNotificationsRead,
+  updateUserNotificationsStatus,
+} from "../services/private";
+import useFetchAndLoad from "../hooks/useFetchAndLoad";
 
-const notifications = [
-  {
-    title: "Your call has been confirmed.",
-    description: "1 hour ago",
-  },
-  {
-    title: "You have a new message!",
-    description: "1 hour ago",
-  },
-  {
-    title: "Your subscription is expiring soon!",
-    description: "2 hours ago",
-  },
-];
+import { formatNotification } from "../utils/formatNotification";
+import { daysUntilDateTime } from "../utils/daysUntilDate";
 
 type CardProps = React.ComponentProps<typeof Card>;
 
 export function NotificationMenu({ className, ...props }: CardProps) {
+  const { loading, callEndpoint } = useFetchAndLoad();
+  const [notifications, setNotifications] = React.useState([]);
+  const [sendNotifications, setSendNotifications] = React.useState(null);
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const response = await callEndpoint(getNotifications());
+      if (response && !response.error) {
+        setNotifications(response.data.data);
+        setSendNotifications(response.data.sendNotifications);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  const handleDeleteNotifications = async () => {
+    const response = await callEndpoint(setAllNotificationsRead());
+
+    if (!response.error) {
+      setNotifications([]);
+    }
+  };
+  const handleUpdateUserNotificationsStatus = async (value) => {
+    const response = await callEndpoint(updateUserNotificationsStatus(value));
+
+    if (!response.error) {
+      setSendNotifications(value);
+    }
+  };
+
   return (
     <>
       <CardHeader>
-        <CardTitle>Notifications</CardTitle>
-        <CardDescription>You have 3 unread messages.</CardDescription>
+        <CardTitle>Notificaciones</CardTitle>
+        <CardDescription>
+          Tenes {notifications.length} mensajes no leidos.
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className=" flex items-center space-x-4 rounded-md border p-4">
           <BellRing />
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium leading-none">
-              Push Notifications
+              Notificaciones push
             </p>
             <p className="text-sm text-muted-foreground">
-              Send notifications to devices.
+              Mandar notificaciones a dispositivos.
             </p>
           </div>
-          <Switch />
+          <Switch
+            checked={sendNotifications}
+            disabled={loading || sendNotifications === null}
+            onCheckedChange={handleUpdateUserNotificationsStatus}
+          />
         </div>
         <div>
-          {notifications.map((notification, index) => (
-            <div
-              key={index}
-              className="mb-4 grid grid-cols-[25px_1fr] items-start pb-4 last:mb-0 last:pb-0"
-            >
-              <span className="flex h-2 w-2 translate-y-1 rounded-full bg-sky-500" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  {notification.title}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {notification.description}
-                </p>
+          {notifications
+            .sort(
+              (a, b) =>
+                new Date(b.expiracy).getTime() - new Date(a.expiracy).getTime()
+            )
+            .slice(0, 3)
+            .map((notification, index) => (
+              <div
+                key={index}
+                className="mb-4 grid grid-cols-[25px_1fr] items-start pb-4 last:mb-0 last:pb-0"
+              >
+                <span className="flex h-2 w-2 translate-y-1 rounded-full bg-sky-500" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {formatNotification(notification)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {daysUntilDateTime(notification.expiracy)}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </CardContent>
       <CardFooter>
-        <Button className="w-full">
-          <Check /> Mark all as read
+        <Button className="w-full" onClick={handleDeleteNotifications}>
+          <Check /> Marcar todas como leidas
         </Button>
       </CardFooter>
     </>
