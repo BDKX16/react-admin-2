@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   getNotifications,
   setAllNotificationsRead,
@@ -81,28 +82,33 @@ export function NotificationMenu({ className, ...props }: CardProps) {
           />
         </div>
         <div>
-          {notifications
-            .sort(
-              (a, b) =>
-                new Date(b.expiracy).getTime() - new Date(a.expiracy).getTime()
-            )
-            .slice(0, 3)
-            .map((notification, index) => (
-              <div
-                key={index}
-                className="mb-4 grid grid-cols-[25px_1fr] items-start pb-4 last:mb-0 last:pb-0"
-              >
-                <span className="flex h-2 w-2 translate-y-1 rounded-full bg-sky-500" />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {formatNotification(notification)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {daysUntilDateTime(notification.expiracy)}
-                  </p>
-                </div>
-              </div>
-            ))}
+          {loading
+            ? Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton key={index} className="h-12 w-full mb-3" />
+              ))
+            : notifications
+                .sort(
+                  (a, b) =>
+                    new Date(b.expiracy).getTime() -
+                    new Date(a.expiracy).getTime()
+                )
+                .slice(0, 3)
+                .map((notification, index) => (
+                  <div
+                    key={index}
+                    className="mb-4 grid grid-cols-[25px_1fr] items-center pb-4 last:mb-0 last:pb-0 "
+                  >
+                    <span className="flex h-2 w-2 rounded-full mb-1 bg-sky-500" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {formatNotification(notification)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {daysUntilDateTime(notification.expiracy)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
         </div>
       </CardContent>
       <CardFooter>
