@@ -1,5 +1,3 @@
-import React from "react";
-import Chart from "@/components/chart";
 import { InputCard } from "@/components/InputCard";
 import useDevices from "@/hooks/useDevices";
 

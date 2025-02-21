@@ -2,21 +2,11 @@ import * as React from "react";
 import { Plus, ServerOff, Server, Router } from "lucide-react";
 import { Calendars } from "@/components/layout/calendars";
 import { DatePicker } from "@/components/layout/date-picker";
-import { NavUser } from "@/components/layout/nav-user";
 import { Bell, BellDot } from "lucide-react";
 import {
   Menubar,
-  MenubarCheckboxItem,
   MenubarContent,
-  MenubarItem,
   MenubarMenu,
-  MenubarRadioGroup,
-  MenubarRadioItem,
-  MenubarSeparator,
-  MenubarShortcut,
-  MenubarSub,
-  MenubarSubContent,
-  MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar";
 import {
@@ -27,7 +17,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
