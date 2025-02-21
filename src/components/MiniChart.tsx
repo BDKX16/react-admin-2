@@ -1,14 +1,7 @@
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
 import {
   ChartConfig,
   ChartContainer,
@@ -17,9 +10,7 @@ import {
 } from "@/components/ui/chart";
 
 import {
-  createChartDataAdapter,
   createChartDateTimeAdapter,
-  createChartDateTimeAdapterActuator,
 } from "@/adapters/chart-data";
 
 import { getChartsData } from "../services/private";
