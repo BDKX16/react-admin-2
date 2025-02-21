@@ -14,6 +14,12 @@ export default defineConfig({
     assetsDir: "static",
     rollupOptions: {
       output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            // Dividir los módulos en un chunk separado
+            return "vendor";
+          }
+        },
         entryFileNames: "static/js/[name]-[hash].js",
         chunkFileNames: "static/js/[name]-[hash].js",
         assetFileNames: ({ name }) => {
@@ -24,5 +30,6 @@ export default defineConfig({
         },
       },
     },
+    chunkSizeWarningLimit: 1000, // Ajustar el límite de tamaño de chunk a 1000 kB
   },
 });

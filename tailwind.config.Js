@@ -6,7 +6,7 @@ const config = {
     "./pages/**/*.{ts,tsx,jsx}",
     "./components/**/*.{ts,tsx,jsx}",
     "./app/**/*.{ts,tsx,jsx}",
-    "./src/**/*.{ts,tsx,jsx}",
+    "./src/**/*.{js,jsx,ts,tsx}",
   ],
   prefix: "",
   theme: {
@@ -148,7 +148,11 @@ const config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("@tailwindcss/forms"),
+    require("@tailwindcss/typography"),
+  ],
 };
 
 // function addVariablesForColors({ addBase, theme }: any) {
