@@ -1,4 +1,4 @@
-const config = {
+module.exports = {
   darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx,jsx}",
@@ -165,5 +165,3 @@ const config = {
 //     ':root': newVars,
 //   })
 // }
-
-export default config;

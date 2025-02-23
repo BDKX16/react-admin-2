@@ -27,7 +27,7 @@ const LoginFormulario = () => {
     const data = new FormData(event.currentTarget);
 
     const result = await callEndpoint(
-      login(data.get("email"), data.get("password"))
+      login(data.get("email").toLowerCase(), data.get("password"))
     );
 
     if (result.error === true) {
