@@ -16,7 +16,6 @@ import RuleEngine from "./pages/RuleEngine.jsx";
 import DeviceConfig from "./pages/DeviceConfig.jsx";
 const Layout = () => {
   const userState = useSelector((state) => state.user);
-
   return (
     <BrowserRouter
       future={{
@@ -27,43 +26,49 @@ const Layout = () => {
       <Routes>
         <Route
           path="/login"
-          element={userState.user ? <Navigate to="/" /> : <Login />}
+          element={userState?.token ? <Navigate to="/" /> : <Login />}
           caseSensitive={false}
         ></Route>
         <Route
           path="/*"
           element={
-            <MqttProvider>
-              <DevicesProvider>
-                <SidebarProvider>
-                  <AppSidebar>
-                    <Routes>
-                      <Route
-                        path={`/dashboard`}
-                        element={<Dashboard />}
-                      ></Route>
-                      <Route
-                        path={`/charts`}
-                        element={<ChartDashboard />}
-                      ></Route>
-                      <Route
-                        path={`/notifications`}
-                        element={<Notifications />}
-                      ></Route>
-                      <Route
-                        path={`/rule-engine`}
-                        element={<RuleEngine />}
-                      ></Route>
-                      <Route
-                        path={`/device-config`}
-                        element={<DeviceConfig />}
-                      ></Route>
-                      <Route path={`/*`} element={<Dashboard />}></Route>
-                    </Routes>
-                  </AppSidebar>
-                </SidebarProvider>
-              </DevicesProvider>
-            </MqttProvider>
+            userState?.token ? (
+              <>
+                <MqttProvider>
+                  <DevicesProvider>
+                    <SidebarProvider>
+                      <AppSidebar>
+                        <Routes>
+                          <Route
+                            path={`/dashboard`}
+                            element={<Dashboard />}
+                          ></Route>
+                          <Route
+                            path={`/charts`}
+                            element={<ChartDashboard />}
+                          ></Route>
+                          <Route
+                            path={`/notifications`}
+                            element={<Notifications />}
+                          ></Route>
+                          <Route
+                            path={`/rule-engine`}
+                            element={<RuleEngine />}
+                          ></Route>
+                          <Route
+                            path={`/device-config`}
+                            element={<DeviceConfig />}
+                          ></Route>
+                          <Route path={`/*`} element={<Dashboard />}></Route>
+                        </Routes>
+                      </AppSidebar>
+                    </SidebarProvider>
+                  </DevicesProvider>
+                </MqttProvider>
+              </>
+            ) : (
+              <Navigate to="/login" />
+            )
           }
         ></Route>
       </Routes>

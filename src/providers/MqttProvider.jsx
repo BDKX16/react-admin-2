@@ -137,7 +137,8 @@ export const MqttProvider = ({ children }) => {
       //enqueueSnackbar("MQTT CONNECIONT FAIL -> ", { variant: "default" });
       setReconnecting(true);
       if (error.code == 5) {
-        setConnectingMqtt(false);
+        //not authorized
+        reconnectMqtt();
       } else {
         if (
           mqttClientRef.current.disconnected == true &&
@@ -149,7 +150,6 @@ export const MqttProvider = ({ children }) => {
           });
         }
       }
-      console.log(error);
     });
 
     mqttClientRef.current.on("message", (topic, message) => {
@@ -260,7 +260,7 @@ export const MqttProvider = ({ children }) => {
   };
 
   const reconnectMqtt = async () => {
-    if (!pestanaSegundoPlano) {
+    if (!connectingMqtt) {
       setConnectingMqtt(true);
 
       setStatus("connecting");

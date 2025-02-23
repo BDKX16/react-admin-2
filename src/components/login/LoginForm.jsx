@@ -30,12 +30,11 @@ const LoginFormulario = () => {
       login(data.get("email"), data.get("password"))
     );
 
-    console.log(result);
-    if (!result || Object.keys(result)?.length === 0) {
+    if (result.error === true) {
       return;
     } else {
       setUserData(createUserAdapter(result));
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     }
   };
 
