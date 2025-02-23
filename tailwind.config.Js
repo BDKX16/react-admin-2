@@ -1,5 +1,3 @@
-import type { Config } from "tailwindcss";
-
 const config = {
   darkMode: ["class"],
   content: [
@@ -62,6 +60,9 @@ const config = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      borderWidth: {
+        border: "hsl(var(--border))",
       },
       borderRadius: {
         lg: "var(--radius)",
