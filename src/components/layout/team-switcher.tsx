@@ -95,17 +95,19 @@ export function TeamSwitcher({
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="lg"
-                disabled={loading}
+                disabled={loading || !teams.length}
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <activeTeam.logo className="size-4" />
+                  {activeTeam && <activeTeam.logo className="size-4" />}
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">
-                    {activeTeam.name}
+                    {activeTeam ? activeTeam.name : "No hay dispositivos"}
                   </span>
-                  <span className="truncate text-xs">{activeTeam.plan}</span>
+                  <span className="truncate text-xs">
+                    {activeTeam ? activeTeam.plan : "Carga el primero."}
+                  </span>
                 </div>
                 <ChevronsUpDown className="ml-auto" />
               </SidebarMenuButton>
@@ -155,15 +157,15 @@ export function TeamSwitcher({
             </DialogHeader>
             <DialogFooter>
               <Input
-                placeholder="Se ve algo como esto: a1b2c3d4e5"
+                placeholder="Ej: a1b2c3d4e5"
                 onKeyUp={(e) => setSerialInput(e.target.value)}
               ></Input>
               <Input
-                placeholder="Como quieres llamarlo"
+                placeholder="Nombre del dispositivo"
                 onKeyUp={(e) => setNameInput(e.target.value)}
               ></Input>
               <Button type="submit" onClick={handleSubmit}>
-                Confirm
+                Confirmar
               </Button>
             </DialogFooter>
           </DialogContent>

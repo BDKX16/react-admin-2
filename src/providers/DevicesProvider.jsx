@@ -12,7 +12,7 @@ export const DevicesProvider = ({ children }) => {
   const { loading, callEndpoint } = useFetchAndLoad();
   const [devicesArr, setDevicesArr] = useState([]);
   const [reload, setReload] = useState(false);
-  const [selectedDevice, setSelectedDevice] = useState({});
+  const [selectedDevice, setSelectedDevice] = useState(null);
   const { auth } = useAuth();
   const { closeSnackbar } = useSnackbar();
 
@@ -50,9 +50,13 @@ export const DevicesProvider = ({ children }) => {
 
   const getDevices = async () => {
     const result = await callEndpoint(getInitialDevices());
-
-    if (!result || Object.keys(result)?.length === 0 || result.error) {
+    console.log(result);
+    if (!result || Object.keys(result)?.length === 0) {
       return;
+    } else if (result?.code == 1) {
+      setDevicesArr([]);
+      setSelectedDevice({ error: "no devices loaded", code: 1 });
+      console.log("No Devices");
     } else {
       setDevicesArr(result.data.data);
       setSelectedDevice(
@@ -65,8 +69,7 @@ export const DevicesProvider = ({ children }) => {
   const deviceContextValue = {
     setDevicesArr,
     devicesArr,
-    selectedDevice:
-      Object.keys(selectedDevice).length > 0 ? selectedDevice : null,
+    selectedDevice,
     setReload,
     loading,
   };

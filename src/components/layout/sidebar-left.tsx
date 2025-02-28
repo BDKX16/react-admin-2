@@ -117,6 +117,27 @@ const data = {
     //   ],
     // },
   ],
+  navMainNoDevices: [
+    {
+      title: "Dashboard",
+      url: "#",
+      icon: LayoutDashboard,
+      isActive: true,
+      items: [
+        {
+          title: "Dispositivo",
+          url: "/dashboard",
+        },
+      ],
+    },
+
+    {
+      title: "Automatizaciones",
+      url: "#",
+      icon: BookOpen,
+      items: [],
+    },
+  ],
   projects: [
     {
       name: "Calendario",
@@ -150,7 +171,6 @@ export function SidebarLeft({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const { devicesArr } = useDevices();
-
   const updatedTeams = devicesArr.map((item) => {
     return {
       name: item.name,
@@ -164,7 +184,7 @@ export function SidebarLeft({
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        {devicesArr.length > 0 ? (
+        {devicesArr != null ? (
           <TeamSwitcher teams={updatedTeams} />
         ) : (
           <>
@@ -179,7 +199,9 @@ export function SidebarLeft({
         )}
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain
+          items={devicesArr.length === 0 ? data.navMainNoDevices : data.navMain}
+        />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter>

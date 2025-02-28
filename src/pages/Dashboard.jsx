@@ -1,8 +1,10 @@
 import { InputCard } from "@/components/InputCard";
 import useDevices from "@/hooks/useDevices";
-
 import ActuatorCard from "../components/ActuatorCard";
 import useAuth from "../hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import WelcomeCard from "../components/WelcomeCard"; // Import the new component
 
 const Dashboard = () => {
   const { selectedDevice } = useDevices();
@@ -18,6 +20,9 @@ const Dashboard = () => {
       return 3;
     }
   };
+  if (selectedDevice?.code === 1) {
+    return <WelcomeCard />; // Use the new component
+  }
   return (
     <>
       <div className="grid auto-rows-min gap-4 md:grid-cols-3 sm:grid-cols-2">

@@ -77,8 +77,7 @@ export const getInitialDevices = () => {
         signal: controller.signal,
       })
       .catch((error) => {
-        notifyError(error);
-        return { error: true };
+        return { error: true, code: error?.response?.data?.code };
       }),
     controller,
   };
