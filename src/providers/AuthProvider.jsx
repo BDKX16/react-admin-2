@@ -1,7 +1,10 @@
-import React, { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useCallback } from "react";
 import { useDispatch } from "react-redux";
-import user, { createUser } from "../redux/states/user";
+import { createUser, modifyUser } from "../redux/states/user";
 import { enqueueSnackbar } from "notistack";
+import { loadAbort } from "@/utils/load-abort-controller";
+import axios from "axios";
+import PropTypes from "prop-types";
 
 const AuthContext = createContext();
 
@@ -10,11 +13,49 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    authUser();
-  }, []);
+  const fetchSubscriptionStatus = useCallback(
+    async (token) => {
+      try {
+        const controller = loadAbort();
+        const headers = {
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
+          },
+        };
 
-  const authUser = async () => {
+        const response = await axios.get(
+          import.meta.env.VITE_BASE_URL + "/subscription-status",
+          {
+            ...headers,
+            signal: controller.signal,
+          }
+        );
+
+        if (response.data && response.data.plan) {
+          // Actualizar el plan en el estado del usuario
+          const currentUserData = JSON.parse(localStorage.getItem("userData"));
+          const updatedUserData = {
+            ...currentUserData,
+            plan: response.data.plan,
+          };
+
+          localStorage.setItem("userData", JSON.stringify(updatedUserData));
+          dispatch(modifyUser({ plan: response.data.plan }));
+          setAuth((prevAuth) => ({
+            ...prevAuth,
+            userData: { ...prevAuth.userData, plan: response.data.plan },
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching subscription status:", error);
+        // No mostrar error al usuario, usar plan por defecto
+      }
+    },
+    [dispatch]
+  );
+
+  const authUser = useCallback(async () => {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("userData");
 
@@ -22,20 +63,38 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return false;
     }
-    //console.log(  "authoriced - " +  JSON.parse(userData).name +  " - role: " +   JSON.parse(userData).role );
-    dispatch(createUser(JSON.parse(userData)));
-    setAuth({ token: token, userData: JSON.parse(userData) });
+
+    const parsedUserData = JSON.parse(userData);
+    const cleanToken = token.replace(/"/g, ""); // Remover comillas si existen
+
+    dispatch(createUser(parsedUserData));
+    setAuth({ token: cleanToken, userData: parsedUserData });
+
+    // Obtener estado actual de la suscripción
+    await fetchSubscriptionStatus(cleanToken);
+
     setLoading(false);
-  };
+  }, [dispatch, fetchSubscriptionStatus]);
 
-  const setUserData = (data) => {
-    localStorage.setItem("token", JSON.stringify(data.token));
+  useEffect(() => {
+    authUser();
+  }, [authUser]);
 
-    localStorage.setItem("userData", JSON.stringify(data));
+  const setUserData = useCallback(
+    async (data) => {
+      localStorage.setItem("token", JSON.stringify(data.token));
+      localStorage.setItem("userData", JSON.stringify(data));
 
-    dispatch(createUser(data));
-    setAuth({ token: data.token, userData: data });
-  };
+      dispatch(createUser(data));
+      setAuth({ token: data.token, userData: data });
+
+      // Obtener estado actual de la suscripción después del login
+      if (data.token) {
+        await fetchSubscriptionStatus(data.token);
+      }
+    },
+    [dispatch, fetchSubscriptionStatus]
+  );
 
   const logout = () => {
     enqueueSnackbar("Logout successfully", { variant: "success" });
@@ -58,6 +117,10 @@ export const AuthProvider = ({ children }) => {
       {!loading && children}
     </AuthContext.Provider>
   );
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 export default AuthContext;

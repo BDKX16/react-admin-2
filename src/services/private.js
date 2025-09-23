@@ -494,6 +494,371 @@ export const addDeviceSchedule = (scheduleData) => {
 };
 
 /**********
+ * SUBSCRIPTIONS & PAYMENTS
+ ************/
+
+// User subscription status endpoint
+export const getSubscriptionStatus = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/subscription-status", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// SUBSCRIPTION ENDPOINTS (/subscriptions)
+
+// GET /subscriptions/current - Obtener subscripción activa del usuario
+export const getCurrentSubscription = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/subscriptions/current", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// POST /subscriptions/create - Crear nueva subscripción al plan PRO
+export const createSubscription = (planType = "pro") => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL + "/subscriptions/create",
+        { planType },
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// PUT /subscriptions/cancel - Cancelar subscripción activa
+export const cancelSubscription = (reason) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(
+        import.meta.env.VITE_BASE_URL + "/subscriptions/cancel",
+        { reason },
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// GET /subscriptions/history - Historial de subscripciones del usuario
+export const getSubscriptionHistory = (page = 1, limit = 10) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  headers.params = { page, limit };
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/subscriptions/history", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// PAYMENT ENDPOINTS (/payments)
+
+// GET /payments/history - Historial de pagos del usuario
+export const getPaymentHistory = (page = 1, limit = 10) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  headers.params = { page, limit };
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/payments/history", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// GET /payments/:paymentId - Detalles de un pago específico
+export const getPaymentDetails = (paymentId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + `/payments/${paymentId}`, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// POST /payments/create-preference/:paymentId - Crear preferencia de pago en MercadoPago
+export const createPaymentPreference = (paymentId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL +
+          `/payments/create-preference/${paymentId}`,
+        {},
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// POST /payments/manual-approval/:paymentId - Aprobar pago manualmente (admin/testing)
+export const manualApprovePayment = (paymentId, adminNote) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL +
+          `/payments/manual-approval/${paymentId}`,
+        { adminNote },
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// USER PROFILE ENDPOINTS (/users)
+
+// PUT /users/update-profile - Actualizar nombre y/o email del usuario
+export const updateUserProfile = (profileData) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(
+        import.meta.env.VITE_BASE_URL + "/users/update-profile",
+        profileData,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// GET /users/profile - Obtener información completa del perfil del usuario
+export const getUserProfile = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/users/profile", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// DELETE /users/cancel-email-change - Cancelar cambio de email pendiente
+export const cancelEmailChange = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .delete(
+        import.meta.env.VITE_BASE_URL + "/users/cancel-email-change",
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// LEGACY ENDPOINTS (mantener compatibilidad)
+export const getUserSubscription = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/subscription", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const updateSubscription = (subscriptionData) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(
+        import.meta.env.VITE_BASE_URL + "/subscription",
+        subscriptionData,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const getUserPayments = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/payments", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const createPayment = (paymentData) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .post(import.meta.env.VITE_BASE_URL + "/payments", paymentData, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+/**********
  * FUNCTIONS
  ************/
 

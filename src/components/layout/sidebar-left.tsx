@@ -164,6 +164,8 @@ const parsePlansName = (plan) => {
     return "AutoKit v2";
   } else if (plan === "hidroponics") {
     return "Confi Hydro";
+  } else if (plan === "confi-plant") {
+    return "Confi Plant";
   }
 };
 

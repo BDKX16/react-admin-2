@@ -75,7 +75,6 @@ export function SidebarRight({
     color: "blue",
   });
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-
   React.useEffect(() => {
     const fetchData = async () => {
       const res = await callEndpoint(getSchedules(selectedDevice.dId));
@@ -173,7 +172,7 @@ export function SidebarRight({
       <SidebarContent>
         <DatePicker />
         <SidebarSeparator className="mx-0" />
-        <Calendars calendars={calendars} />
+        <Calendars calendars={calendars} selectedDevice={selectedDevice} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
@@ -213,13 +212,17 @@ export function SidebarRight({
                     value={eventData.text}
                     onChange={(e) => handleEventChange("text", e.target.value)}
                   />
-                  <Label>Evento de riego</Label>
-                  <Switch
-                    checked={eventData.riegoActivo}
-                    onCheckedChange={(value) =>
-                      handleEventChange("riegoActivo", value)
-                    }
-                  />
+                  {selectedDevice?.template?.company === "confi-plant" && (
+                    <>
+                      <Label>Evento de riego</Label>
+                      <Switch
+                        checked={eventData.riegoActivo}
+                        onCheckedChange={(value) =>
+                          handleEventChange("riegoActivo", value)
+                        }
+                      />
+                    </>
+                  )}
                 </div>
                 <DialogFooter>
                   <DialogClose asChild>

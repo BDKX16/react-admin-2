@@ -23,11 +23,13 @@ import { Button } from "../ui/button";
 import { daysUntilDate } from "@/utils/daysUntilDate";
 export function Calendars({
   calendars,
+  selectedDevice,
 }: {
   calendars: {
     name: string;
     items: string[];
   }[];
+  selectedDevice?: any;
 }) {
   const { selectedDate } = useCalendar();
   const { loading, callEndpoint } = useFetchAndLoad();
@@ -74,9 +76,20 @@ export function Calendars({
   };
 
   if (calendarItems.length == 0) return <p>Loading...</p>;
+
+  // Filtrar calendarios basado en el tipo de dispositivo
+  const filteredCalendars = calendarItems.filter((calendar) => {
+    // Si es "Riegos", solo mostrar para dispositivos "confi-plant"
+    if (calendar.name === "Riegos") {
+      return selectedDevice?.template?.company === "confi-plant";
+    }
+    // Mostrar otros calendarios para todos los dispositivos
+    return true;
+  });
+
   return (
     <>
-      {calendarItems.map((calendar, index) => (
+      {filteredCalendars.map((calendar, index) => (
         <React.Fragment key={calendar.name}>
           <SidebarGroup key={calendar.name} className="py-0">
             <Collapsible

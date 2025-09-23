@@ -2,13 +2,12 @@ import { InputCard } from "@/components/InputCard";
 import useDevices from "@/hooks/useDevices";
 import ActuatorCard from "../components/ActuatorCard";
 import useAuth from "../hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import WelcomeCard from "../components/WelcomeCard"; // Import the new component
 
 const Dashboard = () => {
   const { selectedDevice } = useDevices();
   const { auth } = useAuth();
+
   const calculateActuatorsCols = (widgets) => {
     const cant = widgets.filter(
       (widget) => widget.widgetType === "Switch" || widget.widgetType === "Pump"
@@ -56,16 +55,29 @@ const Dashboard = () => {
                 widget.widgetType === "Switch" || widget.widgetType === "Pump"
             )
             .map((item) => {
+              //console.log(item);
+              const widgetTimer = selectedDevice.timers.find(
+                (timer) => timer.variable === item.variable
+              );
+
+              const widgetCiclo = selectedDevice.ciclos.find(
+                (ciclo) => ciclo.variable == item.variable
+              );
+
+              if (!widgetTimer) {
+                console.log("No timer found for variable:", item.variable);
+                return;
+              }
+              if (!widgetCiclo) {
+                console.log("No ciclo found for variable:", item.variable);
+                return;
+              }
               return (
                 <ActuatorCard
                   key={item.variable}
                   widget={item}
-                  timer={selectedDevice.timers.find(
-                    (timer) => timer.variable === item.variable
-                  )}
-                  ciclo={selectedDevice.ciclos.find(
-                    (ciclo) => ciclo.variable === item.variable
-                  )}
+                  timer={widgetTimer}
+                  ciclo={widgetCiclo}
                   dId={selectedDevice.dId}
                   userId={auth.userData.id}
                 />

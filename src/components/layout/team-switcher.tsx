@@ -58,6 +58,14 @@ export function TeamSwitcher({
 
   const [nameInput, setNameInput] = React.useState("");
 
+  // Efecto para actualizar el dispositivo activo cuando cambien los teams
+  React.useEffect(() => {
+    const selectedTeam = teams.find((t) => t.selected);
+    if (selectedTeam && (!activeTeam || activeTeam.dId !== selectedTeam.dId)) {
+      setActiveTeam(selectedTeam);
+    }
+  }, [teams, activeTeam]);
+
   const handleSetActive = async (device) => {
     let data = await callEndpoint(selectDevice(device.dId));
 
@@ -80,6 +88,7 @@ export function TeamSwitcher({
 
         setSerialInput("");
         setNameInput("");
+        setReload(true); // Recargar la lista de dispositivos
       }
       return;
     } else {
@@ -103,10 +112,18 @@ export function TeamSwitcher({
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">
-                    {activeTeam ? activeTeam.name : "No hay dispositivos"}
+                    {loading
+                      ? "Cargando..."
+                      : activeTeam
+                      ? activeTeam.name
+                      : "No hay dispositivos"}
                   </span>
                   <span className="truncate text-xs">
-                    {activeTeam ? activeTeam.plan : "Carga el primero."}
+                    {loading
+                      ? "Obteniendo dispositivos..."
+                      : activeTeam
+                      ? activeTeam.plan
+                      : "Carga el primero."}
                   </span>
                 </div>
                 <ChevronsUpDown className="ml-auto" />
@@ -158,12 +175,18 @@ export function TeamSwitcher({
             <DialogFooter>
               <Input
                 placeholder="Ej: a1b2c3d4e5"
-                onKeyUp={(e) => setSerialInput(e.target.value)}
-              ></Input>
+                onChange={(e) =>
+                  setSerialInput((e.target as HTMLInputElement).value)
+                }
+                value={serialInput}
+              />
               <Input
                 placeholder="Nombre del dispositivo"
-                onKeyUp={(e) => setNameInput(e.target.value)}
-              ></Input>
+                onChange={(e) =>
+                  setNameInput((e.target as HTMLInputElement).value)
+                }
+                value={nameInput}
+              />
               <Button type="submit" onClick={handleSubmit}>
                 Confirmar
               </Button>

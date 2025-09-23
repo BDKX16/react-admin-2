@@ -6,6 +6,7 @@ export const UserEmptyState = {
   email: "",
   role: "",
   confirmed: false,
+  plan: "free", // Agregar plan por defecto
 };
 
 export const userSlice = createSlice({

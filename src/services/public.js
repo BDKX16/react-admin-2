@@ -206,6 +206,50 @@ export const deleteRule = (ruleId) => {
     controller,
   };
 };
+
+// PUBLIC ENDPOINTS FOR PAYMENTS AND EMAIL CONFIRMATION
+
+// POST /payments/webhook - Webhook para notificaciones de MercadoPago (PUBLIC)
+export const paymentsWebhook = (webhookData) => {
+  const controller = loadAbort();
+  return {
+    call: axios
+      .post(import.meta.env.VITE_BASE_URL + "/payments/webhook", webhookData, {
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+      .catch((error) => {
+        console.error("Webhook error:", error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// POST /users/confirm-email-change - Confirmar cambio de email con token (PUBLIC)
+export const confirmEmailChange = (token, newEmail) => {
+  const controller = loadAbort();
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL + "/users/confirm-email-change",
+        { token, newEmail },
+        {
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
 /**********
  * FUNCTIONS
  ************/

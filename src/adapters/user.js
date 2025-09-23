@@ -5,6 +5,7 @@ const createUserAdapter = (user) => ({
   confirmed: user.data.userData.confirmed,
   role: user.data.userData.role,
   id: user.data.userData._id,
+  plan: user.data.userData.plan || "free", // Agregar plan del usuario
 });
 
 const createUserManagmentAdapter = (user) => ({

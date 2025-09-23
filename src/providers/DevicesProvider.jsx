@@ -50,7 +50,6 @@ export const DevicesProvider = ({ children }) => {
 
   const getDevices = async () => {
     const result = await callEndpoint(getInitialDevices());
-    console.log(result);
     if (!result || Object.keys(result)?.length === 0) {
       return;
     } else if (result?.code == 1) {
