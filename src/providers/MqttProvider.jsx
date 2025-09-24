@@ -19,6 +19,10 @@ export const MqttProvider = ({ children }) => {
   //mqtt client
   const mqttClientRef = useRef(null);
 
+  // Throttling para reconnect
+  const lastReconnectAttempt = useRef(0);
+  const RECONNECT_THROTTLE_TIME = 10000; // 10 segundos
+
   //opciones de coneccion mqtt
   const [options, setOptions] = useState(null);
 
@@ -261,14 +265,40 @@ export const MqttProvider = ({ children }) => {
 
   const reconnectMqtt = async () => {
     if (!connectingMqtt) {
-      setConnectingMqtt(true);
+      const now = Date.now();
 
+      // Verificar throttling del lado cliente
+      if (now - lastReconnectAttempt.current < RECONNECT_THROTTLE_TIME) {
+        const remainingTime = Math.ceil(
+          (RECONNECT_THROTTLE_TIME - (now - lastReconnectAttempt.current)) /
+            1000
+        );
+        console.log(
+          `⚠️ Reconnect throttled. Esperando ${remainingTime}s antes del próximo intento`
+        );
+        return;
+      }
+
+      lastReconnectAttempt.current = now;
+      setConnectingMqtt(true);
       setStatus("connecting");
+
       const credentials = await callEndpoint(getEmqxCredentialsReconnect());
-      //console.log(credentials);
-      if (credentials.data.status == "success") {
+
+      // Manejar respuesta de throttling del servidor
+      if (credentials?.data?.status === "throttled") {
+        console.log(`🚫 Servidor: ${credentials.data.message}`);
+        setConnectingMqtt(false);
+        return;
+      }
+
+      if (credentials?.data?.status === "success") {
         mqttClientRef.current.options.password = credentials.data.password;
         mqttClientRef.current.options.username = credentials.data.username;
+        console.log("✅ Credenciales MQTT actualizadas para reconnect");
+      } else {
+        console.error("❌ Error obteniendo credenciales MQTT:", credentials);
+        setConnectingMqtt(false);
       }
     }
   };

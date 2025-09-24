@@ -122,8 +122,11 @@ export const getEmqxCredentialsReconnect = () => {
         { signal: controller.signal }
       )
       .catch((error) => {
-        notifyError(error);
-        return { error: true };
+        // No mostrar error para throttling (429), es comportamiento esperado
+        if (error.response?.status !== 429) {
+          notifyError(error);
+        }
+        return { error: true, response: error.response };
       }),
     controller,
   };
