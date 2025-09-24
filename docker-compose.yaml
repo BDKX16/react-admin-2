@@ -1,6 +1,8 @@
 services:
   react-admin:
-    image: bdkx16/react-admin-2
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: react-admin-container
     ports:
       - "9000:80"
