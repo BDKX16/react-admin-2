@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,9 +25,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, Crown, Sparkles } from "lucide-react";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
 import { Slider } from "@/components/ui/slider";
 import useDevices from "../hooks/useDevices";
+import useSubscription from "../hooks/useSubscription";
 import UpdateRuleDialog from "@/components/UpdateRuleDialog";
 
 import { createRule, deleteRule } from "../services/public";
@@ -35,7 +38,14 @@ import { createRule, deleteRule } from "../services/public";
 const RuleEngine = () => {
   const { loading, callEndpoint } = useFetchAndLoad();
   const { selectedDevice } = useDevices();
+  const { planData, isPro, isPlus } = useSubscription();
   const [rules, setRules] = useState([]);
+
+  // Obtener límites del plan
+  const maxRules = planData?.planLimits?.maxRules || 0;
+  const currentRulesCount = rules?.length || 0;
+  const hasReachedLimit = maxRules !== -1 && currentRulesCount >= maxRules;
+  const canCreateRules = maxRules === -1 || currentRulesCount < maxRules;
 
   useEffect(() => {
     setRules(
@@ -74,6 +84,11 @@ const RuleEngine = () => {
   };
 
   const handleCreate = async () => {
+    // Verificar límite de reglas antes de validar campos
+    if (!canCreateRules) {
+      return;
+    }
+
     const newErrors = {
       variable: !formData.variable,
       condition: !formData.condition,
@@ -100,6 +115,25 @@ const RuleEngine = () => {
     };
 
     const res = await callEndpoint(createRule({ newRule: alarmRule }));
+
+    if (!res.error) {
+      // Limpiar formulario después de crear exitosamente
+      setFormData({
+        variable: "",
+        condition: "",
+        value: "",
+        action: "",
+        actuator: "",
+        triggerTime: 20,
+      });
+      setErrors({
+        variable: false,
+        condition: false,
+        value: false,
+        action: false,
+        actuator: false,
+      });
+    }
   };
 
   const handleDelete = async (ruleId) => {
@@ -201,13 +235,42 @@ const RuleEngine = () => {
       <div className="w-full max-w-3xl">
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle className="text-left mb-2">
-              Agregar Nueva Regla
-            </CardTitle>
+            <div className="flex items-center justify-between mb-2">
+              <CardTitle className="text-left">Agregar Nueva Regla</CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant={hasReachedLimit ? "destructive" : "secondary"}>
+                  {maxRules === -1
+                    ? "Ilimitadas"
+                    : `${currentRulesCount}/${maxRules}`}
+                </Badge>
+                {(isPro || isPlus) && (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    {isPro ? (
+                      <Crown className="w-3 h-3" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    {isPro ? "Pro" : "Plus"}
+                  </Badge>
+                )}
+              </div>
+            </div>
             <Label className="mb-4 text-left text-gray-500">
               Aca podes crear reglas para automatizar acciones basadas en
               condiciones específicas.
             </Label>
+            {hasReachedLimit && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                <span className="text-sm text-yellow-700 dark:text-yellow-300">
+                  Has alcanzado el límite de {maxRules} reglas para tu plan
+                  actual.
+                  {!isPro &&
+                    !isPlus &&
+                    " Actualiza a Plus o Pro para crear más reglas."}
+                </span>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -347,12 +410,24 @@ const RuleEngine = () => {
             </div>
           </CardContent>
           <CardFooter className="justify-end">
-            <Button onClick={handleCreate}>Add Rule</Button>
+            <Button
+              onClick={handleCreate}
+              disabled={!canCreateRules}
+              className={!canCreateRules ? "opacity-50 cursor-not-allowed" : ""}
+            >
+              {hasReachedLimit ? "Límite alcanzado" : "Add Rule"}
+            </Button>
           </CardFooter>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Existing Rules</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Reglas Existentes</CardTitle>
+              <Badge variant="outline">
+                {currentRulesCount}{" "}
+                {currentRulesCount === 1 ? "regla" : "reglas"}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>

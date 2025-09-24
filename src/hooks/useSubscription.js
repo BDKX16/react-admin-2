@@ -17,8 +17,16 @@ const useSubscription = () => {
     return auth?.userData?.plan || "free";
   };
 
+  const getPlanData = () => {
+    return auth?.userData?.planData || null;
+  };
+
   const isPro = () => {
     return getUserPlan() === "pro";
+  };
+
+  const isPlus = () => {
+    return getUserPlan() === "plus";
   };
 
   const refreshSubscriptionStatus = async () => {
@@ -104,12 +112,15 @@ const useSubscription = () => {
 
   return {
     getUserPlan,
+    getPlanData,
     isPro,
+    isPlus,
     upgradeToPro,
     cancelSubscription,
     refreshSubscriptionStatus,
     loading,
     currentPlan: getUserPlan(),
+    planData: getPlanData(),
   };
 };
 
