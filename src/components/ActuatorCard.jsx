@@ -683,48 +683,9 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                   </SelectContent>
                 </Select>
 
-                {/* Info card para el modo seleccionado en mobile */}
-                {mappedValue &&
-                  mappedValue !== "on" &&
-                  mappedValue !== "off" && (
-                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="text-sm font-semibold">
-                              {getModeInfo(mappedValue).title}
-                            </h4>
-                            {[
-                              "pwm",
-                              "pid",
-                              "pi",
-                              "proportional",
-                              "p",
-                              "pump",
-                            ].includes(mappedValue) && (
-                              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full font-medium flex items-center gap-1">
-                                <Sparkles className="w-3 h-3" />
-                                PRO
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground mb-2">
-                            {getModeInfo(mappedValue).userExplanation}
-                          </p>
-                          {getModeInfo(mappedValue).professionalExplanation && (
-                            <p className="text-xs text-green-600 dark:text-green-400">
-                              🔧{" "}
-                              {getModeInfo(mappedValue).professionalExplanation}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                 {/* Mobile Content based on selected value */}
                 {mappedValue === "timers" && (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-3">
                     <Drawer>
                       <DrawerTrigger asChild>
                         <Button variant="outline" className="w-full">
@@ -735,7 +696,13 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         <DrawerHeader>
                           <DrawerTitle>Editar temporizador</DrawerTitle>
                         </DrawerHeader>
-                        <TimersForm userId={userId} timers={timer} dId={dId} />
+                        <div className="px-4">
+                          <TimersForm
+                            userId={userId}
+                            timers={timer}
+                            dId={dId}
+                          />
+                        </div>
                         <DrawerFooter>
                           <DrawerClose asChild>
                             <Button variant="outline">Cerrar</Button>
@@ -746,8 +713,8 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                   </div>
                 )}
 
-                {mappedValue === "cicles" && (
-                  <div className="mt-4">
+                {(mappedValue === "ciclos" || mappedValue === "cicles") && (
+                  <div className="mt-4 space-y-3">
                     <Drawer>
                       <DrawerTrigger asChild>
                         <Button variant="outline" className="w-full">
@@ -758,7 +725,9 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         <DrawerHeader>
                           <DrawerTitle>Editar ciclo</DrawerTitle>
                         </DrawerHeader>
-                        <CiclosForm userId={userId} ciclo={ciclo} dId={dId} />
+                        <div className="px-4">
+                          <CiclosForm userId={userId} ciclo={ciclo} dId={dId} />
+                        </div>
                         <DrawerFooter>
                           <DrawerClose asChild>
                             <Button variant="outline">Cerrar</Button>
@@ -770,7 +739,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                 )}
 
                 {mappedValue === "pwm" && (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-3">
                     <Drawer>
                       <DrawerTrigger asChild>
                         <Button variant="outline" className="w-full">
@@ -781,7 +750,9 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         <DrawerHeader>
                           <DrawerTitle>Configurar PWM</DrawerTitle>
                         </DrawerHeader>
-                        <PWMForm userId={userId} dId={dId} widget={widget} />
+                        <div className="px-4">
+                          <PWMForm userId={userId} dId={dId} widget={widget} />
+                        </div>
                         <DrawerFooter>
                           <DrawerClose asChild>
                             <Button variant="outline">Cerrar</Button>
@@ -793,7 +764,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                 )}
 
                 {mappedValue === "pid" && (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-3">
                     <Drawer>
                       <DrawerTrigger asChild>
                         <Button variant="outline" className="w-full">
@@ -804,7 +775,9 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         <DrawerHeader>
                           <DrawerTitle>Configurar PID</DrawerTitle>
                         </DrawerHeader>
-                        <PIDForm userId={userId} dId={dId} widget={widget} />
+                        <div className="px-4">
+                          <PIDForm userId={userId} dId={dId} widget={widget} />
+                        </div>
                         <DrawerFooter>
                           <DrawerClose asChild>
                             <Button variant="outline">Cerrar</Button>
@@ -816,7 +789,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                 )}
 
                 {mappedValue === "pi" && (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-3">
                     <Drawer>
                       <DrawerTrigger asChild>
                         <Button variant="outline" className="w-full">
@@ -827,7 +800,9 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         <DrawerHeader>
                           <DrawerTitle>Configurar PI</DrawerTitle>
                         </DrawerHeader>
-                        <PIForm userId={userId} dId={dId} widget={widget} />
+                        <div className="px-4">
+                          <PIForm userId={userId} dId={dId} widget={widget} />
+                        </div>
                         <DrawerFooter>
                           <DrawerClose asChild>
                             <Button variant="outline">Cerrar</Button>
@@ -839,7 +814,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                 )}
 
                 {mappedValue === "proportional" && (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-3">
                     <Drawer>
                       <DrawerTrigger asChild>
                         <Button variant="outline" className="w-full">
