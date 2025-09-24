@@ -1,0 +1,7 @@
+services:
+  react-admin:
+    image: bdkx16/react-admin-2
+    container_name: react-admin-container
+    ports:
+      - "9000:80"
+    restart: unless-stopped
