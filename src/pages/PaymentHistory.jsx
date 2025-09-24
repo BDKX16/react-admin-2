@@ -304,7 +304,7 @@ export default function PaymentHistory() {
                 Tu plan actual no tiene costos. Mejora a Pro para acceder a
                 funciones premium.
               </p>
-              <Button onClick={() => navigate("/profile")}>
+              <Button onClick={() => navigate("/subscription")}>
                 Ver Planes de Suscripción
               </Button>
             </div>
