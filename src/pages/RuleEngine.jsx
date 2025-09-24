@@ -102,10 +102,19 @@ const RuleEngine = () => {
       return;
     }
 
+    // Buscar el widget que coincide con la variable seleccionada
+    const selectedWidget = selectedDevice?.template?.widgets?.find(
+      (widget) => widget.variable === formData.variable
+    );
+
+    // Usar el variableFullName del widget encontrado, o fallback a la variable
+    const variableFullName =
+      selectedWidget?.variableFullName || formData.variable;
+
     const alarmRule = {
       dId: selectedDevice.dId,
       status: true,
-      variableFullName: formData.variable,
+      variableFullName: variableFullName,
       variable: formData.variable,
       value: formData.value,
       condition: formData.condition,
