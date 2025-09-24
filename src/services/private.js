@@ -64,6 +64,36 @@ export const getDayChartsData = (dId, variable, day) => {
   };
 };
 
+export const getChartData = (dId, timeRange = "1day", variables = null) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  // Construir parámetros
+  const params = { dId, timeRange };
+  if (variables && variables.length > 0) {
+    params.variables = Array.isArray(variables)
+      ? variables.join(",")
+      : variables;
+  }
+
+  headers.params = params;
+
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/chart-data", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 export const getInitialDevices = () => {
   const controller = loadAbort();
 
