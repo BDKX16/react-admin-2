@@ -135,6 +135,7 @@ export function NavUser({
               <DropdownMenuItem
                 variant="outline"
                 size="icon"
+                onSelect={(e) => e.preventDefault()}
                 onClick={() => changeTheme()}
               >
                 <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -232,7 +233,7 @@ export function NavUser({
                             className="ml-4"
                             onClick={() => {
                               setIsAccountDialogOpen(false);
-                              navigate("/subscription");
+                              window.location.href = "/subscription";
                             }}
                           >
                             <Sparkles className="h-4 w-4 mr-1" />
@@ -245,7 +246,7 @@ export function NavUser({
                             className="ml-4"
                             onClick={() => {
                               setIsAccountDialogOpen(false);
-                              navigate("/subscription");
+                              window.location.href = "/subscription";
                             }}
                           >
                             <Crown className="h-4 w-4 mr-1" />
