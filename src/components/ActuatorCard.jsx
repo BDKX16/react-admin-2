@@ -54,7 +54,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
       modes = widget.mode.map((mode) => mode.toLowerCase());
     } else {
       // Fallback a modos básicos si no hay modos definidos
-      modes = ["on", "off"];
+      modes = ["on", "off", "timers", "ciclos"];
     }
 
     // Siempre mostrar todos los modos disponibles
@@ -62,7 +62,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
 
     // Si no hay modos, al menos permitir on/off
     if (modes.length === 0) {
-      modes = ["on", "off"];
+      modes = ["on", "off", "timers", "ciclos"];
     }
 
     // Definir el orden específico para mostrar los modos

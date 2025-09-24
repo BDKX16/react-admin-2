@@ -122,16 +122,6 @@ export default function UserProfile() {
                     <>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">
-                          Dispositivos:
-                        </span>
-                        <span className="font-medium">
-                          {planData.planLimits.maxDevices === -1
-                            ? "Ilimitados"
-                            : planData.planLimits.maxDevices}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
                           Retención de datos:
                         </span>
                         <span className="font-medium">
