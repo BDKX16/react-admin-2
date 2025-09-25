@@ -2,30 +2,24 @@ import React from "react";
 import {
   CartesianGrid,
   Line,
-  LineChart,
   XAxis,
   YAxis,
   Area,
-  AreaChart,
   ComposedChart,
   ReferenceLine,
   Scatter,
-  ScatterChart,
 } from "recharts";
 
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import {
-  ChartConfig,
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
@@ -41,18 +35,10 @@ import {
 
 import useFetchAndLoad from "@/hooks/useFetchAndLoad";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import {
-  getChartsData,
-  getDayChartsData,
-  getChartData,
-} from "../services/private";
-import {
-  createChartDataAdapter,
-  createChartDateTimeAdapter,
-  createChartDateTimeAdapterActuator,
-} from "@/adapters/chart-data";
+import { getChartData } from "../services/private";
 import useCalendar from "@/hooks/useCalendar";
 import useSubscription from "@/hooks/useSubscription";
+import { Calendar } from "lucide-react";
 
 // Configuración dinámica de variables - Mapeo por variable (identificador único)
 const variableTypeMapping = {
@@ -167,17 +153,41 @@ const eventConfig = {
 };
 
 // Componente de tooltip personalizado para parsear valores de actuadores
-const CustomTooltipContent = ({ active, payload, config }) => {
+const CustomTooltipContent = ({ active, payload, label, config }) => {
   if (!active || !payload?.length) return null;
+
+  // Debug: verificar qué está llegando
+  console.log("Tooltip data:", {
+    active,
+    label,
+    payloadLength: payload?.length,
+  });
 
   // Verificar si hay evento en este punto
   const eventData = payload[0]?.payload;
   const hasEvent = eventData?.eventType;
   const eventConf = hasEvent ? eventConfig[eventData.eventType] : null;
 
+  // Debug: mostrar datos del evento
+  if (hasEvent) {
+    console.log("Event data in tooltip:", {
+      eventType: eventData.eventType,
+      hasEventDetails: !!eventData.eventDetails,
+      eventDetails: eventData.eventDetails,
+    });
+  }
+
   return (
     <div className="rounded-lg border bg-background p-2 shadow-md">
       <div className="grid gap-2">
+        {!hasEvent && (
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-foreground mb-1">
+              <Calendar className="inline-block mr-1 w-4 h-4 mb-1" />{" "}
+              {label || eventData?.time || "Tiempo no disponible"}
+            </span>
+          </div>
+        )}
         {/* Mostrar información del evento si existe */}
         {hasEvent && eventConf && (
           <div className="border-b pb-2 mb-2">
@@ -187,11 +197,15 @@ const CustomTooltipContent = ({ active, payload, config }) => {
                 style={{ backgroundColor: eventConf.color }}
               />
               <span className="font-semibold text-sm">{eventConf.label}</span>
+              <span className="text-xs font-medium text-gray-500 ml-1 flex justify-center items-center">
+                {eventData?.originalTime || label || eventData?.time}
+              </span>
             </div>
-            <div className="text-xs text-gray-600 mt-1">
-              {eventConf.description}
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-600 mt-1 text-left">
+                {eventConf.description}
+              </div>
             </div>
-
             {/* Información adicional del evento si está disponible */}
             {eventData.eventDetails && (
               <div className="space-y-1 pt-2 mt-2">
@@ -894,6 +908,16 @@ export default function Chart({ device }) {
                     hour: "2-digit",
                     minute: "2-digit",
                   }),
+                  originalTime: new Date(event.expiracy).toLocaleString(
+                    "es-ES",
+                    {
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    }
+                  ), // Tiempo original preciso con segundos
                   eventY: eventYPosition,
                   eventType: event.payload?.event_type,
                   eventVariable: event.variable, // Agregar la variable del evento
@@ -977,6 +1001,7 @@ export default function Chart({ device }) {
                     eventY: event.eventY,
                     eventType: event.eventType,
                     eventVariable: event.eventVariable,
+                    originalTime: event.originalTime, // Tiempo original preciso
                     eventDetails: event.eventDetails,
                   };
                 }
