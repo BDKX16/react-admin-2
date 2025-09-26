@@ -248,14 +248,6 @@ const CustomTooltipContent = ({ active, payload, label, config }) => {
                     </span>
                   </div>
                 )}
-                {eventData.eventDetails.timestamp && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Timestamp:</span>
-                    <span className="font-mono text-foreground text-xs">
-                      {eventData.eventDetails.timestamp}
-                    </span>
-                  </div>
-                )}
               </div>
             )}
           </div>
