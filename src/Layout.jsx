@@ -21,6 +21,7 @@ import { MqttProvider } from "./providers/MqttProvider";
 import Notifications from "./pages/Notifications.jsx";
 import RuleEngine from "./pages/RuleEngine.jsx";
 import DeviceConfig from "./pages/DeviceConfig.jsx";
+import AutomationEditor from "./pages/AutomationEditor.jsx";
 const Layout = () => {
   const userState = useSelector((state) => state.user);
   return (
@@ -106,6 +107,10 @@ const Layout = () => {
                           <Route
                             path={`/rule-engine`}
                             element={<RuleEngine />}
+                          ></Route>
+                          <Route
+                            path={`/automation-editor`}
+                            element={<AutomationEditor />}
                           ></Route>
                           <Route
                             path={`/device-config`}

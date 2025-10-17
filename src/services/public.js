@@ -207,6 +207,137 @@ export const deleteRule = (ruleId) => {
   };
 };
 
+export const getRule = (ruleId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/alarm-rule/" + ruleId, {
+        ...headers,
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// Servicios para reglas compuestas (Node-RED)
+export const getCompositeRule = (ruleId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/node/rules/" + ruleId, {
+        ...headers,
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const createCompositeRule = (ruleData) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL + "/node/rules/automation",
+        ruleData,
+        {
+          ...headers,
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const updateCompositeRule = (ruleId, ruleData) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  return {
+    call: axios
+      .put(import.meta.env.VITE_BASE_URL + "/node/rules/" + ruleId, ruleData, {
+        ...headers,
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const deleteCompositeRule = (ruleId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  return {
+    call: axios
+      .delete(import.meta.env.VITE_BASE_URL + "/node/rules/" + ruleId, {
+        ...headers,
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const getAllCompositeRules = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/node/rules", {
+        ...headers,
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 // PUBLIC ENDPOINTS FOR PAYMENTS AND EMAIL CONFIRMATION
 
 // POST /payments/webhook - Webhook para notificaciones de MercadoPago (PUBLIC)

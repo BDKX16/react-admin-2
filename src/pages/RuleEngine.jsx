@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,22 +25,66 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Crown, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  Crown,
+  Sparkles,
+  Plus,
+  ChevronDown,
+  Zap,
+  GitBranch,
+  Trash2,
+  Edit,
+  Eye,
+  Network,
+  Clock,
+} from "lucide-react";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
 import { Slider } from "@/components/ui/slider";
 import useDevices from "../hooks/useDevices";
 import useSubscription from "../hooks/useSubscription";
 import UpdateRuleDialog from "@/components/UpdateRuleDialog";
 
-import { createRule, deleteRule } from "../services/public";
+import {
+  createRule,
+  deleteRule,
+  deleteCompositeRule,
+} from "../services/public";
+import {
+  getWorkflows,
+  deleteWorkflow,
+  toggleWorkflow,
+} from "../services/workflow";
 
 const RuleEngine = () => {
+  const navigate = useNavigate();
   const { loading, callEndpoint } = useFetchAndLoad();
   const { selectedDevice } = useDevices();
   const { planData, isPro, isPlus } = useSubscription();
   const [rules, setRules] = useState([]);
+  const [workflows, setWorkflows] = useState([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  // Estados para los modales
+  const [automationModalOpen, setAutomationModalOpen] = useState(false);
+  const [automationType, setAutomationType] = useState(null); // 'simple', 'composite', 'scheduled'
 
   // Obtener límites del plan
   const maxRules = planData?.planLimits?.maxRules || 0;
@@ -47,13 +92,29 @@ const RuleEngine = () => {
   const hasReachedLimit = maxRules !== -1 && currentRulesCount >= maxRules;
   const canCreateRules = maxRules === -1 || currentRulesCount < maxRules;
 
+  // Función para cargar workflows
+  const loadWorkflows = useCallback(async () => {
+    try {
+      const deviceId = selectedDevice?.dId;
+      const response = await getWorkflows(deviceId);
+      if (response.success) {
+        setWorkflows(response.data);
+      }
+    } catch (error) {
+      console.error("Error cargando workflows:", error);
+    }
+  }, [selectedDevice?.dId]);
+
   useEffect(() => {
     setRules(
       selectedDevice?.alarmRules?.sort((a, b) =>
         b.variableFullName.localeCompare(a.variableFullName)
       )
     );
-  }, [selectedDevice]);
+
+    // Cargar workflows visuales
+    loadWorkflows();
+  }, [selectedDevice, loadWorkflows]);
 
   const [formData, setFormData] = useState({
     variable: "",
@@ -145,14 +206,67 @@ const RuleEngine = () => {
     }
   };
 
-  const handleDelete = async (ruleId) => {
-    const res = await callEndpoint(deleteRule(ruleId));
+  const handleDelete = async (rule) => {
+    let res;
+
+    if (rule.type === "composite") {
+      // Regla compuesta - usar API de Node-RED
+      res = await callEndpoint(deleteCompositeRule(rule._id));
+    } else {
+      // Regla simple - usar API tradicional
+      res = await callEndpoint(deleteRule(rule.emqxRuleId));
+    }
 
     if (!res.error) {
       setRules((prevRules) =>
-        prevRules.filter((rule) => rule.emqxRuleId !== ruleId)
+        prevRules.filter((r) =>
+          rule.type === "composite"
+            ? r._id !== rule._id
+            : r.emqxRuleId !== rule.emqxRuleId
+        )
       );
     }
+  };
+
+  // Funciones para manejo de workflows
+  const handleEditWorkflow = (workflowId) => {
+    navigate(`/automation-editor?id=${workflowId}`);
+  };
+
+  const handleDeleteWorkflow = (workflow) => {
+    setItemToDelete({ type: "workflow", item: workflow });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleToggleWorkflow = async (workflow) => {
+    try {
+      await toggleWorkflow(workflow._id, !workflow.enabled);
+      // Recargar workflows después del toggle
+      loadWorkflows();
+    } catch (error) {
+      console.error("Error cambiando estado del workflow:", error);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    try {
+      if (itemToDelete.type === "workflow") {
+        await deleteWorkflow(itemToDelete.item._id);
+        setWorkflows((prev) =>
+          prev.filter((w) => w._id !== itemToDelete.item._id)
+        );
+      }
+      setDeleteConfirmOpen(false);
+      setItemToDelete(null);
+    } catch (error) {
+      console.error("Error eliminando:", error);
+    }
+  };
+
+  const handleCreateNewWorkflow = () => {
+    navigate("/automation-editor");
   };
 
   const formatRule = (notif) => {
@@ -239,196 +353,449 @@ const RuleEngine = () => {
 
   return (
     <div className="flex flex-col items-center p-4">
-      <h1 className="text-2xl font-bold mb-2 text-left">Control Automatico</h1>
+      <h1 className="text-2xl font-bold mb-2 text-left">Control Automático</h1>
+      <div className="w-full max-w-7xl">
+        <div className="flex justify-end mb-4">
+          <Button
+            onClick={() => setAutomationModalOpen(true)}
+            variant="default"
+            className="flex gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Nueva automatización
+          </Button>
+        </div>
 
-      <div className="w-full max-w-3xl">
-        <Card className="mb-4">
-          <CardHeader>
-            <div className="flex items-center justify-between mb-2">
-              <CardTitle className="text-left">Agregar Nueva Regla</CardTitle>
-              <div className="flex items-center gap-2">
-                <Badge variant={hasReachedLimit ? "destructive" : "secondary"}>
-                  {maxRules === -1
-                    ? "Ilimitadas"
-                    : `${currentRulesCount}/${maxRules}`}
-                </Badge>
-                {(isPro || isPlus) && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    {isPro ? (
-                      <Crown className="w-3 h-3" />
-                    ) : (
-                      <Sparkles className="w-3 h-3" />
-                    )}
-                    {isPro ? "Pro" : "Plus"}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <Label className="mb-4 text-left text-gray-500">
-              Aca podes crear reglas para automatizar acciones basadas en
-              condiciones específicas.
-            </Label>
-            {hasReachedLimit && (
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                <span className="text-sm text-yellow-700 dark:text-yellow-300">
-                  Has alcanzado el límite de {maxRules} reglas para tu plan
-                  actual.
-                  {!isPro &&
-                    !isPlus &&
-                    " Actualiza a Plus o Pro para crear más reglas."}
-                </span>
+        {/* Modal para seleccionar tipo de automatización */}
+        <Dialog
+          open={automationModalOpen}
+          onOpenChange={setAutomationModalOpen}
+        >
+          <DialogContent>
+            {!automationType && (
+              <div>
+                <DialogHeader>
+                  <DialogTitle>
+                    Selecciona el tipo de automatización
+                  </DialogTitle>
+                  <DialogDescription>
+                    Elige el tipo de automatización que deseas crear:
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-4 mt-4">
+                  <Button
+                    variant="outline"
+                    className="flex gap-2 justify-start"
+                    onClick={() => setAutomationType("simple")}
+                  >
+                    <Zap className="w-4 h-4" /> Simple (condición y acción)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex gap-2 justify-start"
+                    onClick={() => {
+                      setAutomationModalOpen(false);
+                      navigate("/automation-editor?create=true");
+                    }}
+                  >
+                    <Network className="w-4 h-4" /> Compuesta (tipo node-red)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex gap-2 justify-start"
+                    onClick={() => setAutomationType("scheduled")}
+                  >
+                    <Clock className="w-4 h-4" /> Programada (por horario)
+                  </Button>
+                </div>
               </div>
             )}
+            {/* Simple automation form (mueve el formulario aquí) */}
+            {automationType === "simple" && (
+              <div>
+                <DialogHeader>
+                  <DialogTitle>Crear automatización simple</DialogTitle>
+                  <DialogDescription>
+                    Define una condición y una acción para tu dispositivo.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mt-4">
+                  <div className="flex flex-col gap-2">
+                    <Select
+                      onValueChange={handleChange("variable")}
+                      value={formData.variable}
+                    >
+                      <SelectTrigger
+                        className={
+                          errors.variable ? "border-red-500 w-full" : "w-full"
+                        }
+                      >
+                        <SelectValue placeholder="Variable" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedDevice?.template?.widgets?.map((widget) => {
+                          if (
+                            widget.variableFullName !== "Hum" &&
+                            widget.variableFullName !== "Temp" &&
+                            widget.variableFullName !== "Hum suelo"
+                          )
+                            return null;
+                          return (
+                            <SelectItem
+                              key={widget.variable}
+                              value={widget.variable}
+                            >
+                              {widget.variableFullName}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      onValueChange={handleChange("condition")}
+                      value={formData.condition}
+                    >
+                      <SelectTrigger
+                        className={
+                          errors.condition ? "border-red-500 w-full" : "w-full"
+                        }
+                      >
+                        <SelectValue placeholder="Condición" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="=">Igual a</SelectItem>
+                        <SelectItem value=">=">Mayor que</SelectItem>
+                        <SelectItem value="<">Menor que</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.variable && (
+                      <Label className="text-red-500">
+                        Campo variable requerido
+                      </Label>
+                    )}
+                    {errors.condition && (
+                      <Label className="text-red-500">
+                        Campo condición requerido
+                      </Label>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2 align-center justify-center">
+                    <Input
+                      placeholder="Valor"
+                      type="number"
+                      className={`mx-auto ${
+                        errors.value ? "border-red-500" : ""
+                      }`}
+                      value={formData.value}
+                      onChange={(e) => handleChange("value")(e.target.value)}
+                    />
+                    {errors.value && (
+                      <Label className="text-red-500">Campo requerido</Label>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Select
+                      onValueChange={handleChange("action")}
+                      value={formData.action}
+                    >
+                      <SelectTrigger
+                        className={
+                          errors.action ? "border-red-500 w-full" : "w-full"
+                        }
+                      >
+                        <SelectValue placeholder="Acción" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Encender</SelectItem>
+                        <SelectItem value="false">Apagar</SelectItem>
+                        <SelectItem value="3">Poner en modo Timer</SelectItem>
+                        <SelectItem value="5">Poner en modo Ciclos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      onValueChange={handleChange("actuator")}
+                      value={formData.actuator}
+                    >
+                      <SelectTrigger
+                        className={
+                          errors.actuator ? "border-red-500 w-full" : "w-full"
+                        }
+                      >
+                        <SelectValue placeholder="Actuador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedDevice?.template?.widgets?.map((widget) => {
+                          if (widget.widgetType !== "Switch") return null;
+                          return (
+                            <SelectItem
+                              key={widget.variable}
+                              value={widget.variable}
+                            >
+                              {widget.variableFullName}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    {errors.action && (
+                      <Label className="text-red-500">
+                        Campo acción requerido
+                      </Label>
+                    )}
+                    {errors.actuator && (
+                      <Label className="text-red-500">
+                        Campo actuador requerido
+                      </Label>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 w-full mt-4">
+                  <Label className="font-bold">
+                    Tiempo entre activaciones: {formData.triggerTime} minutos
+                  </Label>
+                  <Slider
+                    min={10}
+                    max={60}
+                    step={1}
+                    value={[formData.triggerTime]}
+                    onValueChange={(value) =>
+                      handleChange("triggerTime")(value[0])
+                    }
+                  />
+                  <Label className="text-gray-500 text-left">
+                    Ajustá este valor para definir el tiempo que debe pasar
+                    entre activaciones una vez sobrepasado el limite. LLegar a
+                    un valor ideal para tu equipo hara que el sistema sea mas
+                    eficiente.
+                  </Label>
+                </div>
+                <DialogFooter className="justify-end mt-4">
+                  <Button
+                    onClick={handleCreate}
+                    disabled={!canCreateRules}
+                    className={
+                      !canCreateRules ? "opacity-50 cursor-not-allowed" : ""
+                    }
+                  >
+                    {hasReachedLimit
+                      ? "Límite alcanzado"
+                      : "Crear automatización"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setAutomationType(null);
+                      setAutomationModalOpen(false);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
+
+            {/* Scheduled automation placeholder */}
+            {automationType === "scheduled" && (
+              <div>
+                <DialogHeader>
+                  <DialogTitle>Automatización programada</DialogTitle>
+                  <DialogDescription>
+                    Pronto podrás programar acciones por horario.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="p-6 text-center text-gray-500">
+                  [Configurador de horario próximamente]
+                </div>
+                <DialogFooter className="justify-end mt-4">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setAutomationType(null);
+                      setAutomationModalOpen(false);
+                    }}
+                  >
+                    Cerrar
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Tabla unificada de Reglas y Workflows */}
+        <Card className="border-0">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Automatizaciones</CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">
+                  {(rules?.filter((rule) => rule.actionVariable !== "")
+                    .length || 0) + (workflows?.length || 0)}{" "}
+                  total
+                </Badge>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="flex flex-col gap-2">
-                <Select onValueChange={handleChange("variable")}>
-                  <SelectTrigger
-                    className={
-                      errors.variable ? "border-red-500 w-full" : "w-full"
-                    }
-                  >
-                    <SelectValue placeholder="Variable" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedDevice?.template?.widgets?.map((widget) => {
-                      if (
-                        widget.variableFullName !== "Hum" &&
-                        widget.variableFullName !== "Temp" &&
-                        widget.variableFullName !== "Hum suelo"
-                      )
-                        return null;
-
-                      return (
-                        <SelectItem
-                          key={widget.variable}
-                          value={widget.variable}
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Regla / Workflow</TableHead>
+                  <TableHead>Acción</TableHead>
+                  <TableHead>Actuador</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* Renderizar workflows */}
+                {workflows?.map((workflow) => (
+                  <TableRow key={`workflow-${workflow._id}`}>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1 w-fit"
+                      >
+                        <GitBranch className="w-3 h-3" />
+                        Workflow
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Network className="w-4 h-4 text-blue-500" />
+                        {workflow.name}
+                        <Badge variant="outline" className="text-xs">
+                          {workflow.visual?.nodes?.length || 0} nodos
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {workflow.description || "Workflow visual"}
+                    </TableCell>
+                    <TableCell>-</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={workflow.enabled ? "default" : "secondary"}
+                        className={workflow.enabled ? "bg-green-500" : ""}
+                      >
+                        {workflow.enabled ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditWorkflow(workflow._id)}
                         >
-                          {widget.variableFullName}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-
-                <Select onValueChange={handleChange("condition")}>
-                  <SelectTrigger
-                    className={
-                      errors.condition ? "border-red-500 w-full" : "w-full"
-                    }
-                  >
-                    <SelectValue placeholder="Condición" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="=">Igual a</SelectItem>
-                    <SelectItem value=">=">Mayor que</SelectItem>
-                    <SelectItem value="<">Menor que</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.variable && (
-                  <Label className="text-red-500">
-                    Campo variable requerido
-                  </Label>
-                )}
-                {errors.condition && (
-                  <Label className="text-red-500">
-                    Campo condicion requerido
-                  </Label>
-                )}
-              </div>
-              <div className="flex flex-col gap-2 align-center justify-center">
-                <Input
-                  placeholder="Valor"
-                  type="number"
-                  className={`mx-auto ${errors.value ? "border-red-500" : ""}`}
-                  value={formData.value}
-                  onChange={(e) => handleChange("value")(e.target.value)}
-                />
-                {errors.value && (
-                  <Label className="text-red-500">Campo requerido</Label>
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                <Select onValueChange={handleChange("action")}>
-                  <SelectTrigger
-                    className={
-                      errors.action ? "border-red-500 w-full" : "w-full"
-                    }
-                  >
-                    <SelectValue placeholder="Acción" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Encender</SelectItem>
-                    <SelectItem value="false">Apagar</SelectItem>
-                    <SelectItem value="3">Poner en modo Timer</SelectItem>
-                    <SelectItem value="5">Poner en modo Ciclos</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select onValueChange={handleChange("actuator")}>
-                  <SelectTrigger
-                    className={
-                      errors.actuator ? "border-red-500 w-full" : "w-full"
-                    }
-                  >
-                    <SelectValue placeholder="Actuador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedDevice?.template?.widgets?.map((widget) => {
-                      if (widget.widgetType !== "Switch") return null;
-
-                      return (
-                        <SelectItem
-                          key={widget.variable}
-                          value={widget.variable}
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleWorkflow(workflow)}
                         >
-                          {widget.variableFullName}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                {errors.action && (
-                  <Label className="text-red-500">Campo acción requerido</Label>
-                )}
-                {errors.actuator && (
-                  <Label className="text-red-500">
-                    Campo actuador requerido
-                  </Label>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 w-full">
-              <Label className="font-bold">
-                Tiempo entre activaciones: {formData.triggerTime} minutos
-              </Label>
-              <Slider
-                min={10}
-                max={60}
-                step={1}
-                value={[formData.triggerTime]}
-                onValueChange={(value) => handleChange("triggerTime")(value[0])}
-              />
-              <Label className="text-gray-500 text-left">
-                Ajustá este valor para definir el tiempo que debe pasar entre
-                activaciones una vez sobrepasado el limite. LLegar a un valor
-                ideal para tu equipo hara que el sistema sea mas eficiente.
-              </Label>
-            </div>
+                          {workflow.enabled ? "Desactivar" : "Activar"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteWorkflow(workflow)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+
+                {/* Renderizar reglas tradicionales */}
+                {rules?.map((rule) => {
+                  if (rule.actionVariable === "") return null;
+                  return (
+                    <TableRow key={`rule-${rule._id}`}>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="flex items-center gap-1 w-fit"
+                        >
+                          <Zap className="w-3 h-3" />
+                          Regla
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-left">
+                        {formatRule(rule)}
+                      </TableCell>
+                      <TableCell className="text-left">
+                        {formatAction(rule.action)}
+                      </TableCell>
+                      <TableCell className="text-left">
+                        {
+                          selectedDevice.template.widgets.find(
+                            (x) => x.variable === rule.actionVariable
+                          ).variableFullName
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={rule.status ? "default" : "secondary"}>
+                          {rule.status ? "Activa" : "Inactiva"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="flex gap-2 justify-end">
+                        {rule.type === "composite" ? (
+                          <Button
+                            variant="outline"
+                            onClick={() =>
+                              navigate(`/automation-editor?ruleId=${rule._id}`)
+                            }
+                          >
+                            Editar
+                          </Button>
+                        ) : (
+                          <UpdateRuleDialog
+                            rule={rule}
+                            selectedDevice={selectedDevice.template.widgets}
+                          />
+                        )}
+                        <Button
+                          variant="outline"
+                          onClick={() => handleDelete(rule)}
+                        >
+                          Delete
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+
+                {/* Mensaje cuando no hay elementos */}
+                {(!rules || rules.length === 0) &&
+                  (!workflows || workflows.length === 0) && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <GitBranch className="w-12 h-12 opacity-50" />
+                          <p>No hay automatizaciones creadas</p>
+                          <p className="text-sm">
+                            Crea tu primera regla o workflow para automatizar tu
+                            dispositivo
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+              </TableBody>
+            </Table>
           </CardContent>
-          <CardFooter className="justify-end">
-            <Button
-              onClick={handleCreate}
-              disabled={!canCreateRules}
-              className={!canCreateRules ? "opacity-50 cursor-not-allowed" : ""}
-            >
-              {hasReachedLimit ? "Límite alcanzado" : "Add Rule"}
-            </Button>
-          </CardFooter>
         </Card>
-        <Card>
+
+        {/* Reglas existentes (título cambiado, contenido oculto) */}
+        <Card style={{ display: "none" }}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Reglas Existentes</CardTitle>
@@ -457,11 +824,9 @@ const RuleEngine = () => {
                         <TableCell className="text-left">
                           {formatRule(rule)}
                         </TableCell>
-
                         <TableCell className="text-left">
                           {formatAction(rule.action)}
                         </TableCell>
-
                         <TableCell className="text-left">
                           {
                             selectedDevice.template.widgets.find(
@@ -470,13 +835,26 @@ const RuleEngine = () => {
                           }
                         </TableCell>
                         <TableCell className="flex gap-2 justify-end">
-                          <UpdateRuleDialog
-                            rule={rule}
-                            selectedDevice={selectedDevice.template.widgets}
-                          />
+                          {rule.type === "composite" ? (
+                            <Button
+                              variant="outline"
+                              onClick={() =>
+                                navigate(
+                                  `/automation-editor?ruleId=${rule._id}`
+                                )
+                              }
+                            >
+                              Editar
+                            </Button>
+                          ) : (
+                            <UpdateRuleDialog
+                              rule={rule}
+                              selectedDevice={selectedDevice.template.widgets}
+                            />
+                          )}
                           <Button
                             variant="outline"
-                            onClick={() => handleDelete(rule.emqxRuleId)}
+                            onClick={() => handleDelete(rule)}
                           >
                             Delete
                           </Button>
@@ -489,6 +867,37 @@ const RuleEngine = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de confirmación de eliminación */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+            <DialogDescription>
+              {itemToDelete?.type === "workflow" && (
+                <>
+                  ¿Estás seguro de que deseas eliminar el workflow &quot;
+                  {itemToDelete.item.name}&quot;?
+                  <br />
+                  Esta acción no se puede deshacer y el workflow se eliminará
+                  permanentemente.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

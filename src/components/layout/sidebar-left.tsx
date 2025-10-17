@@ -63,6 +63,10 @@ const data = {
           title: "Reglas",
           url: "/rule-engine",
         },
+        {
+          title: "Editor Visual",
+          url: "/automation-editor",
+        },
         // {
         //   title: "Timers",
         //   url: "#",

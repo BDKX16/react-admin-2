@@ -441,7 +441,7 @@ const Notifications = () => {
                   {formatNotification(item)}
                 </TableCell>
                 <TableCell className="text-left">
-                  {item.payload.value}
+                  {item?.payload?.value}
                 </TableCell>
                 <TableCell className="text-right">
                   {new Date(item.time).toLocaleDateString("es-ES", {
