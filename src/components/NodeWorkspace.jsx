@@ -349,9 +349,9 @@ function NodeWorkspaceContent() {
             pannable={true}
             zoomable={true}
             nodeColor={(node) => {
-              if (node.type === "trigger") return "hsl(var(--chart-1))";
-              if (node.type === "condition") return "hsl(var(--chart-2))";
-              if (node.type === "action") return "hsl(var(--chart-3))";
+              if (node.type === "trigger") return "rgb(59 130 246)"; // blue-500
+              if (node.type === "condition") return "rgb(234 179 8)"; // yellow-500
+              if (node.type === "action") return "rgb(34 197 94)"; // green-500
               return "hsl(var(--muted))";
             }}
             nodeStrokeColor="hsl(var(--border))"

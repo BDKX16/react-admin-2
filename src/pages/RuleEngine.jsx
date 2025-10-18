@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
   Table,
   TableHeader,
@@ -125,10 +126,31 @@ const RuleEngine = () => {
     triggerTime: 20,
   });
 
+  // Estado para automatización programada
+  const [scheduleData, setScheduleData] = useState({
+    datetime: undefined, // Para fecha y hora específica (Date object)
+    isRecurring: false, // Si es recurrente
+    selectedDays: [], // Días seleccionados para recurrencia
+    hour: "", // Hora para recurrencia
+    minute: "", // Minutos para recurrencia
+    action: "",
+    actuator: "",
+  });
+
   const [errors, setErrors] = useState({
     variable: false,
     condition: false,
     value: false,
+    action: false,
+    actuator: false,
+  });
+
+  // Errores para automatización programada
+  const [scheduleErrors, setScheduleErrors] = useState({
+    datetime: false,
+    selectedDays: false,
+    hour: false,
+    minute: false,
     action: false,
     actuator: false,
   });
@@ -141,6 +163,35 @@ const RuleEngine = () => {
     setErrors((prevErrors) => ({
       ...prevErrors,
       [field]: false,
+    }));
+  };
+
+  const handleScheduleChange = (field) => (value) => {
+    setScheduleData((prevData) => ({
+      ...prevData,
+      [field]: value,
+    }));
+    setScheduleErrors((prevErrors) => ({
+      ...prevErrors,
+      [field]: false,
+    }));
+  };
+
+  const handleDayToggle = (day) => {
+    setScheduleData((prevData) => {
+      const currentDays = prevData.selectedDays;
+      const newDays = currentDays.includes(day)
+        ? currentDays.filter((d) => d !== day)
+        : [...currentDays, day];
+
+      return {
+        ...prevData,
+        selectedDays: newDays,
+      };
+    });
+    setScheduleErrors((prevErrors) => ({
+      ...prevErrors,
+      selectedDays: false,
     }));
   };
 
@@ -203,6 +254,101 @@ const RuleEngine = () => {
         action: false,
         actuator: false,
       });
+    }
+  };
+
+  const handleCreateScheduled = async () => {
+    // Verificar límite de reglas antes de validar campos
+    if (!canCreateRules) {
+      return;
+    }
+
+    let newErrors = {};
+
+    if (scheduleData.isRecurring) {
+      // Validación para automatización recurrente
+      newErrors = {
+        selectedDays: !scheduleData.selectedDays.length,
+        hour: !scheduleData.hour,
+        minute: !scheduleData.minute,
+        action: !scheduleData.action,
+        actuator: !scheduleData.actuator,
+        datetime: false,
+      };
+    } else {
+      // Validación para automatización única
+      newErrors = {
+        datetime: !scheduleData.datetime,
+        action: !scheduleData.action,
+        actuator: !scheduleData.actuator,
+        selectedDays: false,
+        hour: false,
+        minute: false,
+      };
+    }
+
+    if (Object.values(newErrors).some((error) => error)) {
+      setScheduleErrors(newErrors);
+      return;
+    }
+
+    // Buscar el widget que coincide con el actuador seleccionado
+    const selectedWidget = selectedDevice?.template?.widgets?.find(
+      (widget) => widget.variable === scheduleData.actuator
+    );
+
+    let scheduledRule = {
+      dId: selectedDevice.dId,
+      status: true,
+      type: "scheduled",
+      action: scheduleData.action,
+      actionVariable: scheduleData.actuator,
+      actuatorName: selectedWidget?.variableFullName || scheduleData.actuator,
+    };
+
+    if (scheduleData.isRecurring) {
+      // Configuración para automatización recurrente
+      scheduledRule.schedule = {
+        type: "recurring",
+        days: scheduleData.selectedDays,
+        hour: parseInt(scheduleData.hour),
+        minute: parseInt(scheduleData.minute),
+      };
+    } else {
+      // Configuración para automatización única
+      const selectedDate = scheduleData.datetime;
+      scheduledRule.schedule = {
+        type: "once",
+        datetime: selectedDate.toISOString(),
+        day: selectedDate.getDay(),
+        hour: selectedDate.getHours(),
+        minute: selectedDate.getMinutes(),
+      };
+    }
+
+    const res = await callEndpoint(createRule({ newRule: scheduledRule }));
+
+    if (!res.error) {
+      // Limpiar formulario después de crear exitosamente
+      setScheduleData({
+        datetime: "",
+        isRecurring: false,
+        selectedDays: [],
+        hour: "",
+        minute: "",
+        action: "",
+        actuator: "",
+      });
+      setScheduleErrors({
+        datetime: false,
+        selectedDays: false,
+        hour: false,
+        minute: false,
+        action: false,
+        actuator: false,
+      });
+      setAutomationType(null);
+      setAutomationModalOpen(false);
     }
   };
 
@@ -594,19 +740,247 @@ const RuleEngine = () => {
               </div>
             )}
 
-            {/* Scheduled automation placeholder */}
+            {/* Scheduled automation form */}
             {automationType === "scheduled" && (
               <div>
                 <DialogHeader>
-                  <DialogTitle>Automatización programada</DialogTitle>
+                  <DialogTitle>Crear automatización programada</DialogTitle>
                   <DialogDescription>
-                    Pronto podrás programar acciones por horario.
+                    Programa una acción para que se ejecute en una fecha y hora
+                    específica, o de forma recurrente.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="p-6 text-center text-gray-500">
-                  [Configurador de horario próximamente]
+                <div className="grid grid-cols-1 gap-4 mt-4">
+                  {/* Selector de fecha y hora única */}
+                  {!scheduleData.isRecurring && (
+                    <div className="flex flex-col gap-2">
+                      <Label className="font-medium">Fecha y hora</Label>
+                      <DateTimePicker
+                        date={scheduleData.datetime}
+                        onDateChange={(date) =>
+                          handleScheduleChange("datetime")(date)
+                        }
+                        className={
+                          scheduleErrors.datetime ? "border-red-500" : ""
+                        }
+                        minDate={new Date()}
+                      />
+                      {scheduleErrors.datetime && (
+                        <Label className="text-red-500">
+                          Campo fecha y hora requerido
+                        </Label>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Checkbox para activar recurrencia */}
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="recurring"
+                      checked={scheduleData.isRecurring}
+                      onChange={(e) =>
+                        handleScheduleChange("isRecurring")(e.target.checked)
+                      }
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="recurring" className="font-medium">
+                      Repetir semanalmente
+                    </Label>
+                  </div>
+
+                  {/* Configuración de recurrencia */}
+                  {scheduleData.isRecurring && (
+                    <>
+                      {/* Selección de días de la semana */}
+                      <div className="flex flex-col gap-2">
+                        <Label className="font-medium">Días de la semana</Label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[
+                            { key: "monday", label: "Lun" },
+                            { key: "tuesday", label: "Mar" },
+                            { key: "wednesday", label: "Mié" },
+                            { key: "thursday", label: "Jue" },
+                            { key: "friday", label: "Vie" },
+                            { key: "saturday", label: "Sáb" },
+                            { key: "sunday", label: "Dom" },
+                          ].map(({ key, label }) => (
+                            <Button
+                              key={key}
+                              type="button"
+                              variant={
+                                scheduleData.selectedDays.includes(key)
+                                  ? "default"
+                                  : "outline"
+                              }
+                              size="sm"
+                              className="h-8"
+                              onClick={() => handleDayToggle(key)}
+                            >
+                              {label}
+                            </Button>
+                          ))}
+                        </div>
+                        {scheduleErrors.selectedDays && (
+                          <Label className="text-red-500">
+                            Selecciona al menos un día
+                          </Label>
+                        )}
+                      </div>
+
+                      {/* Selección de hora para recurrencia */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-2">
+                          <Label className="font-medium">Hora</Label>
+                          <Select
+                            onValueChange={handleScheduleChange("hour")}
+                            value={scheduleData.hour}
+                          >
+                            <SelectTrigger
+                              className={
+                                scheduleErrors.hour
+                                  ? "border-red-500 w-full"
+                                  : "w-full"
+                              }
+                            >
+                              <SelectValue placeholder="HH" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 24 }, (_, i) => (
+                                <SelectItem
+                                  key={i}
+                                  value={i.toString().padStart(2, "0")}
+                                >
+                                  {i.toString().padStart(2, "0")}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {scheduleErrors.hour && (
+                            <Label className="text-red-500">
+                              Campo hora requerido
+                            </Label>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <Label className="font-medium">Minutos</Label>
+                          <Select
+                            onValueChange={handleScheduleChange("minute")}
+                            value={scheduleData.minute}
+                          >
+                            <SelectTrigger
+                              className={
+                                scheduleErrors.minute
+                                  ? "border-red-500 w-full"
+                                  : "w-full"
+                              }
+                            >
+                              <SelectValue placeholder="MM" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 60 }, (_, i) => (
+                                <SelectItem
+                                  key={i}
+                                  value={i.toString().padStart(2, "0")}
+                                >
+                                  {i.toString().padStart(2, "0")}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {scheduleErrors.minute && (
+                            <Label className="text-red-500">
+                              Campo minutos requerido
+                            </Label>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Selección de acción y actuador */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2">
+                      <Label className="font-medium">Acción</Label>
+                      <Select
+                        onValueChange={handleScheduleChange("action")}
+                        value={scheduleData.action}
+                      >
+                        <SelectTrigger
+                          className={
+                            scheduleErrors.action
+                              ? "border-red-500 w-full"
+                              : "w-full"
+                          }
+                        >
+                          <SelectValue placeholder="Acción" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Encender</SelectItem>
+                          <SelectItem value="false">Apagar</SelectItem>
+                          <SelectItem value="3">Poner en modo Timer</SelectItem>
+                          <SelectItem value="5">
+                            Poner en modo Ciclos
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {scheduleErrors.action && (
+                        <Label className="text-red-500">
+                          Campo acción requerido
+                        </Label>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label className="font-medium">Actuador</Label>
+                      <Select
+                        onValueChange={handleScheduleChange("actuator")}
+                        value={scheduleData.actuator}
+                      >
+                        <SelectTrigger
+                          className={
+                            scheduleErrors.actuator
+                              ? "border-red-500 w-full"
+                              : "w-full"
+                          }
+                        >
+                          <SelectValue placeholder="Actuador" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedDevice?.template?.widgets?.map((widget) => {
+                            if (widget.widgetType !== "Switch") return null;
+                            return (
+                              <SelectItem
+                                key={widget.variable}
+                                value={widget.variable}
+                              >
+                                {widget.variableFullName}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      {scheduleErrors.actuator && (
+                        <Label className="text-red-500">
+                          Campo actuador requerido
+                        </Label>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <DialogFooter className="justify-end mt-4">
+                  <Button
+                    onClick={handleCreateScheduled}
+                    disabled={!canCreateRules}
+                    className={
+                      !canCreateRules ? "opacity-50 cursor-not-allowed" : ""
+                    }
+                  >
+                    {hasReachedLimit
+                      ? "Límite alcanzado"
+                      : "Crear automatización programada"}
+                  </Button>
                   <Button
                     variant="ghost"
                     onClick={() => {
@@ -614,7 +988,7 @@ const RuleEngine = () => {
                       setAutomationModalOpen(false);
                     }}
                   >
-                    Cerrar
+                    Cancelar
                   </Button>
                 </DialogFooter>
               </div>

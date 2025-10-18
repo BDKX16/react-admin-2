@@ -1,5 +1,4 @@
 import { Handle, Position } from "@xyflow/react";
-import { Card } from "@/components/ui/card";
 import { Play } from "lucide-react";
 
 export function ActionNode({ data }) {
@@ -7,19 +6,34 @@ export function ActionNode({ data }) {
   const IconComponent = typeof data?.icon === "function" ? data.icon : Play;
 
   return (
-    <Card
-      className={`p-3 min-w-[150px] border-2 ${
-        data?.isExecuting ? "border-green-400 shadow-lg" : "border-green-400"
-      }`}
-    >
-      <Handle type="target" position={Position.Left} />
-      <div className="flex items-center gap-2">
-        <IconComponent className="w-4 h-4 text-green-600" />
-        <div>
-          <div className="font-medium text-sm">{data?.label}</div>
-          <div className="text-xs text-muted-foreground">{data?.action}</div>
-        </div>
+    <div className="flex flex-col items-center">
+      {/* Nodo rectangular con bordes completamente redondeados - color que coincide con minimapa */}
+      <div
+        className={`w-20 h-12 rounded-full flex items-center justify-center relative shadow-md transition-all duration-200 ${
+          data?.isExecuting
+            ? "border-2 border-green-400 shadow-lg"
+            : "border-0 hover:border-2 hover:border-green-500 focus:border-2 focus:border-green-500"
+        } ${
+          data?.disabled
+            ? "opacity-50 cursor-not-allowed bg-gray-200 dark:bg-gray-700"
+            : "cursor-pointer bg-green-100 dark:bg-green-900 hover:bg-green-200 dark:hover:bg-green-800"
+        }`}
+      >
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!left-[-8px] !w-3 !h-3"
+        />
+        <IconComponent className="w-5 h-5 text-green-600 dark:text-green-300" />
       </div>
-    </Card>
+
+      {/* Título abajo en letra xs */}
+      <div className="mt-2 text-xs text-center max-w-24">
+        <div className="font-medium truncate">{data?.label}</div>
+        {data?.action && (
+          <div className="text-muted-foreground truncate">{data?.action}</div>
+        )}
+      </div>
+    </div>
   );
 }
