@@ -75,18 +75,20 @@ export function ConditionNode({ data }) {
           style={{ transform: "translateY(-50%) rotate(-45deg)" }}
         />
         {/* Dos salidas para condiciones - derecha, aplicamos rotación inversa */}
+        {/* Salida TRUE (Verdadero) - Borde verde */}
         <Handle
           type="source"
           position={Position.Right}
           id="true"
-          className="!right-[-6px] !top-[25%] !w-3 !h-3 !-rotate-45"
+          className="!right-[-6px] !top-[25%] !w-3 !h-3 !-rotate-45 !border-green-500"
           style={{ transform: "translateY(-50%) rotate(-45deg)" }}
         />
+        {/* Salida FALSE (Falso) - Borde rojo */}
         <Handle
           type="source"
           position={Position.Right}
           id="false"
-          className="!right-[-6px] !top-[75%] !w-3 !h-3 !-rotate-45"
+          className="!right-[-6px] !top-[75%] !w-3 !h-3 !-rotate-45 !border-red-500"
           style={{ transform: "translateY(-50%) rotate(-45deg)" }}
         />
         <IconComponent className="w-6 h-6 text-yellow-600 dark:text-yellow-300 -rotate-45" />

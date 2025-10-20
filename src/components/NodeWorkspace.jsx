@@ -25,7 +25,7 @@ import { NodeEditModal } from "@/components/automation/node-edit-modal.jsx";
 import { SimulationConfigModal } from "@/components/automation/simulation-config-modal.jsx";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { saveWorkflow, getWorkflow } from "@/services/workflow.js";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import useDevices from "@/hooks/useDevices";
 import useAuth from "@/hooks/useAuth";
@@ -36,23 +36,88 @@ const nodeTypes = {
   action: ActionNode,
 };
 
-const initialNodes = [
-  {
-    id: "1",
-    type: "trigger",
-    position: { x: 250, y: 100 },
-    data: {
-      label: "Sensor de Temperatura",
-      icon: Thermometer,
-      sensorType: "temperature",
-      value: "> 22°C",
+// Función para mapear iconos de widgets a componentes Lucide (simplificada)
+const getWidgetIcon = (iconName) => {
+  const iconMap = {
+    thermometer: Thermometer,
+    // Para otros iconos, usar los ya importados como fallback
+  };
+
+  return iconMap[iconName] || Thermometer; // Thermometer como fallback
+};
+
+// Función para generar nodos iniciales basados en el dispositivo seleccionado
+const generateInitialNodes = (selectedDevice) => {
+  if (!selectedDevice?.template?.widgets) {
+    // Nodo por defecto si no hay dispositivo o template
+    return [
+      {
+        id: "1",
+        type: "trigger",
+        position: { x: 250, y: 100 },
+        data: {
+          label: "Sensor de Temperatura",
+          icon: Thermometer,
+          sensorType: "temperature",
+          value: "> 22",
+        },
+      },
+    ];
+  }
+
+  // Filtrar widgets de tipo "Indicator" para sensores
+  const indicatorWidgets = selectedDevice.template.widgets.filter(
+    (widget) => widget.widgetType === "Indicator" && widget.sensor === true
+  );
+
+  if (indicatorWidgets.length === 0) {
+    // Si no hay indicators, usar el primer widget
+    const firstWidget = selectedDevice.template.widgets[0];
+    return [
+      {
+        id: "1",
+        type: "trigger",
+        position: { x: 250, y: 100 },
+        data: {
+          label: firstWidget.name || firstWidget.variableFullName || "Trigger",
+          icon: getWidgetIcon(firstWidget.icon),
+          sensorType: firstWidget.variable,
+          variable: firstWidget.variable,
+          variableFullName: firstWidget.name,
+          unidad: firstWidget.unidad,
+          dId: selectedDevice.dId,
+        },
+      },
+    ];
+  }
+
+  // Usar el primer widget indicator
+  const firstIndicator = indicatorWidgets[0];
+  return [
+    {
+      id: "1",
+      type: "trigger",
+      position: { x: 250, y: 100 },
+      data: {
+        label: `Sensor ${
+          firstIndicator.name || firstIndicator.variableFullName
+        }`,
+        icon: getWidgetIcon(firstIndicator.icon),
+        sensorType: firstIndicator.variable,
+        variable: firstIndicator.variable,
+        variableFullName: firstIndicator.name,
+        unidad: firstIndicator.unidad,
+        dId: selectedDevice.dId,
+      },
     },
-  },
-];
+  ];
+};
+
+const initialNodes = [];
 
 const initialEdges = [];
 
-function NodeWorkspaceContent() {
+function NodeWorkspaceContent({ userId }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -62,6 +127,7 @@ function NodeWorkspaceContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [workflowId, setWorkflowId] = useState(null);
   const [workflowName, setWorkflowName] = useState("Mi Workflow");
+  const [notification, setNotification] = useState(null);
   const [simulationConfig, setSimulationConfig] = useState({
     temperature: 25,
     humidity: 60,
@@ -82,6 +148,15 @@ function NodeWorkspaceContent() {
   // Hook para obtener dispositivo seleccionado y usuario
   const { selectedDevice } = useDevices();
   const { auth } = useAuth();
+
+  // Hook para navegación
+  const navigate = useNavigate();
+
+  // Función para mostrar notificaciones
+  const showNotification = (message, type = "success") => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000); // Ocultar después de 3 segundos
+  };
 
   // Función para determinar si el usuario es pro
   const isProUser = auth?.userData?.plan && auth.userData.plan !== "free";
@@ -396,20 +471,33 @@ function NodeWorkspaceContent() {
       };
 
       const response = await saveWorkflow(workflowData);
-
+      console.log(response);
       if (response.success) {
+        const newWorkflowId = response.data.id;
+
         if (!workflowId) {
           // Nuevo workflow creado
-          setWorkflowId(response.data.workflowId);
-          alert(`Workflow "${workflowName}" creado y guardado en Node-RED`);
+          setWorkflowId(newWorkflowId);
+
+          // Actualizar la URL con el ID del workflow
+          navigate(`?id=${newWorkflowId}`, { replace: true });
+
+          // Mostrar notificación de éxito
+          showNotification(
+            `Workflow "${workflowName}" creado y guardado en Node-RED`,
+            "success"
+          );
         } else {
           // Workflow actualizado
-          alert(`Workflow "${workflowName}" actualizado en Node-RED`);
+          showNotification(
+            `Workflow "${workflowName}" actualizado en Node-RED`,
+            "success"
+          );
         }
       }
     } catch (error) {
       console.error("Error guardando workflow:", error);
-      alert("Error guardando el workflow");
+      showNotification("Error guardando el workflow", "error");
     } finally {
       setIsSaving(false);
     }
@@ -554,6 +642,7 @@ function NodeWorkspaceContent() {
         onAddNode={addNode}
         selectedDevice={selectedDevice}
         isProUser={isProUser}
+        userId={userId}
       />
 
       {/* NodeEditModal component */}
@@ -570,16 +659,40 @@ function NodeWorkspaceContent() {
         onStart={executeSimulation}
         currentConfig={simulationConfig}
       />
+
+      {/* Componente de notificación */}
+      {notification && (
+        <div
+          className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 animate-in slide-in-from-right-5 duration-300 ${
+            notification.type === "success"
+              ? "bg-green-600 text-white"
+              : "bg-red-600 text-white"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {notification.type === "success" ? (
+              <div className="h-4 w-4 rounded-full bg-white/20 flex items-center justify-center">
+                ✓
+              </div>
+            ) : (
+              <div className="h-4 w-4 rounded-full bg-white/20 flex items-center justify-center">
+                ✕
+              </div>
+            )}
+            <span className="text-sm font-medium">{notification.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // Componente principal que envuelve con SidebarProvider y ReactFlowProvider
-export default function NodeWorkspace() {
+export default function NodeWorkspace({ userId }) {
   return (
     <ReactFlowProvider>
       <SidebarProvider defaultOpen={true}>
-        <NodeWorkspaceContent />
+        <NodeWorkspaceContent userId={userId} />
       </SidebarProvider>
     </ReactFlowProvider>
   );

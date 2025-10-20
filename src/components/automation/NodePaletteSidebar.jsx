@@ -92,14 +92,14 @@ const conditionNodes = [
     },
   },
   {
-    icon: GitBranch,
-    label: "Lógica",
+    icon: Clock,
+    label: "Rango Horario",
     data: {
-      label: "Verificar Horario",
+      label: "Rango de Horas",
       icon: Clock,
       iconName: "Clock",
-      conditionType: "time",
-      condition: "HH:MM",
+      conditionType: "timeRange",
+      condition: "Entre HH:MM y HH:MM",
     },
   },
   {
@@ -203,7 +203,12 @@ const conditionNodes = [
   },
 ];
 
-function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
+function NodePaletteSidebarContent({
+  onAddNode,
+  selectedDevice,
+  isProUser,
+  userId,
+}) {
   const { setOpen, open } = useSidebar();
 
   // Estados para los modales
@@ -250,8 +255,6 @@ function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
   // Función para guardar la ubicación
   const handleLocationSave = async (locationData) => {
     try {
-      console.log("Guardando ubicación:", locationData);
-
       // Usar el servicio para actualizar la ubicación del dispositivo
       const { call } = updateDeviceLocation(selectedDevice.dId, {
         name: locationData.name,
@@ -267,8 +270,6 @@ function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
       if (response.error) {
         throw new Error("Error guardando ubicación");
       }
-
-      console.log("Ubicación guardada exitosamente");
 
       // Actualizar el dispositivo seleccionado localmente
       if (selectedDevice) {
@@ -311,10 +312,8 @@ function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
       (widget) => widget.widgetType === "Indicator" && widget.sensor === true
     );
 
-    return indicatorWidgets.map((widget) => ({
-      icon: getWidgetIcon(widget.icon),
-      label: widget.name || widget.variableFullName,
-      data: {
+    return indicatorWidgets.map((widget) => {
+      const nodeData = {
         label: `Sensor ${widget.name || widget.variableFullName}`,
         icon: getWidgetIcon(widget.icon),
         iconName: widget.icon, // Nombre original del icono
@@ -323,9 +322,16 @@ function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
         variableFullName: widget.name,
         unidad: widget.unidad,
         deviceId: selectedDevice.dId,
-      },
-    }));
-  }, [selectedDevice]);
+        dId: selectedDevice.dId, // Agregar dId también como backup
+      };
+
+      return {
+        icon: getWidgetIcon(widget.icon),
+        label: widget.name || widget.variableFullName,
+        data: nodeData,
+      };
+    });
+  }, [selectedDevice, userId]);
 
   // Combinar nodos trigger estáticos con dinámicos
   const allTriggerNodes = useMemo(() => {
@@ -369,7 +375,6 @@ function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
         });
       }
     });
-    console.log(availableModes);
     // Mapeo de modos a configuraciones de nodos
     const modeToNodeConfig = {
       On: {
@@ -524,7 +529,9 @@ function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
                   {allTriggerNodes.map((node, idx) => (
                     <SidebarMenuItem key={idx}>
                       <SidebarMenuButton
-                        onClick={() => onAddNode("trigger", node.data)}
+                        onClick={() => {
+                          onAddNode("trigger", node.data);
+                        }}
                         className="w-full justify-start gap-2 h-auto py-2"
                         tooltip={node.label}
                         disabled={node.disabled}
@@ -643,7 +650,7 @@ function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
         }}
         onSave={handleLocationSave}
         deviceName={selectedDevice?.name}
-        hasExistingLocation={hasLocation}
+        hasExistingLocation={hasLocation ? true : false}
       />
 
       <ConditionNodeModal
@@ -664,13 +671,19 @@ function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
   );
 }
 
-export function NodePaletteSidebar({ onAddNode, selectedDevice, isProUser }) {
+export function NodePaletteSidebar({
+  onAddNode,
+  selectedDevice,
+  isProUser,
+  userId,
+}) {
   return (
     <Sidebar side="right" variant="sidebar" collapsible="icon">
       <NodePaletteSidebarContent
         onAddNode={onAddNode}
         selectedDevice={selectedDevice}
         isProUser={isProUser}
+        userId={userId}
       />
     </Sidebar>
   );
@@ -680,10 +693,12 @@ NodePaletteSidebarContent.propTypes = {
   onAddNode: PropTypes.func.isRequired,
   selectedDevice: PropTypes.object,
   isProUser: PropTypes.bool,
+  userId: PropTypes.string,
 };
 
 NodePaletteSidebar.propTypes = {
   onAddNode: PropTypes.func.isRequired,
   selectedDevice: PropTypes.object,
   isProUser: PropTypes.bool,
+  userId: PropTypes.string,
 };

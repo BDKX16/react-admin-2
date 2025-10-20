@@ -8,6 +8,7 @@ import { createCompositeRule, updateCompositeRule } from "../services/public";
 import { getWorkflow } from "../services/workflow";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
 import useDevices from "../hooks/useDevices";
+import useAuth from "../hooks/useAuth";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const AutomationEditor = () => {
@@ -15,6 +16,7 @@ const AutomationEditor = () => {
   const [searchParams] = useSearchParams();
   const { loading, callEndpoint } = useFetchAndLoad();
   const { selectedDevice } = useDevices();
+  const { auth } = useAuth();
 
   // Obtener parámetros de la URL
   const isCreating = searchParams.get("create") === "true";
@@ -136,6 +138,7 @@ const AutomationEditor = () => {
             initialData={automationData}
             onSave={handleSave}
             onChange={handleWorkspaceChange}
+            userId={auth?.userData?._id}
           />
         )}
       </div>
