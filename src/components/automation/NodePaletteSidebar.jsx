@@ -643,6 +643,7 @@ function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
         }}
         onSave={handleLocationSave}
         deviceName={selectedDevice?.name}
+        hasExistingLocation={hasLocation}
       />
 
       <ConditionNodeModal
@@ -653,6 +654,11 @@ function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
           setPendingNode(null);
         }}
         onSave={handleConditionSave}
+        deviceLocation={selectedDevice?.location}
+        onLocationUpdate={() => {
+          setConditionModalOpen(false);
+          setLocationModalOpen(true);
+        }}
       />
     </div>
   );

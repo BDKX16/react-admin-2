@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,19 +22,19 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
-import {
-  deleteDevice,
-  updateSaverRule,
-  updateDeviceConfig,
-} from "../services/private";
+import { deleteDevice, updateDeviceConfig } from "../services/private";
 import useDevices from "../hooks/useDevices";
+import { LocationConfigModal } from "../components/automation/LocationConfigModal";
+import { MapPin } from "lucide-react";
+import { updateDeviceLocation } from "../services/public";
 
 const DeviceConfig = () => {
   const { selectedDevice } = useDevices();
-  const { loading, callEndpoint } = useFetchAndLoad();
+  const { callEndpoint } = useFetchAndLoad();
   const [saveToDatabase, setSaveToDatabase] = useState(false);
   const [deviceName, setDeviceName] = useState("");
   const [configs, setConfigs] = useState([]);
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
   useEffect(() => {
     if (selectedDevice) {
       setDeviceName(selectedDevice.name);
@@ -83,6 +83,26 @@ const DeviceConfig = () => {
     setConfigs(newConfigs);
   };
 
+  const handleLocationSave = async (locationData) => {
+    try {
+      console.log("Guardando ubicación:", locationData);
+      const response = await updateDeviceLocation(
+        selectedDevice.dId,
+        locationData
+      );
+      if (response.status === "success") {
+        setLocationModalOpen(false);
+        // Recargar la página para actualizar los datos del dispositivo
+        window.location.reload();
+        console.log("Ubicación actualizada correctamente");
+      } else {
+        throw new Error("Error guardando ubicación");
+      }
+    } catch (error) {
+      console.error("Error guardando ubicación:", error);
+    }
+  };
+
   return (
     <div className="p-4 rounded-lg shadow-md text-left w-full max-w-2xl mx-auto">
       <h2 className="text-xl font-semibold mb-2">
@@ -101,6 +121,53 @@ const DeviceConfig = () => {
           las plataformas.
         </Label>
       </div>
+
+      {/* Sección de Ubicación */}
+      <div className="flex flex-col items-start gap-3 mb-6">
+        <div className="flex items-center justify-between w-full">
+          <Label className="font-bold">Ubicación del dispositivo</Label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocationModalOpen(true)}
+            className="gap-2"
+          >
+            <MapPin className="h-4 w-4" />
+            {selectedDevice?.location
+              ? "Cambiar ubicación"
+              : "Configurar ubicación"}
+          </Button>
+        </div>
+        {selectedDevice?.location ? (
+          <div className="p-3 bg-muted rounded-lg w-full">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium">
+                {selectedDevice.location.displayName ||
+                  `${selectedDevice.location.name}, ${selectedDevice.location.state}, ${selectedDevice.location.country}`}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg w-full">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-amber-600" />
+              <span className="text-sm text-amber-800 dark:text-amber-200">
+                Sin ubicación configurada
+              </span>
+            </div>
+            <p className="text-xs text-amber-600 dark:text-amber-300 mt-1">
+              Configure la ubicación para usar funciones climáticas en
+              automatizaciones.
+            </p>
+          </div>
+        )}
+        <Label className="text-gray-500">
+          La ubicación se utiliza para automatizaciones con aspectos climáticos
+          (clima, dia/noche, etc.).
+        </Label>
+      </div>
+
       <div className=" mb-10">
         <div className="flex items-center font-bold justify-between">
           <Label className="mr-4">Guardar datos de sensores:</Label>
@@ -194,6 +261,17 @@ const DeviceConfig = () => {
           </Dialog>
         </div>
       </div>
+
+      {/* Modal de configuración de ubicación */}
+      <LocationConfigModal
+        open={locationModalOpen}
+        onClose={() => setLocationModalOpen(false)}
+        onSave={handleLocationSave}
+        deviceName={selectedDevice?.name}
+        hasExistingLocation={
+          !!(selectedDevice?.location && selectedDevice.location.latitude)
+        }
+      />
     </div>
   );
 };

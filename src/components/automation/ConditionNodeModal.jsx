@@ -17,8 +17,29 @@ import {
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
+import { LocationButton } from "./LocationButton";
 
-export function ConditionNodeModal({ node, open, onClose, onSave }) {
+export function ConditionNodeModal({
+  node,
+  open,
+  onClose,
+  onSave,
+  deviceLocation,
+  onLocationUpdate,
+}) {
+  // Nodos que requieren ubicación para funciones climáticas
+  const locationRequiredTypes = [
+    "solar",
+    "dayNight",
+    "season",
+    "rainForecast",
+    "frostRisk",
+    "heatIndex",
+    "dewPoint",
+    "daylightHours",
+    "waterDeficit",
+  ];
+
   const [formData, setFormData] = useState({});
 
   useEffect(() => {
@@ -301,12 +322,27 @@ export function ConditionNodeModal({ node, open, onClose, onSave }) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={!isValidForm()}>
-            Guardar
-          </Button>
+          <div className="flex items-center justify-between w-full">
+            {/* Botón de ubicación a la izquierda para nodos que la requieren */}
+            {node?.data?.conditionType &&
+              locationRequiredTypes.includes(node.data.conditionType) && (
+                <LocationButton
+                  location={deviceLocation}
+                  onClick={onLocationUpdate}
+                  className=""
+                />
+              )}
+            
+            {/* Botones de acción a la derecha */}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave} disabled={!isValidForm()}>
+                Guardar
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -318,4 +354,6 @@ ConditionNodeModal.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
+  deviceLocation: PropTypes.object,
+  onLocationUpdate: PropTypes.func.isRequired,
 };

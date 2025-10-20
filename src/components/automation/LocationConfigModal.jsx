@@ -29,7 +29,6 @@ const searchCities = async (query) => {
     if (!response.ok) throw new Error("Error en la búsqueda");
 
     const data = await response.json();
-    console.log("Raw API response:", data);
 
     if (!Array.isArray(data)) {
       console.error("API response is not an array:", data);
@@ -98,8 +97,6 @@ const searchCities = async (query) => {
         };
       });
 
-    console.log("Filtered and mapped results:", results);
-    console.log("Total results found:", results.length);
     return results;
   } catch (error) {
     console.error("Error searching cities:", error);
@@ -107,7 +104,13 @@ const searchCities = async (query) => {
   }
 };
 
-export function LocationConfigModal({ open, onClose, onSave, deviceName }) {
+export function LocationConfigModal({
+  open,
+  onClose,
+  onSave,
+  deviceName,
+  hasExistingLocation = false,
+}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -139,18 +142,15 @@ export function LocationConfigModal({ open, onClose, onSave, deviceName }) {
   }, [searchQuery]);
 
   const handleSave = () => {
-    console.log("handleSave called, selectedLocation:", selectedLocation);
     if (selectedLocation) {
       onSave(selectedLocation);
     }
   };
 
   const handleLocationSelect = (location) => {
-    console.log("Location selected:", location);
     setSelectedLocation(location);
     setSearchQuery(location.displayName);
     setShowResults(false);
-    console.log("selectedLocation state after setting:", location);
   };
 
   const handleClose = () => {
@@ -160,9 +160,6 @@ export function LocationConfigModal({ open, onClose, onSave, deviceName }) {
     setShowResults(false);
     onClose();
   };
-
-  console.log("Render - selectedLocation:", selectedLocation);
-  console.log("Render - button disabled:", !selectedLocation);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -223,7 +220,6 @@ export function LocationConfigModal({ open, onClose, onSave, deviceName }) {
                           key={index}
                           onMouseDown={(e) => {
                             e.preventDefault();
-                            console.log("Location selected:", location);
                             handleLocationSelect(location);
                           }}
                           className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors border-b border-border/50 last:border-b-0"
@@ -266,6 +262,24 @@ export function LocationConfigModal({ open, onClose, onSave, deviceName }) {
           )}
         </div>
 
+        {/* Aviso de configuración posterior - solo si no tiene ubicación */}
+        {!hasExistingLocation && (
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-start gap-2">
+              <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <div className="text-sm">
+                <p className="text-blue-800 dark:text-blue-200 font-medium">
+                  Configuración de ubicación
+                </p>
+                <p className="text-blue-600 dark:text-blue-300 text-xs mt-1">
+                  Podrás modificar esta ubicación más tarde desde la
+                  configuración del dispositivo.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
             Cancelar
@@ -284,4 +298,5 @@ LocationConfigModal.propTypes = {
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
   deviceName: PropTypes.string,
+  hasExistingLocation: PropTypes.bool,
 };
