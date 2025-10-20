@@ -28,6 +28,7 @@ import { saveWorkflow, getWorkflow } from "@/services/workflow.js";
 import { useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import useDevices from "@/hooks/useDevices";
+import useAuth from "@/hooks/useAuth";
 
 const nodeTypes = {
   trigger: TriggerNode,
@@ -78,8 +79,12 @@ function NodeWorkspaceContent() {
   // Hook de ReactFlow para obtener viewport
   const reactFlowInstance = useReactFlow();
 
-  // Hook para obtener dispositivo seleccionado
+  // Hook para obtener dispositivo seleccionado y usuario
   const { selectedDevice } = useDevices();
+  const { auth } = useAuth();
+
+  // Función para determinar si el usuario es pro
+  const isProUser = auth?.userData?.plan && auth.userData.plan !== "free";
 
   // Obtener parámetros de URL para cargar workflow existente
   const [searchParams] = useSearchParams();
@@ -139,9 +144,25 @@ function NodeWorkspaceContent() {
     setIsModalOpen(true);
   }, []);
 
-  const onNodeClick = useCallback((_, node) => {
-    setSelectedNode(node);
-  }, []);
+  const onNodeClick = useCallback(
+    (_, node) => {
+      // Actualizar el estado de selección
+      setSelectedNode(node);
+
+      // Marcar visualmente todos los nodos
+      setNodes((nds) =>
+        nds.map((n) => ({
+          ...n,
+          selected: n.id === node.id,
+          data: {
+            ...n.data,
+            isSelected: n.id === node.id,
+          },
+        }))
+      );
+    },
+    [setNodes]
+  );
 
   const handleSaveNode = useCallback(
     (nodeId, data) => {
@@ -175,11 +196,101 @@ function NodeWorkspaceContent() {
     [nodes.length, setNodes, setOpen]
   );
 
+  // Función para eliminar un nodo y sus conexiones
+  const deleteNode = useCallback(
+    (nodeId) => {
+      setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+      setEdges((eds) =>
+        eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
+      );
+      // Limpiar selección si se borra el nodo seleccionado
+      if (selectedNode?.id === nodeId) {
+        setSelectedNode(null);
+      }
+    },
+    [setNodes, setEdges, selectedNode]
+  );
+
+  // Función para abrir el modal de edición del nodo seleccionado
+  const openSelectedNodeModal = useCallback(() => {
+    if (selectedNode) {
+      setIsModalOpen(true);
+    }
+  }, [selectedNode]);
+
+  // Manejar acciones de teclado
+  const handleKeyDown = useCallback(
+    (event) => {
+      // Solo procesar si no hay un input activo
+      if (
+        event.target.tagName === "INPUT" ||
+        event.target.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+
+      switch (event.key) {
+        case "Delete":
+        case "Backspace":
+          if (selectedNode) {
+            event.preventDefault();
+            deleteNode(selectedNode.id);
+          }
+          break;
+        case "Enter":
+          if (selectedNode) {
+            event.preventDefault();
+            openSelectedNodeModal();
+          }
+          break;
+        case "Escape":
+          event.preventDefault();
+          setSelectedNode(null);
+          // Deseleccionar visualmente todos los nodos
+          setNodes((nds) =>
+            nds.map((n) => ({
+              ...n,
+              selected: false,
+              data: {
+                ...n.data,
+                isSelected: false,
+              },
+            }))
+          );
+          break;
+        default:
+          break;
+      }
+    },
+    [selectedNode, deleteNode, openSelectedNodeModal, setNodes]
+  );
+
+  // Agregar event listener para las acciones de teclado
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
   // Función para manejar clics en el panel del ReactFlow
   const onPaneClick = useCallback(() => {
     // Colapsar el sidebar cuando se hace clic en el canvas
     setOpen(false);
-  }, [setOpen]);
+
+    // Deseleccionar todos los nodos
+    setSelectedNode(null);
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        selected: false,
+        data: {
+          ...n.data,
+          isSelected: false,
+        },
+      }))
+    );
+  }, [setOpen, setNodes]);
 
   const executeSimulation = useCallback(
     (config) => {
@@ -439,7 +550,11 @@ function NodeWorkspaceContent() {
       </div>
 
       {/* Node Palette Sidebar */}
-      <NodePaletteSidebar onAddNode={addNode} />
+      <NodePaletteSidebar
+        onAddNode={addNode}
+        selectedDevice={selectedDevice}
+        isProUser={isProUser}
+      />
 
       {/* NodeEditModal component */}
       <NodeEditModal

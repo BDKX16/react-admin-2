@@ -1,16 +1,50 @@
 import { Handle, Position } from "@xyflow/react";
-import { Play } from "lucide-react";
+import {
+  Play,
+  Power,
+  Zap,
+  Bell,
+  Gauge,
+  Timer,
+  Repeat,
+  Activity,
+  TrendingUp,
+} from "lucide-react";
+import PropTypes from "prop-types";
+
+// Función para resolver iconos por nombre
+const getIconByName = (iconName) => {
+  const iconMap = {
+    Power,
+    Zap,
+    Bell,
+    Gauge,
+    Timer,
+    Repeat,
+    Activity,
+    TrendingUp,
+  };
+  return iconMap[iconName] || Play;
+};
 
 export function ActionNode({ data }) {
-  // Handle icon properly - if it's a string or "default", use a default icon
-  const IconComponent = typeof data?.icon === "function" ? data.icon : Play;
+  // Intentar usar el icono directo primero, luego por nombre, luego default
+  let IconComponent = Play; // Default
+
+  if (data?.icon && (typeof data?.icon === "function" || typeof data?.icon === "object")) {
+    IconComponent = data.icon;
+  } else if (data?.iconName) {
+    IconComponent = getIconByName(data.iconName);
+  }
 
   return (
     <div className="flex flex-col items-center">
       {/* Nodo rectangular con bordes completamente redondeados - color que coincide con minimapa */}
       <div
         className={`w-20 h-12 rounded-full flex items-center justify-center relative shadow-md transition-all duration-200 ${
-          data?.isExecuting
+          data?.isSelected
+            ? "border-2 border-green-600 shadow-lg ring-2 ring-green-300 ring-opacity-50"
+            : data?.isExecuting
             ? "border-2 border-green-400 shadow-lg"
             : "border-0 hover:border-2 hover:border-green-500 focus:border-2 focus:border-green-500"
         } ${
@@ -37,3 +71,15 @@ export function ActionNode({ data }) {
     </div>
   );
 }
+
+ActionNode.propTypes = {
+  data: PropTypes.shape({
+    label: PropTypes.string,
+    icon: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+    iconName: PropTypes.string,
+    action: PropTypes.string,
+    isExecuting: PropTypes.bool,
+    isSelected: PropTypes.bool,
+    disabled: PropTypes.bool,
+  }),
+};

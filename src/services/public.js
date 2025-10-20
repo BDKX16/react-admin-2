@@ -381,6 +381,29 @@ export const confirmEmailChange = (token, newEmail) => {
     controller,
   };
 };
+
+export const updateDeviceLocation = (dId, locationData) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(
+        `${import.meta.env.VITE_BASE_URL}/device/${dId}/location`,
+        locationData,
+        headers,
+        { signal: controller.signal }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 /**********
  * FUNCTIONS
  ************/

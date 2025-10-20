@@ -37,53 +37,36 @@ import {
   Repeat,
   Activity,
   TrendingUp,
+  Crown,
 } from "lucide-react";
 import PropTypes from "prop-types";
+import { useMemo, useState } from "react";
+import { LocationConfigModal } from "./LocationConfigModal";
+import { ConditionNodeModal } from "./ConditionNodeModal";
+import { updateDeviceLocation } from "@/services/public";
 
-const triggerNodes = [
-  {
-    icon: Thermometer,
-    label: "Temperatura",
-    data: {
-      label: "Sensor de Temperatura",
-      icon: Thermometer,
-      sensorType: "temperature",
-    },
-  },
-  {
-    icon: Droplets,
-    label: "Humedad Aire",
-    data: {
-      label: "Sensor de Humedad",
-      icon: Droplets,
-      sensorType: "humidity",
-    },
-  },
-  {
-    icon: Sprout,
-    label: "Humedad Suelo",
-    data: {
-      label: "Humedad del Suelo",
-      icon: Sprout,
-      sensorType: "soilMoisture",
-    },
-  },
-  {
-    icon: Wind,
-    label: "CO2",
-    data: { label: "Sensor de CO2", icon: Wind, sensorType: "co2" },
-  },
-  {
-    icon: FlaskConical,
-    label: "pH",
-    data: { label: "Sensor de pH", icon: FlaskConical, sensorType: "ph" },
-  },
-  {
-    icon: Clock,
-    label: "Horario",
-    data: { label: "Horario", icon: Clock, sensorType: "schedule" },
-  },
-];
+// Función para mapear iconos de widgets a componentes Lucide
+const getWidgetIcon = (iconName) => {
+  const iconMap = {
+    thermometer: Thermometer,
+    droplets: Droplets,
+    wind: Wind,
+    sprout: Sprout,
+    "flask-conical": FlaskConical,
+    gauge: Gauge,
+    leaf: Leaf,
+    sun: Sun,
+    "cloud-rain": CloudRain,
+    activity: Activity,
+    "trending-up": TrendingUp,
+    zap: Zap,
+    power: Power,
+    bell: Bell,
+    timer: Timer,
+    repeat: Repeat,
+  };
+  return iconMap[iconName] || Gauge; // Usar Gauge como default
+};
 
 const conditionNodes = [
   {
@@ -92,6 +75,7 @@ const conditionNodes = [
     data: {
       label: "Comparar Valor",
       icon: GitBranch,
+      iconName: "GitBranch",
       conditionType: "comparison",
       condition: "> < = !=",
     },
@@ -102,16 +86,18 @@ const conditionNodes = [
     data: {
       label: "En Rango",
       icon: GitBranch,
+      iconName: "GitBranch",
       conditionType: "range",
-      condition: "min - max",
+      condition: "entre X y Y",
     },
   },
   {
-    icon: Clock,
-    label: "Horario",
+    icon: GitBranch,
+    label: "Lógica",
     data: {
       label: "Verificar Horario",
       icon: Clock,
+      iconName: "Clock",
       conditionType: "time",
       condition: "HH:MM",
     },
@@ -122,6 +108,7 @@ const conditionNodes = [
     data: {
       label: "Hora Solar",
       icon: Sunrise,
+      iconName: "Sunrise",
       conditionType: "solar",
       condition: "sunrise/sunset",
     },
@@ -132,6 +119,7 @@ const conditionNodes = [
     data: {
       label: "Ciclo Diurno",
       icon: Moon,
+      iconName: "Moon",
       conditionType: "dayNight",
       condition: "day/night",
     },
@@ -142,6 +130,7 @@ const conditionNodes = [
     data: {
       label: "Estación del Año",
       icon: Calendar,
+      iconName: "Calendar",
       conditionType: "season",
       condition: "primavera/verano/otoño/invierno",
     },
@@ -152,6 +141,7 @@ const conditionNodes = [
     data: {
       label: "Probabilidad de Lluvia",
       icon: CloudRain,
+      iconName: "CloudRain",
       conditionType: "rainForecast",
       condition: "> 50%",
     },
@@ -162,6 +152,7 @@ const conditionNodes = [
     data: {
       label: "Alerta de Helada",
       icon: CloudSnow,
+      iconName: "CloudSnow",
       conditionType: "frostRisk",
       condition: "< 2°C",
     },
@@ -172,6 +163,7 @@ const conditionNodes = [
     data: {
       label: "Sensación Térmica",
       icon: Thermometer,
+      iconName: "Thermometer",
       conditionType: "heatIndex",
       condition: "temp + humedad",
     },
@@ -182,6 +174,7 @@ const conditionNodes = [
     data: {
       label: "Punto de Rocío",
       icon: Leaf,
+      iconName: "Leaf",
       conditionType: "dewPoint",
       condition: "condensación",
     },
@@ -192,6 +185,7 @@ const conditionNodes = [
     data: {
       label: "Duración del Día",
       icon: Sun,
+      iconName: "Sun",
       conditionType: "daylightHours",
       condition: "> 12h",
     },
@@ -202,141 +196,320 @@ const conditionNodes = [
     data: {
       label: "Necesidad de Riego",
       icon: Sprout,
+      iconName: "Sprout",
       conditionType: "waterDeficit",
       condition: "evaporación - lluvia",
     },
   },
 ];
 
-const actionNodes = [
-  {
-    icon: Power,
-    label: "Switch ON",
-    data: {
-      label: "Encender Switch",
-      icon: Power,
-      action: "Activar",
-      actionType: "switch",
-    },
-  },
-  {
-    icon: Power,
-    label: "Switch OFF",
-    data: {
-      label: "Apagar Switch",
-      icon: Power,
-      action: "Desactivar",
-      actionType: "switch",
-    },
-  },
-  {
-    icon: Zap,
-    label: "Toggle",
-    data: {
-      label: "Alternar Switch",
-      icon: Zap,
-      action: "Toggle",
-      actionType: "toggle",
-    },
-  },
-  {
-    icon: Bell,
-    label: "Notificación",
-    data: {
-      label: "Enviar Notificación",
-      icon: Bell,
-      action: "Notificar",
-      actionType: "notification",
-    },
-  },
-  {
-    icon: Gauge,
-    label: "Control PID",
-    data: {
-      label: "Control PID",
-      icon: Gauge,
-      action: "PID",
-      actionType: "pid",
-    },
-  },
-  {
-    icon: Timer,
-    label: "Modo Timer",
-    data: {
-      label: "Modo Timer",
-      icon: Timer,
-      action: "Timer",
-      actionType: "timer",
-    },
-  },
-  {
-    icon: Repeat,
-    label: "Modo Ciclos",
-    data: {
-      label: "Modo Ciclos",
-      icon: Repeat,
-      action: "Ciclos",
-      actionType: "cycles",
-    },
-  },
-  {
-    icon: Activity,
-    label: "Modo PWM",
-    data: {
-      label: "Modo PWM",
-      icon: Activity,
-      action: "PWM",
-      actionType: "pwm",
-    },
-  },
-  {
-    icon: TrendingUp,
-    label: "Modo PI",
-    data: {
-      label: "Control PI",
-      icon: TrendingUp,
-      action: "PI",
-      actionType: "pi",
-    },
-  },
-  {
-    icon: TrendingUp,
-    label: "Modo P",
-    data: {
-      label: "Control P",
-      icon: TrendingUp,
-      action: "P",
-      actionType: "p",
-    },
-  },
-];
+function NodePaletteSidebarContent({ onAddNode, selectedDevice, isProUser }) {
+  const { setOpen, open } = useSidebar();
 
-function NodePaletteSidebarContent({ onAddNode }) {
-  const { setOpen } = useSidebar();
+  // Estados para los modales
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [conditionModalOpen, setConditionModalOpen] = useState(false);
+  const [pendingNode, setPendingNode] = useState(null);
+
+  // Nodos que requieren ubicación para funciones climáticas
+  const locationRequiredTypes = [
+    "solar",
+    "dayNight",
+    "season",
+    "rainForecast",
+    "frostRisk",
+    "heatIndex",
+    "dewPoint",
+    "daylightHours",
+    "waterDeficit",
+  ];
+
+  // Verificar si el dispositivo tiene ubicación configurada
+  const hasLocation =
+    selectedDevice?.location &&
+    selectedDevice.location.latitude &&
+    selectedDevice.location.longitude;
+
+  // Función para manejar el click en nodos de condición
+  const handleConditionNodeClick = (nodeData) => {
+    // Verificar si el nodo requiere ubicación
+    if (locationRequiredTypes.includes(nodeData.conditionType)) {
+      if (!hasLocation) {
+        // Si no tiene ubicación, abrir modal de ubicación
+        setPendingNode({ type: "condition", data: nodeData });
+        setLocationModalOpen(true);
+        return;
+      }
+    }
+
+    // Si no requiere ubicación o ya la tiene, abrir modal de configuración
+    setPendingNode({ type: "condition", data: nodeData });
+    setConditionModalOpen(true);
+  };
+
+  // Función para guardar la ubicación
+  const handleLocationSave = async (locationData) => {
+    try {
+      console.log("Guardando ubicación:", locationData);
+
+      // Usar el servicio para actualizar la ubicación del dispositivo
+      const { call } = updateDeviceLocation(selectedDevice.dId, {
+        name: locationData.name,
+        state: locationData.state,
+        country: locationData.country,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        displayName: locationData.displayName,
+      });
+
+      const response = await call;
+
+      if (response.error) {
+        throw new Error("Error guardando ubicación");
+      }
+
+      console.log("Ubicación guardada exitosamente");
+
+      // Actualizar el dispositivo seleccionado localmente
+      if (selectedDevice) {
+        selectedDevice.location = {
+          name: locationData.name,
+          state: locationData.state,
+          country: locationData.country,
+          latitude: locationData.latitude,
+          longitude: locationData.longitude,
+          displayName: locationData.displayName,
+        };
+      }
+
+      setLocationModalOpen(false);
+
+      // Después de guardar la ubicación, abrir el modal de configuración del nodo
+      if (pendingNode) {
+        setConditionModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Error guardando ubicación:", error);
+      // Aquí podrías mostrar un toast o notificación de error
+    }
+  };
+
+  // Función para guardar la configuración del nodo de condición
+  const handleConditionSave = (nodeConfig) => {
+    onAddNode("condition", nodeConfig.data);
+    setConditionModalOpen(false);
+    setPendingNode(null);
+  };
+  // Generar nodos trigger dinámicos basados en widgets del selectedDevice
+  const dynamicTriggerNodes = useMemo(() => {
+    if (!selectedDevice?.template?.widgets) {
+      return [];
+    }
+
+    // Filtrar widgets de tipo "Indicator" para crear triggers
+    const indicatorWidgets = selectedDevice.template.widgets.filter(
+      (widget) => widget.widgetType === "Indicator" && widget.sensor === true
+    );
+
+    return indicatorWidgets.map((widget) => ({
+      icon: getWidgetIcon(widget.icon),
+      label: widget.name || widget.variableFullName,
+      data: {
+        label: `Sensor ${widget.name || widget.variableFullName}`,
+        icon: getWidgetIcon(widget.icon),
+        iconName: widget.icon, // Nombre original del icono
+        sensorType: widget.variable,
+        variable: widget.variable,
+        variableFullName: widget.name,
+        unidad: widget.unidad,
+        deviceId: selectedDevice.dId,
+      },
+    }));
+  }, [selectedDevice]);
+
+  // Combinar nodos trigger estáticos con dinámicos
+  const allTriggerNodes = useMemo(() => {
+    const staticTriggers = [
+      {
+        icon: Clock,
+        label: "Horario",
+        data: {
+          label: "Horario",
+          icon: Clock,
+          iconName: "Clock", // Agregar nombre del icono como string
+          sensorType: "schedule",
+          variable: "schedule",
+        },
+      },
+    ];
+
+    const result = [...dynamicTriggerNodes, ...staticTriggers];
+
+    return result;
+  }, [dynamicTriggerNodes]);
+
+  // Generar nodos de acción dinámicos basados en modos disponibles
+  const dynamicActionNodes = useMemo(() => {
+    if (!selectedDevice?.template?.widgets) {
+      return [];
+    }
+
+    // Filtrar widgets de tipo "Button" o "Switch" para obtener modos
+    const actionWidgets = selectedDevice.template.widgets.filter(
+      (widget) =>
+        widget.widgetType === "Button" || widget.widgetType === "Switch"
+    );
+
+    // Recopilar todos los modos únicos disponibles en los widgets
+    const availableModes = new Set();
+    actionWidgets.forEach((widget) => {
+      if (widget.mode && Array.isArray(widget.mode)) {
+        widget.mode.forEach((mode) => {
+          availableModes.add(mode);
+        });
+      }
+    });
+    console.log(availableModes);
+    // Mapeo de modos a configuraciones de nodos
+    const modeToNodeConfig = {
+      On: {
+        icon: Power,
+        iconName: "Power",
+        label: "Encender",
+        action: "Activar",
+        actionType: "on",
+        requiresPro: false,
+      },
+      Off: {
+        icon: Power,
+        iconName: "Power",
+        label: "Apagar",
+        action: "Desactivar",
+        actionType: "off",
+        requiresPro: false,
+      },
+      Timers: {
+        icon: Timer,
+        iconName: "Timer",
+        label: "Modo Timer",
+        action: "Timer",
+        actionType: "timer",
+        requiresPro: false,
+      },
+      Ciclos: {
+        icon: Repeat,
+        iconName: "Repeat",
+        label: "Modo Ciclos",
+        action: "Ciclos",
+        actionType: "cycles",
+        requiresPro: false,
+      },
+      PID: {
+        icon: Gauge,
+        iconName: "Gauge",
+        label: "Control PID",
+        action: "PID",
+        actionType: "pid",
+        requiresPro: true,
+      },
+      PWM: {
+        icon: Activity,
+        iconName: "Activity",
+        label: "Modo PWM",
+        action: "PWM",
+        actionType: "pwm",
+        requiresPro: true,
+      },
+      PI: {
+        icon: TrendingUp,
+        iconName: "TrendingUp",
+        label: "Control PI",
+        action: "PI",
+        actionType: "pi",
+        requiresPro: true,
+      },
+      P: {
+        icon: TrendingUp,
+        iconName: "TrendingUp",
+        label: "Control P",
+        action: "P",
+        actionType: "p",
+        requiresPro: true,
+      },
+    };
+
+    // Generar nodos solo para los modos disponibles
+    const generatedNodes = [];
+    availableModes.forEach((mode) => {
+      const config = modeToNodeConfig[mode];
+      if (config) {
+        const isDisabled = config.requiresPro && !isProUser;
+
+        generatedNodes.push({
+          icon: config.icon,
+          label: config.label,
+          data: {
+            label: config.label,
+            icon: config.icon,
+            iconName: config.iconName,
+            action: config.action,
+            actionType: config.actionType,
+            deviceId: selectedDevice.dId,
+            availableModes: Array.from(availableModes),
+            requiresPro: config.requiresPro && !isProUser,
+          },
+          disabled: isDisabled,
+        });
+      }
+    });
+
+    return generatedNodes;
+  }, [selectedDevice, isProUser]);
+
+  // Combinar nodos de acción dinámicos con notificación estática
+  const allActionNodes = useMemo(() => {
+    // Solo incluir notificación de los nodos estáticos
+    const staticNotification = {
+      icon: Bell,
+      label: "Notificación",
+      data: {
+        label: "Enviar Notificación",
+        icon: Bell,
+        iconName: "Bell",
+        action: "Notificar",
+        actionType: "notification",
+      },
+    };
+
+    return [...dynamicActionNodes, staticNotification];
+  }, [dynamicActionNodes]);
 
   const handleCategoryClick = () => {
     setOpen(true);
   };
-
   return (
-    <>
+    <div className="flex flex-col h-full">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center justify-between p-2">
           <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-full">
-            <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-primary text-primary-foreground">
+            <div
+              className="flex h-6 w-6 min-w-6 flex-shrink-0 items-center justify-center rounded-sm bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 transition-colors group-data-[collapsible=open]:cursor-default"
+              onClick={() => {
+                setOpen(!open);
+              }}
+            >
               <Zap className="h-4 w-4" />
             </div>
             <span className="font-semibold text-sm group-data-[collapsible=icon]:sr-only">
               Paleta de Nodos
             </span>
           </div>
-          <SidebarTrigger className="group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:top-2 group-data-[collapsible=icon]:right-2 group-data-[collapsible=icon]:z-10" />
+          <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
         </div>
         <p className="px-2 pb-2 text-xs text-sidebar-foreground/60 group-data-[collapsible=icon]:sr-only">
           Arrastra o haz clic para agregar
         </p>
       </SidebarHeader>
-
       <SidebarContent>
         {/* Vista expandida - contenido completo */}
         <div className="group-data-[collapsible=icon]:hidden">
@@ -348,17 +521,21 @@ function NodePaletteSidebarContent({ onAddNode }) {
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {triggerNodes.map((node, idx) => (
+                  {allTriggerNodes.map((node, idx) => (
                     <SidebarMenuItem key={idx}>
                       <SidebarMenuButton
                         onClick={() => onAddNode("trigger", node.data)}
                         className="w-full justify-start gap-2 h-auto py-2"
                         tooltip={node.label}
+                        disabled={node.disabled}
                       >
                         <div className="p-1 rounded bg-chart-1/10">
                           <node.icon className="h-3.5 w-3.5 text-chart-1" />
                         </div>
                         <span className="text-xs">{node.label}</span>
+                        {node.disabled && (
+                          <Crown className="h-3 w-3 ml-auto text-yellow-500" />
+                        )}
                         <Plus className="h-3 w-3 ml-auto opacity-50" />
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -379,7 +556,7 @@ function NodePaletteSidebarContent({ onAddNode }) {
                   {conditionNodes.map((node, idx) => (
                     <SidebarMenuItem key={idx}>
                       <SidebarMenuButton
-                        onClick={() => onAddNode("condition", node.data)}
+                        onClick={() => handleConditionNodeClick(node.data)}
                         className="w-full justify-start gap-2 h-auto py-2"
                         tooltip={node.label}
                       >
@@ -404,17 +581,21 @@ function NodePaletteSidebarContent({ onAddNode }) {
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {actionNodes.map((node, idx) => (
+                  {allActionNodes.map((node, idx) => (
                     <SidebarMenuItem key={idx}>
                       <SidebarMenuButton
                         onClick={() => onAddNode("action", node.data)}
                         className="w-full justify-start gap-2 h-auto py-2"
                         tooltip={node.label}
+                        disabled={node.disabled}
                       >
                         <div className="p-1 rounded bg-chart-3/10">
                           <node.icon className="h-3.5 w-3.5 text-chart-3" />
                         </div>
                         <span className="text-xs">{node.label}</span>
+                        {node.disabled && (
+                          <Crown className="h-3 w-3 ml-auto text-yellow-500" />
+                        )}
                         <Plus className="h-3 w-3 ml-auto opacity-50" />
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -452,22 +633,51 @@ function NodePaletteSidebarContent({ onAddNode }) {
           </SidebarMenuButton>
         </div>
       </SidebarContent>
-    </>
+
+      {/* Modales */}
+      <LocationConfigModal
+        open={locationModalOpen}
+        onClose={() => {
+          setLocationModalOpen(false);
+          setPendingNode(null);
+        }}
+        onSave={handleLocationSave}
+        deviceName={selectedDevice?.name}
+      />
+
+      <ConditionNodeModal
+        node={pendingNode}
+        open={conditionModalOpen}
+        onClose={() => {
+          setConditionModalOpen(false);
+          setPendingNode(null);
+        }}
+        onSave={handleConditionSave}
+      />
+    </div>
   );
 }
 
-export function NodePaletteSidebar({ onAddNode }) {
+export function NodePaletteSidebar({ onAddNode, selectedDevice, isProUser }) {
   return (
     <Sidebar side="right" variant="sidebar" collapsible="icon">
-      <NodePaletteSidebarContent onAddNode={onAddNode} />
+      <NodePaletteSidebarContent
+        onAddNode={onAddNode}
+        selectedDevice={selectedDevice}
+        isProUser={isProUser}
+      />
     </Sidebar>
   );
 }
 
 NodePaletteSidebarContent.propTypes = {
   onAddNode: PropTypes.func.isRequired,
+  selectedDevice: PropTypes.object,
+  isProUser: PropTypes.bool,
 };
 
 NodePaletteSidebar.propTypes = {
   onAddNode: PropTypes.func.isRequired,
+  selectedDevice: PropTypes.object,
+  isProUser: PropTypes.bool,
 };
