@@ -15,17 +15,199 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
+import useDevices from "@/hooks/useDevices";
 
-export function NodeEditModal({ node, open, onClose, onSave }) {
+export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
+  const { selectedDevice } = useDevices();
   const [formData, setFormData] = useState({});
+  const [detectedInputs, setDetectedInputs] = useState({
+    top: null,
+    bottom: null,
+  });
+
+  // Función para extraer la variable de un nodo según su tipo
+  const getVariableFromNode = useCallback(
+    (sourceNode) => {
+      if (!sourceNode) return null;
+
+      switch (sourceNode.type) {
+        case "trigger": {
+          // Para nodos trigger, distinguir entre sensores y estado de actuador
+          if (sourceNode.data?.sensorType === "actuatorState") {
+            // Es un trigger de estado de actuador
+            let actuatorModes = sourceNode.data?.actuatorModes || [];
+
+            // Si no hay modos, intentar obtenerlos del widget
+            if (
+              (!actuatorModes || actuatorModes.length === 0) &&
+              selectedDevice?.template?.widgets
+            ) {
+              const widget = selectedDevice.template.widgets.find(
+                (w) => w.variable === sourceNode.data?.targetActuator
+              );
+              if (widget && widget.mode) {
+                actuatorModes = widget.mode;
+              }
+            }
+
+            return {
+              variable: sourceNode.data?.targetActuator || "actuador",
+              variableFullName:
+                sourceNode.data?.targetActuatorFullName ||
+                sourceNode.data?.label ||
+                "Actuador",
+              nodeType: "actuatorState",
+              modes: actuatorModes,
+            };
+          } else {
+            // Es un trigger de sensor normal
+            return {
+              variable:
+                sourceNode.data?.variable ||
+                sourceNode.data?.sensorType ||
+                "sensor",
+              variableFullName:
+                sourceNode.data?.variableFullName ||
+                sourceNode.data?.label ||
+                "Sensor",
+              nodeType: "trigger",
+              modes: null,
+            };
+          }
+        }
+        case "action": {
+          // Para nodos action, usar el actuador y sus modos disponibles
+          // Buscar el widget en el dispositivo para obtener sus modos
+          let availableModes = sourceNode.data?.availableModes || [];
+
+          // Si no hay modos disponibles, intentar obtenerlos del selectedDevice
+          if (
+            (!availableModes || availableModes.length === 0) &&
+            selectedDevice?.template?.widgets
+          ) {
+            const widget = selectedDevice.template.widgets.find(
+              (w) =>
+                w.variable ===
+                (sourceNode.data?.actuator || sourceNode.data?.targetWidget)
+            );
+            if (widget && widget.mode) {
+              availableModes = widget.mode;
+            }
+          }
+
+          return {
+            variable:
+              sourceNode.data?.actuator ||
+              sourceNode.data?.targetWidget ||
+              sourceNode.data?.variable ||
+              "actuador",
+            variableFullName:
+              sourceNode.data?.actuatorFullName ||
+              sourceNode.data?.label ||
+              "Actuador",
+            nodeType: "action",
+            modes: availableModes,
+          };
+        }
+        case "condition":
+          // Para nodos condition, usar la variable de comparación
+          return {
+            variable:
+              sourceNode.data?.variable ||
+              sourceNode.data?.comparisonVariable ||
+              "condicion",
+            variableFullName:
+              sourceNode.data?.variableFullName ||
+              sourceNode.data?.label ||
+              "Condición",
+            nodeType: "condition",
+            modes: null,
+          };
+        case "join":
+          // Para nodos join anidados, indicar que es un join
+          return {
+            variable: "resultado_join",
+            variableFullName: "Resultado Join",
+            nodeType: "join",
+            modes: null,
+          };
+        default:
+          return {
+            variable: sourceNode.data?.label || "entrada",
+            variableFullName: sourceNode.data?.label || "Entrada",
+            nodeType: "unknown",
+            modes: null,
+          };
+      }
+    },
+    [selectedDevice]
+  );
+
+  // Función para obtener widgets compatibles con el actionType del nodo
+  const getCompatibleWidgets = (actionType) => {
+    if (!selectedDevice?.template?.widgets || !actionType) {
+      return [];
+    }
+
+    return selectedDevice.template.widgets.filter(
+      (widget) =>
+        widget.widgetType === "Switch" &&
+        widget.variable && // Asegurar que el widget tenga variable
+        widget.variable.trim() !== "" && // Y que no sea string vacío
+        widget.mode &&
+        Array.isArray(widget.mode) &&
+        widget.mode.some(
+          (mode) => mode.toLowerCase() === actionType.toLowerCase()
+        )
+    );
+  };
+
+  // Función para obtener widgets de actuadores (no sensores)
+  const getActuatorWidgets = () => {
+    if (!selectedDevice?.template?.widgets) {
+      return [];
+    }
+
+    // Filtrar widgets tipo Indicator que NO sean sensores (sensor undefined, null o false)
+    return selectedDevice.template.widgets.filter(
+      (widget) =>
+        widget.widgetType === "Indicator" &&
+        !widget.sensor && // sensor es falsy (undefined, null, false)
+        widget.variable && // Asegurar que el widget tenga variable
+        widget.variable.trim() !== "" // Y que no sea string vacío
+    );
+  };
 
   useEffect(() => {
     if (node) {
       setFormData(node.data || {});
+
+      // Detectar inputs conectados para nodos join
+      if (node.type === "join" && edges && nodes) {
+        const topInput = edges.find(
+          (edge) => edge.target === node.id && edge.targetHandle === "input-top"
+        );
+        const bottomInput = edges.find(
+          (edge) =>
+            edge.target === node.id && edge.targetHandle === "input-bottom"
+        );
+
+        const detectedTop = topInput
+          ? getVariableFromNode(nodes.find((n) => n.id === topInput.source))
+          : null;
+        const detectedBottom = bottomInput
+          ? getVariableFromNode(nodes.find((n) => n.id === bottomInput.source))
+          : null;
+
+        setDetectedInputs({
+          top: detectedTop,
+          bottom: detectedBottom,
+        });
+      }
     }
-  }, [node]);
+  }, [node, edges, nodes, getVariableFromNode]);
 
   const handleSave = () => {
     if (node) {
@@ -40,6 +222,24 @@ export function NodeEditModal({ node, open, onClose, onSave }) {
               2,
               "0"
             )}:${formData.minute.padStart(2, "0")}`;
+          }
+        } else if (formData.sensorType === "actuatorState") {
+          // Para triggers de estado de actuador
+          const actuatorName =
+            formData.targetActuatorFullName ||
+            formData.targetActuator ||
+            "actuador";
+
+          if (formData.hasCondition && formData.actuatorConditionMode) {
+            // Con condición inicial
+            const comp = formData.actuatorComparison || "==";
+            const val = formData.actuatorComparisonValue || "";
+            updatedFormData.condition = `${comp} ${val}`;
+            updatedFormData.label = `${actuatorName} ${comp} ${val}`;
+          } else {
+            // Sin condición, solo escucha cambios
+            updatedFormData.condition = "onChange";
+            updatedFormData.label = `Cambio en ${actuatorName}`;
           }
         } else {
           // Para triggers de sensores
@@ -73,6 +273,94 @@ export function NodeEditModal({ node, open, onClose, onSave }) {
             updatedFormData.startTime = formData.startTime;
             updatedFormData.endTime = formData.endTime;
           }
+        }
+      }
+
+      // Actualizar datos para action nodes
+      if (node.type === "action") {
+        // Actualizar el label según la configuración
+        if (formData.targetWidget) {
+          const widget = getCompatibleWidgets(formData.actionType).find(
+            (w) => w.variable === formData.targetWidget
+          );
+          const widgetName =
+            widget?.variableFullName || widget?.name || formData.targetWidget;
+
+          switch (formData.actionType) {
+            case "pwm":
+              updatedFormData.label = `PWM ${widgetName} (${
+                formData.pwmValue || "0"
+              })`;
+              break;
+            case "timer":
+              updatedFormData.label = `Timer ${widgetName} (${
+                formData.timerDuration || "0"
+              }s)`;
+              break;
+            case "cycles":
+              updatedFormData.label = `Ciclos ${widgetName} (${
+                formData.cycleRepeat || "1"
+              }x)`;
+              break;
+            case "on":
+              updatedFormData.label = `Encender ${widgetName}`;
+              break;
+            case "off":
+              updatedFormData.label = `Apagar ${widgetName}`;
+              break;
+            default:
+              updatedFormData.label = `${formData.actionType} ${widgetName}`;
+          }
+        }
+
+        // Asegurar que el deviceId esté presente
+        if (selectedDevice?.dId) {
+          updatedFormData.deviceId = selectedDevice.dId;
+        }
+      }
+
+      // Actualizar datos para delay nodes
+      if (node.type === "delay") {
+        const duration = formData.delayDuration || 5;
+        const unit = formData.delayUnit || "seconds";
+        const unitLabels = {
+          seconds: "segundos",
+          minutes: "minutos",
+          hours: "horas",
+        };
+        updatedFormData.label = `Esperar ${duration} ${
+          unitLabels[unit] || "segundos"
+        }`;
+      }
+
+      // Actualizar datos para join nodes
+      if (node.type === "join") {
+        const mode = formData.joinMode || "and";
+        // Usar variables detectadas automáticamente
+        const topVar = detectedInputs.top?.variable || "?";
+        const topVarFull = detectedInputs.top?.variableFullName || "?";
+        const topComp = formData.topComparison || ">";
+        const topVal = formData.topComparisonValue || "?";
+        const bottomVar = detectedInputs.bottom?.variable || "?";
+        const bottomVarFull = detectedInputs.bottom?.variableFullName || "?";
+        const bottomComp = formData.bottomComparison || "==";
+        const bottomVal = formData.bottomComparisonValue || "?";
+
+        const modeLabel = mode === "and" ? "Y" : "O";
+
+        // Guardar las variables detectadas en el formData
+        updatedFormData.topInputVariable = topVar;
+        updatedFormData.topInputVariableFullName = topVarFull;
+        updatedFormData.bottomInputVariable = bottomVar;
+        updatedFormData.bottomInputVariableFullName = bottomVarFull;
+
+        // Crear label descriptivo usando variableFullName
+        updatedFormData.label = `${topVarFull} ${topComp} ${topVal} ${modeLabel} ${bottomVarFull} ${bottomComp} ${bottomVal}`;
+
+        // Asegurar que timeout sea 10 segundos por defecto
+        if (!updatedFormData.timeout) {
+          updatedFormData.timeout = 10;
+          updatedFormData.timeoutUnit = "seconds";
         }
       }
 
@@ -144,6 +432,135 @@ export function NodeEditModal({ node, open, onClose, onSave }) {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+              ) : formData.sensorType === "actuatorState" ? (
+                /* Trigger de estado de actuador */
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="actuator">Actuador a Escuchar</Label>
+                    <Select
+                      value={formData.targetActuator || ""}
+                      onValueChange={(value) => {
+                        const widget = getActuatorWidgets().find(
+                          (w) => w.variable === value
+                        );
+                        setFormData({
+                          ...formData,
+                          targetActuator: value,
+                          targetActuatorFullName:
+                            widget?.variableFullName || widget?.name || value,
+                          actuatorModes: widget?.mode || [],
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un actuador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getActuatorWidgets().map((widget) => (
+                          <SelectItem
+                            key={widget.variable}
+                            value={widget.variable}
+                          >
+                            {widget.variableFullName || widget.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Condición opcional */}
+                  {formData.targetActuator && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="hasCondition"
+                          checked={formData.hasCondition || false}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              hasCondition: e.target.checked,
+                            })
+                          }
+                          className="w-4 h-4"
+                        />
+                        <Label
+                          htmlFor="hasCondition"
+                          className="cursor-pointer"
+                        >
+                          Agregar condición inicial
+                        </Label>
+                      </div>
+
+                      {formData.hasCondition && (
+                        <div className="border rounded-lg p-4 space-y-3 bg-blue-50 dark:bg-blue-950/20">
+                          <div className="space-y-2">
+                            <Label>Estado/Modo del Actuador</Label>
+                            <Select
+                              value={formData.actuatorConditionMode || ""}
+                              onValueChange={(value) =>
+                                setFormData({
+                                  ...formData,
+                                  actuatorConditionMode: value,
+                                })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecciona estado" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {formData.actuatorModes?.map((mode) => (
+                                  <SelectItem key={mode} value={mode}>
+                                    {mode}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                              <Label>Comparación</Label>
+                              <Select
+                                value={formData.actuatorComparison || "=="}
+                                onValueChange={(value) =>
+                                  setFormData({
+                                    ...formData,
+                                    actuatorComparison: value,
+                                  })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="==">Igual (=)</SelectItem>
+                                  <SelectItem value="!=">
+                                    Diferente (≠)
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Valor</Label>
+                              <Input
+                                placeholder="Ej: on, off, true, false"
+                                value={formData.actuatorComparisonValue || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    actuatorComparisonValue: e.target.value,
+                                  })
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* Trigger de sensor */
@@ -364,7 +781,6 @@ export function NodeEditModal({ node, open, onClose, onSave }) {
                       </div>
                     </div>
                   </div>
-                  )}
                 </div>
               )}
 
@@ -518,23 +934,474 @@ export function NodeEditModal({ node, open, onClose, onSave }) {
             </>
           )}
           {node.type === "action" && (
-            <div>
-              <Label>Acción</Label>
-              <Select
-                value={formData.action || ""}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, action: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una acción" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Encender">Encender</SelectItem>
-                  <SelectItem value="Apagar">Apagar</SelectItem>
-                  <SelectItem value="Toggle">Alternar</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              {/* Selector de widget/actuador */}
+              <div className="space-y-2">
+                <Label>Actuador a controlar</Label>
+                <Select
+                  value={formData.targetWidget || ""}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, targetWidget: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona el actuador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getCompatibleWidgets(formData.actionType).map((widget) => (
+                      <SelectItem key={widget.variable} value={widget.variable}>
+                        {widget.variableFullName || widget.name}
+                      </SelectItem>
+                    ))}
+                    {getCompatibleWidgets(formData.actionType).length === 0 && (
+                      <SelectItem value="no-widgets" disabled>
+                        No hay actuadores compatibles con {formData.actionType}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Configuración específica según el tipo de acción */}
+              {formData.actionType === "pwm" && (
+                <div className="space-y-2">
+                  <Label>Valor PWM (0-255)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="255"
+                    placeholder="Ej: 128"
+                    value={formData.pwmValue || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, pwmValue: e.target.value })
+                    }
+                  />
+                  <div className="text-sm text-muted-foreground">
+                    0 = Apagado, 255 = Máxima potencia
+                  </div>
+                </div>
+              )}
+
+              {formData.actionType === "timer" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Duración (segundos)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Ej: 30"
+                      value={formData.timerDuration || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          timerDuration: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Estado durante timer</Label>
+                    <Select
+                      value={formData.timerState || ""}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, timerState: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="on">Encendido</SelectItem>
+                        <SelectItem value="off">Apagado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {formData.actionType === "cycles" && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tiempo ON (seg)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Ej: 10"
+                      value={formData.cycleOnTime || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          cycleOnTime: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tiempo OFF (seg)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Ej: 5"
+                      value={formData.cycleOffTime || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          cycleOffTime: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Repeticiones</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Ej: 3"
+                      value={formData.cycleRepeat || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          cycleRepeat: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Delay Configuration */}
+          {node.type === "delay" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Duración</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Ej: 5"
+                    value={formData.delayDuration || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        delayDuration: parseInt(e.target.value) || 1,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Unidad</Label>
+                  <Select
+                    value={formData.delayUnit || "seconds"}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, delayUnit: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona unidad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="seconds">Segundos</SelectItem>
+                      <SelectItem value="minutes">Minutos</SelectItem>
+                      <SelectItem value="hours">Horas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                El workflow esperará{" "}
+                <strong>
+                  {formData.delayDuration || 5}{" "}
+                  {formData.delayUnit === "minutes"
+                    ? "minutos"
+                    : formData.delayUnit === "hours"
+                    ? "horas"
+                    : "segundos"}
+                </strong>{" "}
+                antes de continuar con el siguiente nodo.
+              </div>
+            </div>
+          )}
+
+          {/* Join Configuration */}
+          {node.type === "join" && (
+            <div className="space-y-6">
+              {/* Modo Lógico */}
+              <div className="space-y-2">
+                <Label>Modo Lógico</Label>
+                <Select
+                  value={formData.joinMode || "and"}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, joinMode: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona modo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="and">
+                      Y (AND) - Ambas condiciones deben cumplirse
+                    </SelectItem>
+                    <SelectItem value="or">
+                      O (OR) - Al menos una condición debe cumplirse
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Entrada Superior */}
+              <div className="border rounded-lg p-4 space-y-3 bg-blue-50 dark:bg-blue-950/20">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                  Entrada Superior
+                </h4>
+
+                <div className="space-y-2">
+                  <Label>
+                    {detectedInputs.top?.nodeType === "action" ||
+                    detectedInputs.top?.nodeType === "actuatorState"
+                      ? "Actuador detectado"
+                      : "Variable/Sensor detectada"}
+                  </Label>
+                  <Input
+                    placeholder={
+                      detectedInputs.top?.variableFullName || "No conectada"
+                    }
+                    value={detectedInputs.top?.variableFullName || ""}
+                    disabled
+                    className="bg-muted"
+                  />
+                  {!detectedInputs.top && (
+                    <p className="text-xs text-amber-600">
+                      ⚠️ Conecta un nodo a la entrada superior
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>
+                      {detectedInputs.top?.nodeType === "action" ||
+                      detectedInputs.top?.nodeType === "actuatorState"
+                        ? "Modo"
+                        : "Comparación"}
+                    </Label>
+                    {(detectedInputs.top?.nodeType === "action" ||
+                      detectedInputs.top?.nodeType === "actuatorState") &&
+                    detectedInputs.top?.modes?.length > 0 ? (
+                      <Select
+                        value={formData.topComparison || ""}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, topComparison: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona modo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {detectedInputs.top.modes.map((mode) => (
+                            <SelectItem key={mode} value={mode}>
+                              {mode}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Select
+                        value={formData.topComparison || ">"}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, topComparison: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value=">">Mayor que (&gt;)</SelectItem>
+                          <SelectItem value="<">Menor que (&lt;)</SelectItem>
+                          <SelectItem value=">=">Mayor o igual (≥)</SelectItem>
+                          <SelectItem value="<=">Menor o igual (≤)</SelectItem>
+                          <SelectItem value="==">Igual (=)</SelectItem>
+                          <SelectItem value="!=">Diferente (≠)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Valor</Label>
+                    <Input
+                      type={
+                        detectedInputs.top?.nodeType === "action" ||
+                        detectedInputs.top?.nodeType === "actuatorState"
+                          ? "text"
+                          : "number"
+                      }
+                      placeholder={
+                        detectedInputs.top?.nodeType === "action" ||
+                        detectedInputs.top?.nodeType === "actuatorState"
+                          ? "Estado"
+                          : "Ej: 22"
+                      }
+                      value={formData.topComparisonValue || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          topComparisonValue: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  Ejemplo:{" "}
+                  <strong>
+                    {detectedInputs.top?.variableFullName || "variable"}
+                  </strong>{" "}
+                  {formData.topComparison || ">"}{" "}
+                  <strong>{formData.topComparisonValue || "22"}</strong>
+                </div>
+              </div>
+
+              {/* Entrada Inferior */}
+              <div className="border rounded-lg p-4 space-y-3 bg-blue-50 dark:bg-blue-950/20">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                  Entrada Inferior
+                </h4>
+
+                <div className="space-y-2">
+                  <Label>
+                    {detectedInputs.bottom?.nodeType === "action" ||
+                    detectedInputs.bottom?.nodeType === "actuatorState"
+                      ? "Actuador detectado"
+                      : "Variable/Sensor detectada"}
+                  </Label>
+                  <Input
+                    placeholder={
+                      detectedInputs.bottom?.variableFullName || "No conectada"
+                    }
+                    value={detectedInputs.bottom?.variableFullName || ""}
+                    disabled
+                    className="bg-muted"
+                  />
+                  {!detectedInputs.bottom && (
+                    <p className="text-xs text-amber-600">
+                      ⚠️ Conecta un nodo a la entrada inferior
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>
+                      {detectedInputs.bottom?.nodeType === "action" ||
+                      detectedInputs.bottom?.nodeType === "actuatorState"
+                        ? "Modo"
+                        : "Comparación"}
+                    </Label>
+                    {(detectedInputs.bottom?.nodeType === "action" ||
+                      detectedInputs.bottom?.nodeType === "actuatorState") &&
+                    detectedInputs.bottom?.modes?.length > 0 ? (
+                      <Select
+                        value={formData.bottomComparison || ""}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, bottomComparison: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona modo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {detectedInputs.bottom.modes.map((mode) => (
+                            <SelectItem key={mode} value={mode}>
+                              {mode}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Select
+                        value={formData.bottomComparison || "=="}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, bottomComparison: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="==">Igual (=)</SelectItem>
+                          <SelectItem value="!=">Diferente (≠)</SelectItem>
+                          <SelectItem value=">">Mayor que (&gt;)</SelectItem>
+                          <SelectItem value="<">Menor que (&lt;)</SelectItem>
+                          <SelectItem value=">=">Mayor o igual (≥)</SelectItem>
+                          <SelectItem value="<=">Menor o igual (≤)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Valor</Label>
+                    <Input
+                      type={
+                        detectedInputs.bottom?.nodeType === "action" ||
+                        detectedInputs.bottom?.nodeType === "actuatorState"
+                          ? "text"
+                          : "number"
+                      }
+                      placeholder={
+                        detectedInputs.bottom?.nodeType === "action" ||
+                        detectedInputs.bottom?.nodeType === "actuatorState"
+                          ? "Estado"
+                          : "Ej: valor"
+                      }
+                      value={formData.bottomComparisonValue || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          bottomComparisonValue: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  Ejemplo:{" "}
+                  <strong>
+                    {detectedInputs.bottom?.variableFullName || "variable"}
+                  </strong>{" "}
+                  {formData.bottomComparison || "=="}{" "}
+                  <strong>{formData.bottomComparisonValue || "valor"}</strong>
+                </div>
+              </div>
+
+              {/* Información */}
+              <div className="text-sm text-muted-foreground border-l-4 border-amber-500 pl-3 py-2 bg-amber-50 dark:bg-amber-950/20">
+                <strong>💡 Cómo funciona:</strong>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>
+                    <strong>2 Entradas:</strong> Una conexión por cada entrada
+                    (superior e inferior)
+                  </li>
+                  <li>
+                    <strong>2 Salidas:</strong> Superior para resultado{" "}
+                    <strong>true</strong>, inferior para <strong>false</strong>
+                  </li>
+                  <li>
+                    El nodo espera recibir valores de ambas entradas (timeout:
+                    10 segundos)
+                  </li>
+                  <li>
+                    Evalúa ambas condiciones y aplica la lógica{" "}
+                    {formData.joinMode === "and" ? "AND" : "OR"}
+                  </li>
+                </ul>
+              </div>
             </div>
           )}
         </div>
@@ -558,4 +1425,6 @@ NodeEditModal.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
+  nodes: PropTypes.array,
+  edges: PropTypes.array,
 };

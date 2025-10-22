@@ -20,12 +20,15 @@ import { Thermometer, Zap, GitBranch, Play, Save } from "lucide-react";
 import { TriggerNode } from "@/components/automation/trigger-node.jsx";
 import { ConditionNode } from "@/components/automation/condition-node.jsx";
 import { ActionNode } from "@/components/automation/action-node.jsx";
+import { DelayNode } from "@/components/automation/delay-node.jsx";
+import { JoinNode } from "@/components/automation/join-node.jsx";
 import { NodePaletteSidebar } from "@/components/automation/NodePaletteSidebar.jsx";
 import { NodeEditModal } from "@/components/automation/node-edit-modal.jsx";
 import { SimulationConfigModal } from "@/components/automation/simulation-config-modal.jsx";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { saveWorkflow, getWorkflow } from "@/services/workflow.js";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 import useDevices from "@/hooks/useDevices";
 import useAuth from "@/hooks/useAuth";
@@ -34,6 +37,8 @@ const nodeTypes = {
   trigger: TriggerNode,
   condition: ConditionNode,
   action: ActionNode,
+  delay: DelayNode,
+  join: JoinNode,
 };
 
 // Función para mapear iconos de widgets a componentes Lucide (simplificada)
@@ -127,7 +132,8 @@ function NodeWorkspaceContent({ userId }) {
   const [isSaving, setIsSaving] = useState(false);
   const [workflowId, setWorkflowId] = useState(null);
   const [workflowName, setWorkflowName] = useState("Mi Workflow");
-  const [notification, setNotification] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [showValidation, setShowValidation] = useState(false);
   const [simulationConfig, setSimulationConfig] = useState({
     temperature: 25,
     humidity: 60,
@@ -152,11 +158,8 @@ function NodeWorkspaceContent({ userId }) {
   // Hook para navegación
   const navigate = useNavigate();
 
-  // Función para mostrar notificaciones
-  const showNotification = (message, type = "success") => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000); // Ocultar después de 3 segundos
-  };
+  // Hook para toasts
+  const { toast } = useToast();
 
   // Función para determinar si el usuario es pro
   const isProUser = auth?.userData?.plan && auth.userData.plan !== "free";
@@ -209,9 +212,139 @@ function NodeWorkspaceContent({ userId }) {
     loadWorkflow();
   }, [editId, setNodes, setEdges, reactFlowInstance]);
 
+  // Limpiar clases de validación cuando showValidation se vuelve false
+  useEffect(() => {
+    if (!showValidation) {
+      setNodes((nds) =>
+        nds.map((node) => ({
+          ...node,
+          className: "",
+          data: {
+            ...node.data,
+            validationState: undefined,
+          },
+        }))
+      );
+    }
+  }, [showValidation, setNodes]);
+
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+    (params) => {
+      // Validaciones de conexiones
+      const sourceNode = nodes.find((n) => n.id === params.source);
+      const targetNode = nodes.find((n) => n.id === params.target);
+
+      // Validación 1: No permitir conexión de un nodo a sí mismo
+      if (params.source === params.target) {
+        toast({
+          description: "No puedes conectar un nodo consigo mismo",
+        });
+        return;
+      }
+
+      // Validación 2: No permitir ciclos infinitos
+      const wouldCreateCycle = (sourceId, targetId, currentEdges) => {
+        const visited = new Set();
+        const queue = [targetId];
+
+        while (queue.length > 0) {
+          const current = queue.shift();
+          if (current === sourceId) return true;
+          if (visited.has(current)) continue;
+          visited.add(current);
+
+          currentEdges.forEach((edge) => {
+            if (edge.source === current) {
+              queue.push(edge.target);
+            }
+          });
+        }
+        return false;
+      };
+
+      if (wouldCreateCycle(params.source, params.target, edges)) {
+        toast({
+          description: "Esta conexión crearía un ciclo infinito",
+        });
+        return;
+      }
+
+      // Validación 3: Nodos Join solo permiten una conexión por entrada
+      if (targetNode && targetNode.type === "join") {
+        const existingConnection = edges.find(
+          (edge) =>
+            edge.target === params.target &&
+            edge.targetHandle === params.targetHandle
+        );
+
+        if (existingConnection) {
+          const handleName =
+            params.targetHandle === "input-top" ? "superior" : "inferior";
+          toast({
+            description: `La entrada ${handleName} del Join ya tiene una conexión`,
+          });
+          return;
+        }
+
+        // Validación 3.1: No permitir el mismo nodo en ambas entradas del Join
+        const otherHandle =
+          params.targetHandle === "input-top" ? "input-bottom" : "input-top";
+        const sameNodeOtherInput = edges.find(
+          (edge) =>
+            edge.target === params.target &&
+            edge.targetHandle === otherHandle &&
+            edge.source === params.source
+        );
+
+        if (sameNodeOtherInput) {
+          toast({
+            description:
+              "No puedes conectar el mismo nodo a ambas entradas del Join",
+          });
+          return;
+        }
+      }
+
+      // Validación 4: Los triggers no pueden tener entradas
+      if (targetNode && targetNode.type === "trigger") {
+        toast({
+          description: "Los nodos trigger no pueden recibir conexiones",
+        });
+        return;
+      }
+
+      // Validación 5: Las acciones deben tener exactamente una entrada
+      if (targetNode && targetNode.type === "action") {
+        const existingConnection = edges.find(
+          (edge) => edge.target === params.target
+        );
+        if (existingConnection) {
+          toast({
+            description:
+              "Los nodos action solo pueden tener una conexión de entrada",
+          });
+          return;
+        }
+      }
+
+      // Validación 6: Los nodos de comparación solo pueden tener una entrada
+      if (targetNode && targetNode.type === "condition") {
+        const existingConnection = edges.find(
+          (edge) => edge.target === params.target
+        );
+        if (existingConnection) {
+          toast({
+            description:
+              "Los nodos de comparación solo pueden tener una conexión de entrada",
+          });
+          return;
+        }
+      }
+
+      // Si pasa todas las validaciones, agregar la conexión
+      setEdges((eds) => addEdge(params, eds));
+    },
+    [setEdges, edges, nodes, toast]
   );
 
   const onNodeDoubleClick = useCallback((_, node) => {
@@ -450,9 +583,233 @@ function NodeWorkspaceContent({ userId }) {
   };
 
   // Función para guardar el workflow
+  const openSimulationConfig = () => {
+    setIsSimConfigOpen(true);
+  };
+
+  // Funciones de validación
+  const validateNode = useCallback((node, allEdges) => {
+    const errors = [];
+
+    switch (node.type) {
+      case "trigger":
+        // Validar que tenga configuración básica
+        if (node.data.sensorType === "schedule") {
+          if (!node.data.hour || !node.data.minute) {
+            errors.push("Falta configurar la hora");
+          }
+        } else if (node.data.sensorType === "actuatorState") {
+          if (!node.data.targetActuator) {
+            errors.push("Falta seleccionar el actuador");
+          }
+        } else {
+          if (!node.data.comparison || !node.data.value) {
+            errors.push("Falta configurar la condición");
+          }
+        }
+        // Validar que tenga al menos una conexión de salida
+        const hasOutput = allEdges.some((edge) => edge.source === node.id);
+        if (!hasOutput) {
+          errors.push("El trigger debe conectarse a otro nodo");
+        }
+        break;
+
+      case "condition":
+        // Validar que tenga configuración
+        if (node.data.conditionType === "comparison") {
+          if (
+            !node.data.variable ||
+            !node.data.comparison ||
+            !node.data.comparisonValue
+          ) {
+            errors.push("Falta configurar la comparación");
+          }
+        } else if (node.data.conditionType === "range") {
+          if (!node.data.minValue || !node.data.maxValue) {
+            errors.push("Falta configurar el rango");
+          }
+        } else if (node.data.conditionType === "timeRange") {
+          if (!node.data.startTime || !node.data.endTime) {
+            errors.push("Falta configurar el rango horario");
+          }
+        }
+        // Validar que tenga una entrada
+        const hasInput = allEdges.some((edge) => edge.target === node.id);
+        if (!hasInput) {
+          errors.push("La condición debe recibir una conexión de entrada");
+        }
+        // Validar que tenga al menos una salida
+        const hasCondOutput = allEdges.some((edge) => edge.source === node.id);
+        if (!hasCondOutput) {
+          errors.push("La condición debe conectarse a otro nodo");
+        }
+        break;
+
+      case "action":
+        // Validar que tenga actuador seleccionado
+        if (!node.data.targetWidget && !node.data.actuator) {
+          errors.push("Falta seleccionar el actuador");
+        }
+        // Validar configuración según el tipo de acción
+        if (node.data.actionType === "pwm" && !node.data.pwmValue) {
+          errors.push("Falta configurar el valor PWM");
+        } else if (
+          node.data.actionType === "timer" &&
+          !node.data.timerDuration
+        ) {
+          errors.push("Falta configurar la duración del timer");
+        } else if (node.data.actionType === "cycles") {
+          if (
+            !node.data.cycleOnTime ||
+            !node.data.cycleOffTime ||
+            !node.data.cycleRepeat
+          ) {
+            errors.push("Falta configurar los ciclos");
+          }
+        }
+        // Validar que tenga una entrada
+        const hasActionInput = allEdges.some((edge) => edge.target === node.id);
+        if (!hasActionInput) {
+          errors.push("La acción debe recibir una conexión de entrada");
+        }
+        break;
+
+      case "delay":
+        // Validar que tenga duración
+        if (!node.data.delayDuration) {
+          errors.push("Falta configurar la duración");
+        }
+        // Validar entrada y salida
+        const hasDelayInput = allEdges.some((edge) => edge.target === node.id);
+        const hasDelayOutput = allEdges.some((edge) => edge.source === node.id);
+        if (!hasDelayInput) {
+          errors.push("El delay debe recibir una conexión de entrada");
+        }
+        if (!hasDelayOutput) {
+          errors.push("El delay debe conectarse a otro nodo");
+        }
+        break;
+
+      case "join":
+        // Validar que tenga ambas entradas conectadas
+        const topInput = allEdges.find(
+          (edge) => edge.target === node.id && edge.targetHandle === "input-top"
+        );
+        const bottomInput = allEdges.find(
+          (edge) =>
+            edge.target === node.id && edge.targetHandle === "input-bottom"
+        );
+        if (!topInput) {
+          errors.push("Falta conectar la entrada superior");
+        }
+        if (!bottomInput) {
+          errors.push("Falta conectar la entrada inferior");
+        }
+        // Validar configuración de comparación
+        if (!node.data.topComparison || !node.data.topComparisonValue) {
+          errors.push("Falta configurar la comparación superior");
+        }
+        if (!node.data.bottomComparison || !node.data.bottomComparisonValue) {
+          errors.push("Falta configurar la comparación inferior");
+        }
+        // Validar que tenga al menos una salida
+        const hasJoinOutput = allEdges.some((edge) => edge.source === node.id);
+        if (!hasJoinOutput) {
+          errors.push("El join debe conectarse a otro nodo");
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    return errors;
+  }, []);
+
+  const validateWorkflow = useCallback(() => {
+    const errors = {};
+    let hasErrors = false;
+
+    // Validar que haya al menos un trigger
+    const hasTrigger = nodes.some((node) => node.type === "trigger");
+    if (!hasTrigger) {
+      toast({
+        description: "El workflow debe tener al menos un nodo trigger",
+      });
+      return false;
+    }
+
+    // Validar cada nodo y actualizar su estado visual
+    const updatedNodes = nodes.map((node) => {
+      const nodeErrors = validateNode(node, edges);
+      if (nodeErrors.length > 0) {
+        errors[node.id] = nodeErrors;
+        hasErrors = true;
+        // Marcar nodo con error
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            validationState: "error",
+          },
+          className: showValidation ? "validation-error" : "",
+        };
+      } else {
+        // Marcar nodo como válido
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            validationState: "valid",
+          },
+          className: showValidation ? "validation-success" : "",
+        };
+      }
+    });
+
+    // Actualizar los nodos con el estado de validación
+    if (showValidation) {
+      setNodes(updatedNodes);
+    }
+
+    setValidationErrors(errors);
+
+    // Mostrar mensaje de error con detalles
+    if (hasErrors) {
+      const errorCount = Object.keys(errors).length;
+      toast({
+        variant: "destructive",
+        description: `⚠️ ${errorCount} nodo${
+          errorCount > 1 ? "s" : ""
+        } con errores de validación`,
+      });
+    }
+
+    return !hasErrors;
+  }, [nodes, edges, validateNode, showValidation, setNodes, toast]);
+
+  // Función para guardar el workflow
   const handleSaveWorkflow = async () => {
     try {
       setIsSaving(true);
+
+      // Validar el workflow antes de guardar
+      setShowValidation(true);
+      const isValid = validateWorkflow();
+
+      if (!isValid) {
+        setIsSaving(false);
+        // Mostrar nodos con error en rojo por 3 segundos
+        setTimeout(() => {
+          setShowValidation(false);
+        }, 3000);
+        return;
+      }
+
+      // Mostrar efecto de validación exitosa (verde) por 1 segundo
+      setTimeout(() => {
+        setShowValidation(false);
+      }, 1000);
 
       // Obtener el estado actual del viewport
       const viewport = reactFlowInstance
@@ -483,21 +840,22 @@ function NodeWorkspaceContent({ userId }) {
           navigate(`?id=${newWorkflowId}`, { replace: true });
 
           // Mostrar notificación de éxito
-          showNotification(
-            `Workflow "${workflowName}" creado y guardado en Node-RED`,
-            "success"
-          );
+          toast({
+            description: `Workflow "${workflowName}" creado y guardado en Node-RED`,
+          });
         } else {
           // Workflow actualizado
-          showNotification(
-            `Workflow "${workflowName}" actualizado en Node-RED`,
-            "success"
-          );
+          toast({
+            description: `Workflow "${workflowName}" actualizado en Node-RED`,
+          });
         }
       }
     } catch (error) {
       console.error("Error guardando workflow:", error);
-      showNotification("Error guardando el workflow", "error");
+      toast({
+        variant: "destructive",
+        description: "Error guardando el workflow",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -551,6 +909,8 @@ function NodeWorkspaceContent({ userId }) {
               if (node.type === "trigger") return "rgb(59 130 246)"; // blue-500
               if (node.type === "condition") return "rgb(234 179 8)"; // yellow-500
               if (node.type === "action") return "rgb(34 197 94)"; // green-500
+              if (node.type === "delay") return "rgb(245 158 11)"; // amber-500
+              if (node.type === "join") return "rgb(245 158 11)"; // amber-500 (utility)
               return "hsl(var(--muted))";
             }}
             nodeStrokeColor="hsl(var(--border))"
@@ -651,6 +1011,8 @@ function NodeWorkspaceContent({ userId }) {
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveNode}
+        nodes={nodes}
+        edges={edges}
       />
 
       <SimulationConfigModal
@@ -659,30 +1021,6 @@ function NodeWorkspaceContent({ userId }) {
         onStart={executeSimulation}
         currentConfig={simulationConfig}
       />
-
-      {/* Componente de notificación */}
-      {notification && (
-        <div
-          className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 animate-in slide-in-from-right-5 duration-300 ${
-            notification.type === "success"
-              ? "bg-green-600 text-white"
-              : "bg-red-600 text-white"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {notification.type === "success" ? (
-              <div className="h-4 w-4 rounded-full bg-white/20 flex items-center justify-center">
-                ✓
-              </div>
-            ) : (
-              <div className="h-4 w-4 rounded-full bg-white/20 flex items-center justify-center">
-                ✕
-              </div>
-            )}
-            <span className="text-sm font-medium">{notification.message}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

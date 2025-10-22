@@ -38,6 +38,8 @@ import {
   Activity,
   TrendingUp,
   Crown,
+  Hourglass,
+  GitMerge,
 } from "lucide-react";
 import PropTypes from "prop-types";
 import { useMemo, useState } from "react";
@@ -203,6 +205,43 @@ const conditionNodes = [
   },
 ];
 
+// Nodos de utilidad
+const utilityNodes = [
+  {
+    type: "delay",
+    icon: Clock,
+    label: "Espera/Delay",
+    data: {
+      label: "Esperar 5 segundos",
+      icon: Clock,
+      iconName: "Clock",
+      delayDuration: 5,
+      delayUnit: "seconds",
+    },
+  },
+  {
+    type: "join",
+    icon: GitMerge,
+    label: "Join/Unir",
+    data: {
+      label: "Llave Lógica",
+      icon: GitMerge,
+      iconName: "GitMerge",
+      joinMode: "and", // 'and' o 'or'
+      timeout: 10, // Timeout en segundos (por defecto 10)
+      timeoutUnit: "seconds",
+      topInputType: null,
+      topInputVariable: null,
+      topComparison: ">",
+      topComparisonValue: null,
+      bottomInputType: null,
+      bottomInputVariable: null,
+      bottomComparison: "==",
+      bottomComparisonValue: null,
+    },
+  },
+];
+
 function NodePaletteSidebarContent({
   onAddNode,
   selectedDevice,
@@ -345,6 +384,17 @@ function NodePaletteSidebarContent({
           iconName: "Clock", // Agregar nombre del icono como string
           sensorType: "schedule",
           variable: "schedule",
+        },
+      },
+      {
+        icon: Power,
+        label: "Estado Actuador",
+        data: {
+          label: "Estado Actuador",
+          icon: Power,
+          iconName: "Power",
+          sensorType: "actuatorState",
+          variable: "actuatorState",
         },
       },
     ];
@@ -581,6 +631,34 @@ function NodePaletteSidebarContent({
 
             <SidebarSeparator />
 
+            {/* Utilities Group */}
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-xs uppercase tracking-wider">
+                Utilidades
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {utilityNodes.map((node, idx) => (
+                    <SidebarMenuItem key={idx}>
+                      <SidebarMenuButton
+                        onClick={() => onAddNode(node.type, node.data)}
+                        className="w-full justify-start gap-2 h-auto py-2"
+                        tooltip={node.label}
+                      >
+                        <div className="p-1 rounded bg-chart-4/10">
+                          <node.icon className="h-3.5 w-3.5 text-chart-4" />
+                        </div>
+                        <span className="text-xs">{node.label}</span>
+                        <Plus className="h-3 w-3 ml-auto opacity-50" />
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarSeparator />
+
             {/* Actions Group */}
             <SidebarGroup>
               <SidebarGroupLabel className="text-xs uppercase tracking-wider">
@@ -629,6 +707,14 @@ function NodePaletteSidebarContent({
             className="w-8 h-8 p-0 bg-chart-2/10 hover:bg-chart-2/20"
           >
             <GitBranch className="h-5 w-5 text-chart-2" />
+          </SidebarMenuButton>
+
+          <SidebarMenuButton
+            onClick={handleCategoryClick}
+            tooltip="Utilidades"
+            className="w-8 h-8 p-0 bg-chart-4/10 hover:bg-chart-4/20"
+          >
+            <Clock className="h-5 w-5 text-chart-4" />
           </SidebarMenuButton>
 
           <SidebarMenuButton

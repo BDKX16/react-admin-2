@@ -71,8 +71,7 @@ export function ConditionNode({ data }) {
         <Handle
           type="target"
           position={Position.Left}
-          className="!left-[-6px] !top-[50%] !w-3 !h-3 !-rotate-45"
-          style={{ transform: "translateY(-50%) rotate(-45deg)" }}
+          className="!left-[-6px] !top-[109%] !w-3 !h-3"
         />
         {/* Dos salidas para condiciones - derecha, aplicamos rotación inversa */}
         {/* Salida TRUE (Verdadero) - Borde verde */}
@@ -80,16 +79,14 @@ export function ConditionNode({ data }) {
           type="source"
           position={Position.Right}
           id="true"
-          className="!right-[-6px] !top-[25%] !w-3 !h-3 !-rotate-45 !border-green-500"
-          style={{ transform: "translateY(-50%) rotate(-45deg)" }}
+          className="!top-[-15px] !right-[40%] !w-3 !h-3 !-rotate-45 !border-green-500"
         />
         {/* Salida FALSE (Falso) - Borde rojo */}
         <Handle
           type="source"
           position={Position.Right}
           id="false"
-          className="!right-[-6px] !top-[75%] !w-3 !h-3 !-rotate-45 !border-red-500"
-          style={{ transform: "translateY(-50%) rotate(-45deg)" }}
+          className="!right-[-15px] !top-[40%] !w-3 !h-3 !-rotate-45 !border-red-500"
         />
         <IconComponent className="w-6 h-6 text-yellow-600 dark:text-yellow-300 -rotate-45" />
       </div>
