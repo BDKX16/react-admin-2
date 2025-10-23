@@ -23,6 +23,12 @@ export const MqttProvider = ({ children }) => {
   const lastReconnectAttempt = useRef(0);
   const RECONNECT_THROTTLE_TIME = 10000; // 10 segundos
 
+  // Control de llamadas a credenciales
+  const credentialsTimerRef = useRef(null);
+  const isRequestingCredentials = useRef(false);
+  const reconnectTimerRef = useRef(null);
+  const isRequestingReconnect = useRef(false);
+
   //opciones de coneccion mqtt
   const [options, setOptions] = useState(null);
 
@@ -59,6 +65,21 @@ export const MqttProvider = ({ children }) => {
         persist: true,
       });
     }
+
+    // Cleanup: limpiar timers y flags al desmontar o cambiar auth
+    return () => {
+      if (credentialsTimerRef.current) {
+        clearTimeout(credentialsTimerRef.current);
+        credentialsTimerRef.current = null;
+      }
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      // Reset flags
+      isRequestingCredentials.current = false;
+      isRequestingReconnect.current = false;
+    };
   }, [auth.token]);
 
   useEffect(() => {
@@ -226,6 +247,23 @@ export const MqttProvider = ({ children }) => {
   };
 
   const getMqttCredentials = async () => {
+    // Evitar llamadas concurrentes
+    if (isRequestingCredentials.current) {
+      console.log(
+        "⚠️ Ya hay una solicitud de credenciales en curso, ignorando..."
+      );
+      return;
+    }
+
+    // Si hay un timer activo, significa que ya se solicitaron y están cambiándose
+    if (credentialsTimerRef.current) {
+      console.log(
+        "⚠️ Timer de cambio de credenciales activo, ignorando solicitud..."
+      );
+      return;
+    }
+
+    isRequestingCredentials.current = true;
     setConnectingMqtt(true);
 
     try {
@@ -250,20 +288,43 @@ export const MqttProvider = ({ children }) => {
           password: res.data.password,
           clean: true,
           reconnectPeriod: 5000,
-          connectTimeout: 10000, // Increased from 5000 to 10000
+          connectTimeout: 10000,
         };
         setOptions(options);
+
+        // Marcar que hay un timer activo por 10 segundos
+        credentialsTimerRef.current = setTimeout(() => {
+          credentialsTimerRef.current = null;
+          console.log("✅ Timer de credenciales completado");
+        }, 10000);
+
         setConnectingMqtt(false);
       }
     } catch (error) {
       console.error("Error fetching MQTT credentials:", error);
-      // Handle the error appropriately, e.g., set an error state
+    } finally {
+      isRequestingCredentials.current = false;
+      setConnectingMqtt(false);
     }
-
-    setConnectingMqtt(false);
   };
 
   const reconnectMqtt = async () => {
+    // Evitar llamadas concurrentes a reconnect
+    if (isRequestingReconnect.current) {
+      console.log(
+        "⚠️ Ya hay una solicitud de reconnect en curso, ignorando..."
+      );
+      return;
+    }
+
+    // Si hay un timer activo de reconnect, esperar
+    if (reconnectTimerRef.current) {
+      console.log(
+        "⚠️ Timer de cambio de credenciales de reconnect activo, ignorando..."
+      );
+      return;
+    }
+
     if (!connectingMqtt) {
       const now = Date.now();
 
@@ -280,25 +341,39 @@ export const MqttProvider = ({ children }) => {
       }
 
       lastReconnectAttempt.current = now;
+      isRequestingReconnect.current = true;
       setConnectingMqtt(true);
       setStatus("connecting");
 
-      const credentials = await callEndpoint(getEmqxCredentialsReconnect());
+      try {
+        const credentials = await callEndpoint(getEmqxCredentialsReconnect());
 
-      // Manejar respuesta de throttling del servidor
-      if (credentials?.data?.status === "throttled") {
-        console.log(`🚫 Servidor: ${credentials.data.message}`);
-        setConnectingMqtt(false);
-        return;
-      }
+        // Manejar respuesta de throttling del servidor
+        if (credentials?.data?.status === "throttled") {
+          console.log(`🚫 Servidor: ${credentials.data.message}`);
+          setConnectingMqtt(false);
+          return;
+        }
 
-      if (credentials?.data?.status === "success") {
-        mqttClientRef.current.options.password = credentials.data.password;
-        mqttClientRef.current.options.username = credentials.data.username;
-        console.log("✅ Credenciales MQTT actualizadas para reconnect");
-      } else {
-        console.error("❌ Error obteniendo credenciales MQTT:", credentials);
+        if (credentials?.data?.status === "success") {
+          mqttClientRef.current.options.password = credentials.data.password;
+          mqttClientRef.current.options.username = credentials.data.username;
+          console.log("✅ Credenciales MQTT actualizadas para reconnect");
+
+          // Marcar que hay un timer activo por 15 segundos
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectTimerRef.current = null;
+            console.log("✅ Timer de reconnect completado");
+          }, 15000);
+        } else {
+          console.error("❌ Error obteniendo credenciales MQTT:", credentials);
+          setConnectingMqtt(false);
+        }
+      } catch (error) {
+        console.error("❌ Error en reconnectMqtt:", error);
         setConnectingMqtt(false);
+      } finally {
+        isRequestingReconnect.current = false;
       }
     }
   };

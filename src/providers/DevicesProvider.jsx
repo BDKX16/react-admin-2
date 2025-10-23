@@ -23,8 +23,7 @@ export const DevicesProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (mqttStatus === "online") {
-      //return;
+    if (mqttStatus === "online" && selectedDevice) {
       const toSend = {
         topic: auth.userData.id + "/" + selectedDevice.dId + "/updater/actdata",
         msg: {
@@ -34,7 +33,7 @@ export const DevicesProvider = ({ children }) => {
 
       setSend({ msg: toSend.msg, topic: toSend.topic });
     }
-  }, [mqttStatus]);
+  }, [mqttStatus, selectedDevice]);
 
   useEffect(() => {
     if (reload === true) {
