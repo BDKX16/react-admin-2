@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/tooltip";
 import useMqtt from "../hooks/useMqtt";
 import useSubscription from "@/hooks/useSubscription";
+import { modeToMqttValue, mqttValueToMode } from "@/utils/mqttModeMapper";
 import CiclosForm from "./CiclosForm";
 import TimersForm from "./TimersForm";
 import PWMForm from "./PWMForm";
@@ -97,27 +98,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
 
   // Memoizar el valor mapeado para evitar recálculos innecesarios
   const mappedValue = React.useMemo(() => {
-    if (currentValue === 1 || currentValue === true) {
-      return "on";
-    } else if (currentValue === 0 || currentValue === false) {
-      return "off";
-    } else if (currentValue === 2 || currentValue === 3) {
-      return "timers";
-    } else if (currentValue === 4 || currentValue === 5) {
-      return "ciclos";
-    } else if (currentValue === 6) {
-      return "pwm";
-    } else if (currentValue === 7) {
-      return "pid";
-    } else if (currentValue === 8) {
-      return "pi";
-    } else if (currentValue === 9) {
-      return "proportional";
-    } else if (currentValue === 10) {
-      return "pump";
-    } else {
-      return undefined;
-    }
+    return mqttValueToMode(currentValue);
   }, [currentValue]);
 
   React.useEffect(() => {
@@ -410,6 +391,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
   };
 
   const sendValue = (originalValue) => {
+    console.log(originalValue);
     if (originalValue === null) {
       return;
     }
@@ -429,32 +411,9 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
       return; // No procesar el valor
     }
 
-    let value = originalValue;
-
-    if (value === "on") {
-      value = true;
-    } else if (value === "off") {
-      value = false;
-    } else if (value === "timers") {
-      value = 3;
-    } else if (value === "cicles") {
-      value = 5;
-    } else if (value === "ciclos") {
-      value = 5;
-    } else if (value === "pwm") {
-      value = 6;
-    } else if (value === "pid") {
-      value = 7;
-    } else if (value === "pi") {
-      value = 8;
-    } else if (value === "proportional") {
-      value = 9;
-    } else if (value === "p") {
-      value = 9;
-    } else if (value === "pump") {
-      value = 10;
-    }
-
+    // Usar el mqttModeMapper para convertir el modo al valor MQTT correcto
+    const value = modeToMqttValue(originalValue);
+    console.log(value);
     //return;
     const toSend = {
       topic: userId + "/" + dId + "/" + widget.variable + "/actdata",

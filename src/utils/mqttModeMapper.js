@@ -1,6 +1,15 @@
 /**
  * Mapeo de modos de actuadores a valores numéricos MQTT
  * Estos valores son los que entiende el ESP32 para cada modo
+ *
+ * IMPORTANTE: Orden actualizado de modos (Octubre 2025):
+ * - 2: Timers OFF
+ * - 3: Timers ON
+ * - 5: Ciclos
+ * - 6: PWM (antes era PID)
+ * - 7: PID (antes era PI)
+ * - 8: PI (antes era P)
+ * - 9: P Proporcional (antes era PWM)
  */
 
 export const MODE_TO_MQTT_VALUE = {
@@ -14,11 +23,11 @@ export const MODE_TO_MQTT_VALUE = {
   timers: 3, // Alias para timers_on
   ciclos: 5,
   cycles: 5, // Alias en inglés
-  pid: 6,
-  pi: 7,
-  p: 8,
-  pwm: 9,
-  pwd: 9, // Alias para PWM
+  pwm: 6,
+  pwd: 6, // Alias para PWM
+  pid: 7,
+  pi: 8,
+  p: 9,
 };
 
 /**
@@ -51,11 +60,45 @@ export const getAllModes = () => {
     { mode: "timers_on", value: 3, label: "Timers ON" },
     { mode: "timers_off", value: 2, label: "Timers OFF" },
     { mode: "ciclos", value: 5, label: "Ciclos" },
-    { mode: "pid", value: 6, label: "PID" },
-    { mode: "pi", value: 7, label: "PI" },
-    { mode: "p", value: 8, label: "P" },
-    { mode: "pwm", value: 9, label: "PWM" },
+    { mode: "pwm", value: 6, label: "PWM" },
+    { mode: "pid", value: 7, label: "PID" },
+    { mode: "pi", value: 8, label: "PI" },
+    { mode: "p", value: 9, label: "P" },
   ];
+};
+
+/**
+ * Convierte un valor MQTT a su modo de actuador correspondiente
+ * @param {boolean|number} value - Valor MQTT recibido
+ * @returns {string|undefined} - Modo del actuador o undefined si no se encuentra
+ */
+export const mqttValueToMode = (value) => {
+  // Manejar valores booleanos
+  if (value === true || value === 1) return "on";
+  if (value === false || value === 0) return "off";
+
+  // Manejar valores numéricos
+  switch (value) {
+    case 2:
+      return "timers"; // timers_off también mapea a "timers"
+    case 3:
+      return "timers"; // timers_on
+    case 5:
+      return "ciclos";
+    case 6:
+      return "pwm";
+    case 7:
+      return "pid";
+    case 8:
+      return "pi";
+    case 9:
+      return "p"; // proporcional
+    case 10:
+      return "pump";
+    default:
+      console.warn(`Valor MQTT desconocido: ${value}`);
+      return undefined;
+  }
 };
 
 /**
