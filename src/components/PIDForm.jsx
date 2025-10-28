@@ -16,6 +16,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Info, HelpCircle } from "lucide-react";
 import useMqtt from "../hooks/useMqtt";
 
@@ -99,6 +105,53 @@ const PIDForm = ({ userId, dId, widget }) => {
 
     setSend({ msg: toSend.msg, topic: toSend.topic });
   };
+
+  // Funciones para describir los parámetros
+  const getKpDescription = (kp) => {
+    if (kp < 0.5) {
+      return { text: "Respuesta muy suave", color: "text-blue-600" };
+    } else if (kp < 1.0) {
+      return { text: "Respuesta suave", color: "text-green-600" };
+    } else if (kp < 2.0) {
+      return { text: "Respuesta equilibrada", color: "text-green-600" };
+    } else if (kp < 4.0) {
+      return { text: "Respuesta rápida", color: "text-orange-600" };
+    } else {
+      return { text: "Respuesta muy agresiva", color: "text-red-600" };
+    }
+  };
+
+  const getKiDescription = (ki) => {
+    if (ki < 0.05) {
+      return { text: "Corrección muy lenta", color: "text-blue-600" };
+    } else if (ki < 0.1) {
+      return { text: "Corrección lenta", color: "text-green-600" };
+    } else if (ki < 0.3) {
+      return { text: "Corrección equilibrada", color: "text-green-600" };
+    } else if (ki < 0.5) {
+      return { text: "Corrección rápida", color: "text-orange-600" };
+    } else {
+      return { text: "Corrección muy agresiva", color: "text-red-600" };
+    }
+  };
+
+  const getKdDescription = (kd) => {
+    if (kd < 0.01) {
+      return { text: "Amortiguamiento mínimo", color: "text-blue-600" };
+    } else if (kd < 0.05) {
+      return { text: "Amortiguamiento suave", color: "text-green-600" };
+    } else if (kd < 0.1) {
+      return { text: "Amortiguamiento equilibrado", color: "text-green-600" };
+    } else if (kd < 0.2) {
+      return { text: "Amortiguamiento fuerte", color: "text-orange-600" };
+    } else {
+      return { text: "Amortiguamiento muy fuerte", color: "text-red-600" };
+    }
+  };
+
+  const kpResponse = getKpDescription(config.pid_kp);
+  const kiResponse = getKiDescription(config.pid_ki);
+  const kdResponse = getKdDescription(config.pid_kd);
 
   return (
     <div className="w-full space-y-4">
@@ -203,147 +256,172 @@ const PIDForm = ({ userId, dId, widget }) => {
           )}
         </div>
 
-        {/* PID Parameters in Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Kp Parameter */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              Kp (Proporcional) 🎯
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-sm p-3">
-                    <div className="space-y-1.5">
-                      <p className="font-semibold text-sm">
-                        Kp - Respuesta inmediata 🎯
-                      </p>
-                      <p className="text-xs">
-                        Reacciona según la diferencia. Si estás lejos del
-                        objetivo, actúa fuerte. Si estás cerca, actúa suave.
-                      </p>
-                      <p className="text-xs">
-                        <strong>🚗</strong> Como pisar el acelerador del auto:
-                        estás lejos = pisas fuerte, cerca = suave
-                      </p>
-                      <p className="text-xs text-green-600">
-                        ⬆ Más rápido pero puede pasarse
-                      </p>
-                      <p className="text-xs text-blue-600">
-                        ⬇ Más lento pero va a frenar más lentamente
-                      </p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={config.pid_kp}
-              onChange={(e) => handleInputChange("pid_kp", e.target.value)}
-              className={errors.pid_kp ? "border-red-500" : ""}
-            />
-            {errors.pid_kp && (
-              <p className="text-sm text-red-500">{errors.pid_kp}</p>
-            )}
-          </div>
+        {/* PID Parameters in Accordion */}
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="parameters">
+            <AccordionTrigger className="text-sm">
+              Configuración avanzada (Kp, Ki, Kd)
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+                {/* Kp Parameter */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    Kp (Proporcional) 🎯
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm p-3">
+                          <div className="space-y-1.5">
+                            <p className="font-semibold text-sm">
+                              Kp - Respuesta inmediata 🎯
+                            </p>
+                            <p className="text-xs">
+                              Reacciona según la diferencia. Si estás lejos del
+                              objetivo, actúa fuerte. Si estás cerca, actúa
+                              suave.
+                            </p>
+                            <p className="text-xs">
+                              <strong>🚗</strong> Como pisar el acelerador del
+                              auto: estás lejos = pisas fuerte, cerca = suave
+                            </p>
+                            <p className="text-xs text-green-600">
+                              ⬆ Más rápido pero puede pasarse
+                            </p>
+                            <p className="text-xs text-blue-600">
+                              ⬇ Más lento pero va a frenar más lentamente
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={config.pid_kp}
+                    onChange={(e) =>
+                      handleInputChange("pid_kp", e.target.value)
+                    }
+                    className={errors.pid_kp ? "border-red-500" : ""}
+                  />
+                  {errors.pid_kp && (
+                    <p className="text-sm text-red-500">{errors.pid_kp}</p>
+                  )}
+                  <p className={`text-sm ${kpResponse.color} font-medium`}>
+                    {kpResponse.text}
+                  </p>
+                </div>
 
-          {/* Ki Parameter */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              Ki (Integral) ∫
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-sm p-3">
-                    <div className="space-y-1.5">
-                      <p className="font-semibold text-sm">
-                        Ki - Elimina errores persistentes ∫
-                      </p>
-                      <p className="text-xs">
-                        Acumula el error con el tiempo. Si te quedas cerca pero
-                        sin llegar, sigue empujando hasta lograrlo.
-                      </p>
-                      <p className="text-xs">
-                        <strong>🚗</strong> Si te quedas en 98 km/h, pisas un
-                        poco más hasta llegar a los 100
-                      </p>
-                      <p className="text-xs text-green-600">
-                        ⬆ Llega más rápido pero puede oscilar
-                      </p>
-                      <p className="text-xs text-blue-600">
-                        ⬇ Más estable pero puede no llegar exacto
-                      </p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={config.pid_ki}
-              onChange={(e) => handleInputChange("pid_ki", e.target.value)}
-              className={errors.pid_ki ? "border-red-500" : ""}
-            />
-            {errors.pid_ki && (
-              <p className="text-sm text-red-500">{errors.pid_ki}</p>
-            )}
-          </div>
+                {/* Ki Parameter */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    Ki (Integral) ∫
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm p-3">
+                          <div className="space-y-1.5">
+                            <p className="font-semibold text-sm">
+                              Ki - Elimina errores persistentes ∫
+                            </p>
+                            <p className="text-xs">
+                              Acumula el error con el tiempo. Si te quedas cerca
+                              pero sin llegar, sigue empujando hasta lograrlo.
+                            </p>
+                            <p className="text-xs">
+                              <strong>🚗</strong> Si te quedas en 98 km/h, pisas
+                              un poco más hasta llegar a los 100
+                            </p>
+                            <p className="text-xs text-green-600">
+                              ⬆ Llega más rápido pero puede oscilar
+                            </p>
+                            <p className="text-xs text-blue-600">
+                              ⬇ Más estable pero puede no llegar exacto
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={config.pid_ki}
+                    onChange={(e) =>
+                      handleInputChange("pid_ki", e.target.value)
+                    }
+                    className={errors.pid_ki ? "border-red-500" : ""}
+                  />
+                  {errors.pid_ki && (
+                    <p className="text-sm text-red-500">{errors.pid_ki}</p>
+                  )}
+                  <p className={`text-sm ${kiResponse.color} font-medium`}>
+                    {kiResponse.text}
+                  </p>
+                </div>
 
-          {/* Kd Parameter */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              Kd (Derivativo) d/dt
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-sm p-3">
-                    <div className="space-y-1.5">
-                      <p className="font-semibold text-sm">
-                        Kd - Anticipa y frena d/dt
-                      </p>
-                      <p className="text-xs">
-                        Predice el futuro. Si ves que vas muy rápido, frena
-                        antes de pasarte del objetivo.
-                      </p>
-                      <p className="text-xs">
-                        <strong>🚗</strong> Si aceleras rápido, sueltas antes de
-                        llegar para no pasarte
-                      </p>
-                      <p className="text-xs text-green-600">
-                        ⬆ Menos oscilaciones pero más lento
-                      </p>
-                      <p className="text-xs text-blue-600">
-                        ⬇ Más ágil pero puede oscilar
-                      </p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Label>
-            <Input
-              type="number"
-              step="0.001"
-              value={config.pid_kd}
-              onChange={(e) => handleInputChange("pid_kd", e.target.value)}
-              className={errors.pid_kd ? "border-red-500" : ""}
-            />
-            {errors.pid_kd && (
-              <p className="text-sm text-red-500">{errors.pid_kd}</p>
-            )}
-          </div>
-        </div>
+                {/* Kd Parameter */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    Kd (Derivativo) d/dt
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm p-3">
+                          <div className="space-y-1.5">
+                            <p className="font-semibold text-sm">
+                              Kd - Anticipa y frena d/dt
+                            </p>
+                            <p className="text-xs">
+                              Predice el futuro. Si ves que vas muy rápido,
+                              frena antes de pasarte del objetivo.
+                            </p>
+                            <p className="text-xs">
+                              <strong>🚗</strong> Si aceleras rápido, sueltas
+                              antes de llegar para no pasarte
+                            </p>
+                            <p className="text-xs text-green-600">
+                              ⬆ Menos oscilaciones pero más lento
+                            </p>
+                            <p className="text-xs text-blue-600">
+                              ⬇ Más ágil pero puede oscilar
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.001"
+                    value={config.pid_kd}
+                    onChange={(e) =>
+                      handleInputChange("pid_kd", e.target.value)
+                    }
+                    className={errors.pid_kd ? "border-red-500" : ""}
+                  />
+                  {errors.pid_kd && (
+                    <p className="text-sm text-red-500">{errors.pid_kd}</p>
+                  )}
+                  <p className={`text-sm ${kdResponse.color} font-medium`}>
+                    {kdResponse.text}
+                  </p>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         {/* Presets */}
         <div className="space-y-2">
-          <Label>Configuraciones predefinidas</Label>
+          <Label>Configuraciones recomendadas</Label>
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"

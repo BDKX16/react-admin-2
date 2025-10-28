@@ -16,6 +16,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Info, HelpCircle, TrendingUp } from "lucide-react";
 import useMqtt from "../hooks/useMqtt";
 
@@ -205,82 +211,72 @@ const ProportionalForm = ({ userId, dId, widget }) => {
           )}
         </div>
 
-        {/* Kp Parameter */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            Kp (Ganancia Proporcional)
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    Controla qué tan fuerte reacciona. Mayor valor = respuesta
-                    más agresiva
+        {/* Kp Parameter in Accordion */}
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="parameters">
+            <AccordionTrigger className="text-sm">
+              Configuración avanzada (Kp)
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-4">
+                {/* Kp Parameter */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    Kp (Ganancia Proporcional)
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Controla qué tan fuerte reacciona. Mayor valor =
+                            respuesta más agresiva
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={config.pid_kp}
+                    onChange={(e) =>
+                      handleInputChange("pid_kp", e.target.value)
+                    }
+                    className={errors.pid_kp ? "border-red-500" : ""}
+                  />
+                  {errors.pid_kp && (
+                    <p className="text-sm text-red-500">{errors.pid_kp}</p>
+                  )}
+                  <p className={`text-sm ${response.color} font-medium`}>
+                    {response.text}
                   </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </Label>
-          <Input
-            type="number"
-            step="0.1"
-            value={config.pid_kp}
-            onChange={(e) => handleInputChange("pid_kp", e.target.value)}
-            className={errors.pid_kp ? "border-red-500" : ""}
-          />
-          {errors.pid_kp && (
-            <p className="text-sm text-red-500">{errors.pid_kp}</p>
-          )}
-          <p className={`text-sm ${response.color} font-medium`}>
-            {response.text}
-          </p>
-        </div>
+                </div>
 
-        {/* Visual representation */}
-        <div className="space-y-3">
-          <Label className="text-sm">Ejemplo de respuesta</Label>
-          <div className="p-3 bg-muted rounded-lg">
-            <p className="text-sm">
-              Si la diferencia es <strong>10°C</strong> y Kp ={" "}
-              <strong>{config.pid_kp}</strong>:
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Salida = {config.pid_kp} × 10 ={" "}
-              <strong>{(config.pid_kp * 10).toFixed(1)}%</strong> de potencia
-            </p>
-          </div>
-        </div>
-
-        {/* Advantages and limitations */}
-        <div className="space-y-3">
-          <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
-            <p className="text-sm font-medium text-green-700 dark:text-green-300">
-              ✅ Ventajas:
-            </p>
-            <ul className="text-xs text-green-600 dark:text-green-400 mt-1 space-y-1">
-              <li>• Muy simple de configurar</li>
-              <li>• Respuesta rápida e intuitiva</li>
-              <li>• Estable para la mayoría de casos</li>
-            </ul>
-          </div>
-
-          <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
-            <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
-              ⚠️ Limitaciones:
-            </p>
-            <ul className="text-xs text-orange-600 dark:text-orange-400 mt-1 space-y-1">
-              <li>• Puede tener error permanente</li>
-              <li>• No elimina desviaciones pequeñas</li>
-              <li>• Para precisión total usar PI o PID</li>
-            </ul>
-          </div>
-        </div>
+                {/* Visual representation */}
+                <div className="space-y-3">
+                  <Label className="text-sm">Ejemplo de respuesta</Label>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm">
+                      Si la diferencia es <strong>10°C</strong> y Kp ={" "}
+                      <strong>{config.pid_kp}</strong>:
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Salida = {config.pid_kp} × 10 ={" "}
+                      <strong>{(config.pid_kp * 10).toFixed(1)}%</strong> de
+                      potencia
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         {/* Presets */}
         <div className="space-y-2">
-          <Label>Configuraciones típicas</Label>
+          <Label>Configuraciones recomendadas</Label>
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"

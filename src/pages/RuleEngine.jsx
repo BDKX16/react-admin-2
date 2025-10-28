@@ -529,17 +529,6 @@ const RuleEngine = () => {
     <div className="flex flex-col items-center p-4">
       <h1 className="text-2xl font-bold mb-2 text-left">Control Automático</h1>
       <div className="w-full max-w-7xl">
-        <div className="flex justify-end mb-4">
-          <Button
-            onClick={() => setAutomationModalOpen(true)}
-            variant="default"
-            className="flex gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nueva automatización
-          </Button>
-        </div>
-
         {/* Modal/Drawer para seleccionar tipo de automatización */}
         {isMobile ? (
           <Drawer
@@ -1562,14 +1551,19 @@ const RuleEngine = () => {
         <Card className="border-0">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Automatizaciones</CardTitle>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">
-                  {(rules?.filter((rule) => rule.actionVariable !== "")
-                    .length || 0) + (workflows?.length || 0)}{" "}
-                  total
-                </Badge>
-              </div>
+              <Badge variant="outline" className="text-base px-3 py-1">
+                {(rules?.filter((rule) => rule.actionVariable !== "").length ||
+                  0) + (workflows?.length || 0)}{" "}
+                total
+              </Badge>
+              <Button
+                onClick={() => setAutomationModalOpen(true)}
+                variant="default"
+                className="flex gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Nueva automatización
+              </Button>
             </div>
           </CardHeader>
           <CardContent>

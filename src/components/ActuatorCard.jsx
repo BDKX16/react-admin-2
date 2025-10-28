@@ -621,6 +621,41 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                       </Drawer>
                     </div>
                   </TabsContent>
+                  <TabsContent value="p" className="w-full">
+                    <div className="hidden md:block w-full">
+                      <ProportionalForm
+                        userId={userId}
+                        dId={dId}
+                        widget={widget}
+                      />
+                    </div>
+                    <div className="block md:hidden">
+                      <Drawer>
+                        <DrawerTrigger asChild>
+                          <Button variant="outline">
+                            Configurar Proporcional
+                          </Button>
+                        </DrawerTrigger>
+                        <DrawerContent>
+                          <DrawerHeader>
+                            <DrawerTitle>
+                              Configurar Control Proporcional
+                            </DrawerTitle>
+                          </DrawerHeader>
+                          <ProportionalForm
+                            userId={userId}
+                            dId={dId}
+                            widget={widget}
+                          />
+                          <DrawerFooter>
+                            <DrawerClose asChild>
+                              <Button variant="outline">Cerrar</Button>
+                            </DrawerClose>
+                          </DrawerFooter>
+                        </DrawerContent>
+                      </Drawer>
+                    </div>
+                  </TabsContent>
                 </Tabs>
               </TooltipProvider>
             </div>
@@ -773,6 +808,35 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                 )}
 
                 {mappedValue === "proportional" && (
+                  <div className="mt-4 space-y-3">
+                    <Drawer>
+                      <DrawerTrigger asChild>
+                        <Button variant="outline" className="w-full">
+                          Configurar Proporcional
+                        </Button>
+                      </DrawerTrigger>
+                      <DrawerContent>
+                        <DrawerHeader>
+                          <DrawerTitle>
+                            Configurar Control Proporcional
+                          </DrawerTitle>
+                        </DrawerHeader>
+                        <ProportionalForm
+                          userId={userId}
+                          dId={dId}
+                          widget={widget}
+                        />
+                        <DrawerFooter>
+                          <DrawerClose asChild>
+                            <Button variant="outline">Cerrar</Button>
+                          </DrawerClose>
+                        </DrawerFooter>
+                      </DrawerContent>
+                    </Drawer>
+                  </div>
+                )}
+
+                {mappedValue === "p" && (
                   <div className="mt-4 space-y-3">
                     <Drawer>
                       <DrawerTrigger asChild>

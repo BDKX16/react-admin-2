@@ -16,6 +16,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Info, HelpCircle, Target } from "lucide-react";
 import useMqtt from "../hooks/useMqtt";
 
@@ -92,6 +98,38 @@ const PIForm = ({ userId, dId, widget }) => {
 
     setSend({ msg: toSend.msg, topic: toSend.topic });
   };
+
+  // Funciones para describir los parámetros
+  const getKpDescription = (kp) => {
+    if (kp < 0.5) {
+      return { text: "Respuesta muy suave", color: "text-blue-600" };
+    } else if (kp < 1.0) {
+      return { text: "Respuesta suave", color: "text-green-600" };
+    } else if (kp < 2.0) {
+      return { text: "Respuesta equilibrada", color: "text-green-600" };
+    } else if (kp < 4.0) {
+      return { text: "Respuesta rápida", color: "text-orange-600" };
+    } else {
+      return { text: "Respuesta muy agresiva", color: "text-red-600" };
+    }
+  };
+
+  const getKiDescription = (ki) => {
+    if (ki < 0.05) {
+      return { text: "Corrección muy lenta", color: "text-blue-600" };
+    } else if (ki < 0.1) {
+      return { text: "Corrección lenta", color: "text-green-600" };
+    } else if (ki < 0.3) {
+      return { text: "Corrección equilibrada", color: "text-green-600" };
+    } else if (ki < 0.5) {
+      return { text: "Corrección rápida", color: "text-orange-600" };
+    } else {
+      return { text: "Corrección muy agresiva", color: "text-red-600" };
+    }
+  };
+
+  const kpResponse = getKpDescription(config.pid_kp);
+  const kiResponse = getKiDescription(config.pid_ki);
 
   return (
     <div className="w-full space-y-4">
@@ -200,78 +238,87 @@ const PIForm = ({ userId, dId, widget }) => {
           )}
         </div>
 
-        {/* Kp Parameter */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            Kp (Proporcional)
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    Qué tan fuerte reacciona a la diferencia actual. Mayor = más
-                    agresivo
+        {/* PI Parameters in Accordion */}
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="parameters">
+            <AccordionTrigger className="text-sm">
+              Configuración avanzada (Kp, Ki)
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                {/* Kp Parameter */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    Kp (Proporcional)
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Qué tan fuerte reacciona a la diferencia actual.
+                            Mayor = más agresivo
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={config.pid_kp}
+                    onChange={(e) =>
+                      handleInputChange("pid_kp", e.target.value)
+                    }
+                    className={errors.pid_kp ? "border-red-500" : ""}
+                  />
+                  {errors.pid_kp && (
+                    <p className="text-sm text-red-500">{errors.pid_kp}</p>
+                  )}
+                  <p className={`text-sm ${kpResponse.color} font-medium`}>
+                    {kpResponse.text}
                   </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </Label>
-          <Input
-            type="number"
-            step="0.1"
-            value={config.pid_kp}
-            onChange={(e) => handleInputChange("pid_kp", e.target.value)}
-            className={errors.pid_kp ? "border-red-500" : ""}
-          />
-          {errors.pid_kp && (
-            <p className="text-sm text-red-500">{errors.pid_kp}</p>
-          )}
-        </div>
+                </div>
 
-        {/* Ki Parameter */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            Ki (Integral)
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    Corrige errores acumulados con el tiempo. Elimina
-                    desviaciones permanentes
+                {/* Ki Parameter */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    Ki (Integral)
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Corrige errores acumulados con el tiempo. Elimina
+                            desviaciones permanentes
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={config.pid_ki}
+                    onChange={(e) =>
+                      handleInputChange("pid_ki", e.target.value)
+                    }
+                    className={errors.pid_ki ? "border-red-500" : ""}
+                  />
+                  {errors.pid_ki && (
+                    <p className="text-sm text-red-500">{errors.pid_ki}</p>
+                  )}
+                  <p className={`text-sm ${kiResponse.color} font-medium`}>
+                    {kiResponse.text}
                   </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </Label>
-          <Input
-            type="number"
-            step="0.01"
-            value={config.pid_ki}
-            onChange={(e) => handleInputChange("pid_ki", e.target.value)}
-            className={errors.pid_ki ? "border-red-500" : ""}
-          />
-          {errors.pid_ki && (
-            <p className="text-sm text-red-500">{errors.pid_ki}</p>
-          )}
-        </div>
-
-        {/* Info Box */}
-        <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border">
-          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-            💡 Ventajas del Control PI:
-          </p>
-          <ul className="text-xs text-blue-600 dark:text-blue-400 mt-1 space-y-1">
-            <li>• Más estable que solo Proporcional</li>
-            <li>• Elimina errores permanentes</li>
-            <li>• Más simple de configurar que PID</li>
-            <li>• Ideal para temperatura y humedad</li>
-          </ul>
-        </div>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         {/* Presets */}
         <div className="space-y-2">
