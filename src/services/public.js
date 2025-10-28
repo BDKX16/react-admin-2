@@ -228,7 +228,7 @@ export const getRule = (ruleId) => {
   };
 };
 
-// Servicios para reglas compuestas (Node-RED)
+// Servicios para reglas compuestas
 export const getCompositeRule = (ruleId) => {
   const controller = loadAbort();
   const headers = getAxiosHeaders();

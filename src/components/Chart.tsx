@@ -320,8 +320,19 @@ export default function Chart({ device }) {
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isEmpty, setIsEmpty] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const fetchingRef = useRef(false);
   const lastFetchParamsRef = useRef(null);
+
+  // Detectar si es mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Generar configuración dinámica del gráfico
   const chartConfig = useMemo(() => {
@@ -1081,7 +1092,11 @@ export default function Chart({ device }) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center">
+        <div
+          className={`flex ${
+            isMobile ? "flex-col gap-3" : "justify-between items-center"
+          }`}
+        >
           <div>
             <CardTitle>{device.name}</CardTitle>
             <CardDescription>
@@ -1092,13 +1107,21 @@ export default function Chart({ device }) {
               }
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Período:</span>
+          <div
+            className={`flex items-center gap-2 ${isMobile ? "w-full" : ""}`}
+          >
+            <span
+              className={`text-sm font-medium text-gray-700 ${
+                isMobile ? "hidden" : ""
+              }`}
+            >
+              Período:
+            </span>
             <Select
               value={selectedTimeRange}
               onValueChange={setSelectedTimeRange}
             >
-              <SelectTrigger className="w-48">
+              <SelectTrigger className={isMobile ? "w-full" : "w-48"}>
                 <SelectValue placeholder="Seleccionar período" />
               </SelectTrigger>
               <SelectContent>
@@ -1147,147 +1170,182 @@ export default function Chart({ device }) {
 
         {/* Gráfico normal */}
         {!hasError && !isEmpty && (
-          <ChartContainer
-            config={chartConfig}
-            className="max-h-[78dvh] w-[100%]"
-          >
-            <ComposedChart
-              accessibilityLayer
-              data={data}
-              margin={{
-                left: 12,
-                right: 12,
-              }}
+          <div className={isMobile ? "overflow-x-auto pb-4" : ""}>
+            <ChartContainer
+              config={chartConfig}
+              className={
+                isMobile
+                  ? "min-w-[600px] max-h-[60vh]"
+                  : "max-h-[78dvh] w-[100%]"
+              }
             >
-              <CartesianGrid vertical={false} />
-              <XAxis
-                allowDataOverflow={false}
-                dataKey="time"
-                interval="preserveStartEnd"
-                tickLine={false}
-                axisLine={true}
-                tickMargin={8}
-              />
-              <YAxis
-                domain={[-15, "dataMax"]}
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value) => (value >= 0 ? value : "")}
-              />
-              <ChartTooltip
-                cursor={false}
-                content={({ active, payload, label }) => (
-                  <CustomTooltipContent
-                    active={active}
-                    payload={payload}
-                    config={chartConfig}
+              <ComposedChart
+                accessibilityLayer
+                data={data}
+                margin={{
+                  left: isMobile ? 0 : 12,
+                  right: isMobile ? 0 : 12,
+                  top: 5,
+                  bottom: 5,
+                }}
+              >
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  allowDataOverflow={false}
+                  dataKey="time"
+                  interval="preserveStartEnd"
+                  tickLine={false}
+                  axisLine={true}
+                  tickMargin={8}
+                  tick={{ fontSize: isMobile ? 10 : 12 }}
+                />
+                <YAxis
+                  domain={[-15, "dataMax"]}
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tick={{ fontSize: isMobile ? 10 : 12 }}
+                  tickFormatter={(value) => (value >= 0 ? value : "")}
+                  width={isMobile ? 40 : 60}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={({ active, payload, label }) => (
+                    <CustomTooltipContent
+                      active={active}
+                      payload={payload}
+                      config={chartConfig}
+                    />
+                  )}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+
+                {/* Área de fondo azulado para zona negativa */}
+                <Area
+                  dataKey="_backgroundArea"
+                  type="monotone"
+                  stroke="transparent"
+                  fill="rgba(59, 130, 246, 0.1)"
+                  fillOpacity={1}
+                  dot={false}
+                  connectNulls={false}
+                  isAnimationActive={false}
+                  legendType="none"
+                  hide={false}
+                />
+
+                {/* Línea de referencia en 0 */}
+                <ReferenceLine
+                  y={0}
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeDasharray="2 2"
+                  strokeOpacity={0.8}
+                />
+
+                {/* Líneas y áreas dinámicas generadas automáticamente */}
+                {renderLines}
+
+                {/* Puntos de eventos para usuarios Pro/Plus */}
+                {(isPro || isPlus) && (
+                  <Scatter
+                    dataKey="eventY"
+                    fill="#dc2626"
+                    shape={(props) => {
+                      const { cx, cy, payload } = props;
+
+                      // Solo renderizar si hay evento en este punto
+                      if (!payload?.eventType) return null;
+
+                      const eventConf = eventConfig[payload.eventType];
+                      if (!eventConf) return null;
+
+                      return (
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={5}
+                          fill={eventConf.color}
+                          stroke="#fff"
+                          strokeWidth={2}
+                          style={{ cursor: "pointer" }}
+                        />
+                      );
+                    }}
                   />
                 )}
-              />
-              <ChartLegend content={<ChartLegendContent />} />
-
-              {/* Área de fondo azulado para zona negativa */}
-              <Area
-                dataKey="_backgroundArea"
-                type="monotone"
-                stroke="transparent"
-                fill="rgba(59, 130, 246, 0.1)"
-                fillOpacity={1}
-                dot={false}
-                connectNulls={false}
-                isAnimationActive={false}
-                legendType="none"
-                hide={false}
-              />
-
-              {/* Línea de referencia en 0 */}
-              <ReferenceLine
-                y={0}
-                stroke="hsl(var(--muted-foreground))"
-                strokeDasharray="2 2"
-                strokeOpacity={0.8}
-              />
-
-              {/* Líneas y áreas dinámicas generadas automáticamente */}
-              {renderLines}
-
-              {/* Puntos de eventos para usuarios Pro/Plus */}
-              {(isPro || isPlus) && (
-                <Scatter
-                  dataKey="eventY"
-                  fill="#dc2626"
-                  shape={(props) => {
-                    const { cx, cy, payload } = props;
-
-                    // Solo renderizar si hay evento en este punto
-                    if (!payload?.eventType) return null;
-
-                    const eventConf = eventConfig[payload.eventType];
-                    if (!eventConf) return null;
-
-                    return (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={5}
-                        fill={eventConf.color}
-                        stroke="#fff"
-                        strokeWidth={2}
-                        style={{ cursor: "pointer" }}
-                      />
-                    );
-                  }}
-                />
-              )}
-            </ComposedChart>
-          </ChartContainer>
+              </ComposedChart>
+            </ChartContainer>
+          </div>
         )}
 
         {/* Panel de eventos para usuarios Pro/Plus */}
         {(isPro || isPlus) && events.length > 0 && (
-          <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border">
-            <h4 className="font-medium text-sm mb-2 text-foreground flex items-center gap-2">
-              Eventos del Sistema (Solo Pro)
-              <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-2 py-1 rounded">
+          <div
+            className={`mt-4 p-3 rounded-lg bg-muted/50 border border-border ${
+              isMobile ? "text-xs" : ""
+            }`}
+          >
+            <h4
+              className={`font-medium ${
+                isMobile ? "text-xs" : "text-sm"
+              } mb-2 text-foreground flex ${
+                isMobile ? "flex-col gap-1" : "items-center gap-2"
+              }`}
+            >
+              <span>Eventos del Sistema (Solo Pro)</span>
+              <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-2 py-1 rounded w-fit">
                 {events.length} eventos
               </span>
             </h4>
             <div className="space-y-2">
               {isPro &&
-                events.slice(0, 4).map((event, index) => {
+                events.slice(0, isMobile ? 2 : 4).map((event, index) => {
                   const eventConf = eventConfig[event.eventType];
                   if (eventConf) {
                     return (
                       <div
                         key={index}
-                        className="flex items-center gap-3 text-xs p-2 bg-card border border-border rounded border-l-4 hover:bg-muted/50 transition-colors"
+                        className={`flex ${
+                          isMobile ? "flex-col" : "items-center"
+                        } gap-3 text-xs p-2 bg-card border border-border rounded border-l-4 hover:bg-muted/50 transition-colors`}
                         style={{ borderLeftColor: eventConf.color }}
                       >
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: eventConf.color }}
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium text-card-foreground">
-                            {eventConf.label}
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: eventConf.color }}
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-card-foreground">
+                              {eventConf.label}
+                            </div>
+                            {!isMobile && (
+                              <div className="text-muted-foreground text-xs">
+                                {eventConf.description}
+                              </div>
+                            )}
                           </div>
-                          <div className="text-muted-foreground text-xs">
+                          <span
+                            className={`text-muted-foreground text-xs ${
+                              isMobile ? "" : "ml-auto"
+                            }`}
+                          >
+                            {event.time}
+                          </span>
+                        </div>
+                        {isMobile && (
+                          <div className="text-muted-foreground text-xs pl-5">
                             {eventConf.description}
                           </div>
-                        </div>
-                        <span className="text-muted-foreground text-xs">
-                          {event.time}
-                        </span>
+                        )}
                       </div>
                     );
                   }
                   return null;
                 })}
-              {events.length > 4 && (
+              {events.length > (isMobile ? 2 : 4) && (
                 <div className="text-xs text-muted-foreground text-center pt-1">
-                  ... y {events.length - 4} eventos más
+                  ... y {events.length - (isMobile ? 2 : 4)} eventos más
                 </div>
               )}
             </div>

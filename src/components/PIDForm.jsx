@@ -208,17 +208,32 @@ const PIDForm = ({ userId, dId, widget }) => {
           {/* Kp Parameter */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              Kp (Proporcional)
+              Kp (Proporcional) 🎯
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Qué tan fuerte reacciona a la diferencia actual. Mayor =
-                      más agresivo
-                    </p>
+                  <TooltipContent className="max-w-sm p-3">
+                    <div className="space-y-1.5">
+                      <p className="font-semibold text-sm">
+                        Kp - Respuesta inmediata 🎯
+                      </p>
+                      <p className="text-xs">
+                        Reacciona según la diferencia. Si estás lejos del
+                        objetivo, actúa fuerte. Si estás cerca, actúa suave.
+                      </p>
+                      <p className="text-xs">
+                        <strong>🚗</strong> Como pisar el acelerador del auto:
+                        estás lejos = pisas fuerte, cerca = suave
+                      </p>
+                      <p className="text-xs text-green-600">
+                        ⬆ Más rápido pero puede pasarse
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        ⬇ Más lento pero va a frenar más lentamente
+                      </p>
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -238,17 +253,32 @@ const PIDForm = ({ userId, dId, widget }) => {
           {/* Ki Parameter */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              Ki (Integral)
+              Ki (Integral) ∫
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Corrige errores acumulados con el tiempo. Elimina
-                      desviaciones permanentes
-                    </p>
+                  <TooltipContent className="max-w-sm p-3">
+                    <div className="space-y-1.5">
+                      <p className="font-semibold text-sm">
+                        Ki - Elimina errores persistentes ∫
+                      </p>
+                      <p className="text-xs">
+                        Acumula el error con el tiempo. Si te quedas cerca pero
+                        sin llegar, sigue empujando hasta lograrlo.
+                      </p>
+                      <p className="text-xs">
+                        <strong>🚗</strong> Si te quedas en 98 km/h, pisas un
+                        poco más hasta llegar a los 100
+                      </p>
+                      <p className="text-xs text-green-600">
+                        ⬆ Llega más rápido pero puede oscilar
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        ⬇ Más estable pero puede no llegar exacto
+                      </p>
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -268,17 +298,32 @@ const PIDForm = ({ userId, dId, widget }) => {
           {/* Kd Parameter */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              Kd (Derivativo)
+              Kd (Derivativo) d/dt
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Anticipa cambios rápidos y suaviza la respuesta. Reduce
-                      oscilaciones
-                    </p>
+                  <TooltipContent className="max-w-sm p-3">
+                    <div className="space-y-1.5">
+                      <p className="font-semibold text-sm">
+                        Kd - Anticipa y frena d/dt
+                      </p>
+                      <p className="text-xs">
+                        Predice el futuro. Si ves que vas muy rápido, frena
+                        antes de pasarte del objetivo.
+                      </p>
+                      <p className="text-xs">
+                        <strong>🚗</strong> Si aceleras rápido, sueltas antes de
+                        llegar para no pasarte
+                      </p>
+                      <p className="text-xs text-green-600">
+                        ⬆ Menos oscilaciones pero más lento
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        ⬇ Más ágil pero puede oscilar
+                      </p>
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

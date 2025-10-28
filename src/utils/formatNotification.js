@@ -7,15 +7,14 @@ export const formatNotification = (notif) => {
   } else if (notif.variableFullName === "Temp") {
     fullName = "temperatura";
   }
-
   let condicion = notif.condition;
   if (notif.condition === "<") {
     condicion = "menor";
   } else if (notif.condition === ">") {
     condicion = "mayor";
-  } else if (notif.condition === "=>") {
-    condicion = "mayor o igual a";
-  } else if (notif.condition === "=<") {
+  } else if (notif.condition === "=>" || notif.condition === ">=") {
+    condicion = "mayor o igual";
+  } else if (notif.condition === "=<" || notif.condition === "<=") {
     condicion = "menor o igual";
   } else if (notif.condition === "=") {
     condicion = "igual";

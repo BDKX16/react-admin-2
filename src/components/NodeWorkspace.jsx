@@ -841,12 +841,12 @@ function NodeWorkspaceContent({ userId }) {
 
           // Mostrar notificación de éxito
           toast({
-            description: `Workflow "${workflowName}" creado y guardado en Node-RED`,
+            description: `Workflow "${workflowName}" creado y guardado`,
           });
         } else {
           // Workflow actualizado
           toast({
-            description: `Workflow "${workflowName}" actualizado en Node-RED`,
+            description: `Workflow "${workflowName}" actualizado`,
           });
         }
       }
