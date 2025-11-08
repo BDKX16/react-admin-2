@@ -149,6 +149,15 @@ export const InputCard = ({ widget, dId, userId }) => {
     return value + " " + unidad;
   };
 
+  // Verificar si el sensor está funcionando correctamente (sin errores)
+  const isSensorWorking = () => {
+    const currentValue = valueRef.current;
+    // El sensor debe tener un valor válido (>= 0) para poder calibrar
+    return (
+      currentValue !== null && currentValue !== undefined && currentValue >= 0
+    );
+  };
+
   return (
     <Card className="text-left flex md:flex-col p-6 relative">
       {/* Botón de calibración en la esquina superior derecha */}
@@ -157,8 +166,13 @@ export const InputCard = ({ widget, dId, userId }) => {
           variant="ghost"
           size="icon"
           onClick={openCalibrationModal}
+          disabled={!isSensorWorking()}
           className="absolute top-2 right-2 h-8 w-8"
-          title="Calibrar sensor"
+          title={
+            isSensorWorking()
+              ? "Calibrar sensor"
+              : "Sensor no disponible - Verifica la conexión"
+          }
         >
           <Settings className="h-4 w-4" />
         </Button>
