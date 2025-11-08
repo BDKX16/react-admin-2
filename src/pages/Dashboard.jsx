@@ -37,6 +37,7 @@ const Dashboard = () => {
                   key={item.variable}
                   widget={item}
                   dId={selectedDevice.dId}
+                  userId={auth.userData.id}
                 />
               );
             }

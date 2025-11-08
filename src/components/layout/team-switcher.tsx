@@ -46,6 +46,7 @@ export function TeamSwitcher({
     plan: string;
     dId: string;
     selected: boolean;
+    modelId?: string;
   }[];
 }) {
   const { loading, callEndpoint } = useFetchAndLoad();
@@ -107,8 +108,27 @@ export function TeamSwitcher({
                 disabled={loading || !teams.length}
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  {activeTeam && <activeTeam.logo className="size-4" />}
+                <div
+                  className="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground"
+                  style={{
+                    backgroundColor:
+                      activeTeam?.modelId === "default" ||
+                      activeTeam?.modelId === "default v2"
+                        ? "oklch(55% .26 155)"
+                        : "hsl(var(--sidebar-primary))",
+                  }}
+                >
+                  {activeTeam &&
+                    (activeTeam.modelId === "default" ||
+                    activeTeam.modelId === "default v2" ? (
+                      <img
+                        src="/logo.svg"
+                        alt="Confi Plant"
+                        className="size-6"
+                      />
+                    ) : (
+                      <activeTeam.logo className="size-4" />
+                    ))}
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">
@@ -144,8 +164,26 @@ export function TeamSwitcher({
                   onClick={() => handleSetActive(team)}
                   className="gap-2 p-2"
                 >
-                  <div className="flex size-6 items-center justify-center rounded-sm border">
-                    <team.logo className="size-4 shrink-0" />
+                  <div
+                    className="flex size-6 items-center justify-center rounded-sm border"
+                    style={{
+                      backgroundColor:
+                        team.modelId === "default" ||
+                        team.modelId === "default v2"
+                          ? "transparent"
+                          : "transparent",
+                    }}
+                  >
+                    {team.modelId === "default" ||
+                    team.modelId === "default v2" ? (
+                      <img
+                        src="/logo.svg"
+                        alt="Confi Plant"
+                        className="size-4 shrink-0"
+                      />
+                    ) : (
+                      <team.logo className="size-4 shrink-0" />
+                    )}
                   </div>
                   {team.name}
                   <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>

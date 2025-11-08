@@ -158,14 +158,14 @@ const data = {
 };
 
 const parsePlansName = (plan) => {
-  if (plan === "default") {
-    return "AutoKit v1";
-  } else if (plan === "default v2") {
-    return "AutoKit v2";
+  if (plan === "default" || plan === "default v2" || plan === "default v3") {
+    return "AutoKit";
   } else if (plan === "hidroponics") {
     return "Confi Hydro";
   } else if (plan === "confi-plant") {
     return "Confi Plant";
+  } else if (plan === "tecmat") {
+    return "TecMat";
   }
 };
 
@@ -180,6 +180,7 @@ export function SidebarLeft({
       logo: GalleryVerticalEnd,
       plan: parsePlansName(item.modelId),
       selected: item.selected,
+      modelId: item.modelId, // Agregar modelId para determinar el color
     };
   });
 
