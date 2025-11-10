@@ -54,15 +54,17 @@ export function TriggerNode({ data }) {
     <div className="flex flex-col items-center">
       {/* Nodo cuadrado con bordes levemente redondeados - color que coincide con minimapa */}
       <div
-        className={`w-16 h-16 rounded-lg flex items-center justify-center relative shadow-md transition-all duration-200 ${
+        className={`w-16 h-16 rounded-lg flex items-center justify-center relative shadow-md transition-all duration-300 ${
           data?.isSelected
             ? "border-2 border-blue-600 shadow-lg ring-2 ring-blue-300 ring-opacity-50"
             : data?.isExecuting
-            ? "border-2 border-green-400 shadow-lg"
+            ? "border-[3px] border-green-500 shadow-xl shadow-green-500/60 ring-4 ring-green-400/40 scale-105"
             : "border-0 hover:border-2 hover:border-blue-500 focus:border-2 focus:border-blue-500"
         } ${
           data?.disabled
             ? "opacity-50 cursor-not-allowed bg-gray-200 dark:bg-gray-700"
+            : data?.isExecuting
+            ? "cursor-pointer bg-green-50 dark:bg-green-950/30"
             : "cursor-pointer bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800"
         }`}
       >

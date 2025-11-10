@@ -31,7 +31,10 @@ export function ActionNode({ data }) {
   // Intentar usar el icono directo primero, luego por nombre, luego default
   let IconComponent = Play; // Default
 
-  if (data?.icon && (typeof data?.icon === "function" || typeof data?.icon === "object")) {
+  if (
+    data?.icon &&
+    (typeof data?.icon === "function" || typeof data?.icon === "object")
+  ) {
     IconComponent = data.icon;
   } else if (data?.iconName) {
     IconComponent = getIconByName(data.iconName);
@@ -41,15 +44,17 @@ export function ActionNode({ data }) {
     <div className="flex flex-col items-center">
       {/* Nodo rectangular con bordes completamente redondeados - color que coincide con minimapa */}
       <div
-        className={`w-20 h-12 rounded-full flex items-center justify-center relative shadow-md transition-all duration-200 ${
+        className={`w-20 h-12 rounded-full flex items-center justify-center relative shadow-md transition-all duration-300 ${
           data?.isSelected
             ? "border-2 border-green-600 shadow-lg ring-2 ring-green-300 ring-opacity-50"
             : data?.isExecuting
-            ? "border-2 border-green-400 shadow-lg"
+            ? "border-[3px] border-green-500 shadow-xl shadow-green-500/60 ring-4 ring-green-400/40 scale-105 animate-pulse"
             : "border-0 hover:border-2 hover:border-green-500 focus:border-2 focus:border-green-500"
         } ${
           data?.disabled
             ? "opacity-50 cursor-not-allowed bg-gray-200 dark:bg-gray-700"
+            : data?.isExecuting
+            ? "cursor-pointer bg-green-300 dark:bg-green-700"
             : "cursor-pointer bg-green-100 dark:bg-green-900 hover:bg-green-200 dark:hover:bg-green-800"
         }`}
       >

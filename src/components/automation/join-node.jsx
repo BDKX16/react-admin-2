@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
-import { GitMerge } from "lucide-react";
+import { GitMerge, RefreshCw } from "lucide-react";
 import PropTypes from "prop-types";
 
 export const JoinNode = memo(({ data }) => {
@@ -28,15 +28,17 @@ export const JoinNode = memo(({ data }) => {
   return (
     <div className="flex flex-col items-center">
       <div
-        className={`w-20 h-16 rounded-lg flex items-center justify-center relative shadow-md transition-all duration-200 ${
+        className={`w-20 h-16 rounded-lg flex items-center justify-center relative transition-all duration-300 ${
           data?.isSelected
             ? "border-2 border-amber-600 shadow-lg ring-2 ring-amber-300 ring-opacity-50"
-            : data?.isExecuting
-            ? "border-2 border-amber-400 shadow-lg"
-            : "border-0 hover:border-2 hover:border-amber-500 focus:border-2 focus:border-amber-500"
+            : data?.isExecuting || data?.isWaiting
+            ? "!border-[3px] !border-green-500 !shadow-xl !shadow-green-500/60 !ring-4 !ring-green-400/40 !scale-105"
+            : "border-0 shadow-md hover:border-2 hover:border-amber-500 focus:border-2 focus:border-amber-500"
         } ${
           data?.disabled
             ? "opacity-50 cursor-not-allowed bg-gray-200 dark:bg-gray-700"
+            : data?.isExecuting || data?.isWaiting
+            ? "cursor-pointer !bg-green-50 dark:!bg-green-950/30"
             : "cursor-pointer bg-amber-100 dark:bg-amber-900 hover:bg-amber-200 dark:hover:bg-amber-800"
         }`}
       >
@@ -72,7 +74,12 @@ export const JoinNode = memo(({ data }) => {
           title="Salida False"
         />
 
-        <GitMerge className="w-5 h-5 text-amber-600 dark:text-amber-300" />
+        {/* Icono principal o estado de espera */}
+        {data?.isWaiting ? (
+          <RefreshCw className="w-5 h-5 text-amber-600 dark:text-amber-300 animate-spin" />
+        ) : (
+          <GitMerge className="w-5 h-5 text-amber-600 dark:text-amber-300" />
+        )}
       </div>
 
       {/* Título abajo en letra xs */}
@@ -110,6 +117,8 @@ JoinNode.propTypes = {
     isExecuting: PropTypes.bool,
     isSelected: PropTypes.bool,
     disabled: PropTypes.bool,
+    executionDirection: PropTypes.string,
+    isWaiting: PropTypes.bool,
   }).isRequired,
   selected: PropTypes.bool,
 };

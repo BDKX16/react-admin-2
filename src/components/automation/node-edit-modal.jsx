@@ -133,6 +133,14 @@ export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
             nodeType: "join",
             modes: null,
           };
+        case "delay":
+          // Para nodos delay, indicar que es un delay
+          return {
+            variable: "delay",
+            variableFullName: sourceNode.data?.label || "Delay",
+            nodeType: "delay",
+            modes: null,
+          };
         default:
           return {
             variable: sourceNode.data?.label || "entrada",
@@ -182,7 +190,30 @@ export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
 
   useEffect(() => {
     if (node) {
-      setFormData(node.data || {});
+      let initialFormData = node.data || {};
+
+      // Detectar y establecer la variable para nodos condition
+      if (node.type === "condition" && edges && nodes) {
+        const incomingEdge = edges.find((edge) => edge.target === node.id);
+        if (incomingEdge) {
+          const sourceNode = nodes.find((n) => n.id === incomingEdge.source);
+          if (sourceNode) {
+            const sourceInfo = getVariableFromNode(sourceNode);
+            if (sourceInfo) {
+              // Solo establecer si no existe o si está undefined
+              if (!initialFormData.variable) {
+                initialFormData = {
+                  ...initialFormData,
+                  variable: sourceInfo.variable,
+                  variableFullName: sourceInfo.variableFullName,
+                };
+              }
+            }
+          }
+        }
+      }
+
+      setFormData(initialFormData);
 
       // Detectar inputs conectados para nodos join
       if (node.type === "join" && edges && nodes) {
@@ -251,6 +282,20 @@ export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
 
       // Actualizar la condición según el tipo de condition node
       if (node.type === "condition") {
+        // Detectar la variable del nodo trigger conectado
+        const incomingEdge = edges.find((edge) => edge.target === node.id);
+        if (incomingEdge) {
+          const sourceNode = nodes.find((n) => n.id === incomingEdge.source);
+          if (sourceNode) {
+            const sourceInfo = getVariableFromNode(sourceNode);
+            if (sourceInfo) {
+              // Guardar la variable del sensor/trigger conectado
+              updatedFormData.variable = sourceInfo.variable;
+              updatedFormData.variableFullName = sourceInfo.variableFullName;
+            }
+          }
+        }
+
         if (formData.conditionType === "comparison") {
           // Para nodos de comparación
           if (formData.comparison && formData.comparisonValue) {
@@ -1179,90 +1224,112 @@ export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>
-                      {detectedInputs.top?.nodeType === "action" ||
-                      detectedInputs.top?.nodeType === "actuatorState"
-                        ? "Modo"
-                        : "Comparación"}
-                    </Label>
-                    {(detectedInputs.top?.nodeType === "action" ||
-                      detectedInputs.top?.nodeType === "actuatorState") &&
-                    detectedInputs.top?.modes?.length > 0 ? (
-                      <Select
-                        value={formData.topComparison || ""}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, topComparison: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona modo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {detectedInputs.top.modes.map((mode) => (
-                            <SelectItem key={mode} value={mode}>
-                              {mode}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Select
-                        value={formData.topComparison || ">"}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, topComparison: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value=">">Mayor que (&gt;)</SelectItem>
-                          <SelectItem value="<">Menor que (&lt;)</SelectItem>
-                          <SelectItem value=">=">Mayor o igual (≥)</SelectItem>
-                          <SelectItem value="<=">Menor o igual (≤)</SelectItem>
-                          <SelectItem value="==">Igual (=)</SelectItem>
-                          <SelectItem value="!=">Diferente (≠)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
+                {/* Solo mostrar configuración si viene de un trigger node */}
+                {detectedInputs.top?.nodeType === "trigger" ||
+                detectedInputs.top?.nodeType === "action" ||
+                detectedInputs.top?.nodeType === "actuatorState" ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>
+                          {detectedInputs.top?.nodeType === "action" ||
+                          detectedInputs.top?.nodeType === "actuatorState"
+                            ? "Modo"
+                            : "Comparación"}
+                        </Label>
+                        {(detectedInputs.top?.nodeType === "action" ||
+                          detectedInputs.top?.nodeType === "actuatorState") &&
+                        detectedInputs.top?.modes?.length > 0 ? (
+                          <Select
+                            value={formData.topComparison || ""}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, topComparison: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona modo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {detectedInputs.top.modes.map((mode) => (
+                                <SelectItem key={mode} value={mode}>
+                                  {mode}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Select
+                            value={formData.topComparison || ">"}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, topComparison: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value=">">
+                                Mayor que (&gt;)
+                              </SelectItem>
+                              <SelectItem value="<">
+                                Menor que (&lt;)
+                              </SelectItem>
+                              <SelectItem value=">=">
+                                Mayor o igual (≥)
+                              </SelectItem>
+                              <SelectItem value="<=">
+                                Menor o igual (≤)
+                              </SelectItem>
+                              <SelectItem value="==">Igual (=)</SelectItem>
+                              <SelectItem value="!=">Diferente (≠)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label>Valor</Label>
-                    <Input
-                      type={
-                        detectedInputs.top?.nodeType === "action" ||
-                        detectedInputs.top?.nodeType === "actuatorState"
-                          ? "text"
-                          : "number"
-                      }
-                      placeholder={
-                        detectedInputs.top?.nodeType === "action" ||
-                        detectedInputs.top?.nodeType === "actuatorState"
-                          ? "Estado"
-                          : "Ej: 22"
-                      }
-                      value={formData.topComparisonValue || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          topComparisonValue: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
+                      <div className="space-y-2">
+                        <Label>Valor</Label>
+                        <Input
+                          type={
+                            detectedInputs.top?.nodeType === "action" ||
+                            detectedInputs.top?.nodeType === "actuatorState"
+                              ? "text"
+                              : "number"
+                          }
+                          placeholder={
+                            detectedInputs.top?.nodeType === "action" ||
+                            detectedInputs.top?.nodeType === "actuatorState"
+                              ? "Estado"
+                              : "Ej: 22"
+                          }
+                          value={formData.topComparisonValue || ""}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              topComparisonValue: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
 
-                <div className="text-xs text-muted-foreground">
-                  Ejemplo:{" "}
-                  <strong>
-                    {detectedInputs.top?.variableFullName || "variable"}
-                  </strong>{" "}
-                  {formData.topComparison || ">"}{" "}
-                  <strong>{formData.topComparisonValue || "22"}</strong>
-                </div>
+                    <div className="text-xs text-muted-foreground">
+                      Ejemplo:{" "}
+                      <strong>
+                        {detectedInputs.top?.variableFullName || "variable"}
+                      </strong>{" "}
+                      {formData.topComparison || ">"}{" "}
+                      <strong>{formData.topComparisonValue || "22"}</strong>
+                    </div>
+                  </>
+                ) : (
+                  detectedInputs.top && (
+                    <div className="text-sm text-muted-foreground border-l-4 border-green-500 pl-3 py-2 bg-green-50 dark:bg-green-950/20">
+                      <strong>Activador de rama:</strong> Este nodo se ejecuta
+                      cuando la señal llega por esta rama.
+                    </div>
+                  )
+                )}
               </div>
 
               {/* Entrada Inferior */}
@@ -1294,90 +1361,121 @@ export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>
-                      {detectedInputs.bottom?.nodeType === "action" ||
-                      detectedInputs.bottom?.nodeType === "actuatorState"
-                        ? "Modo"
-                        : "Comparación"}
-                    </Label>
-                    {(detectedInputs.bottom?.nodeType === "action" ||
-                      detectedInputs.bottom?.nodeType === "actuatorState") &&
-                    detectedInputs.bottom?.modes?.length > 0 ? (
-                      <Select
-                        value={formData.bottomComparison || ""}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, bottomComparison: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona modo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {detectedInputs.bottom.modes.map((mode) => (
-                            <SelectItem key={mode} value={mode}>
-                              {mode}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Select
-                        value={formData.bottomComparison || "=="}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, bottomComparison: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="==">Igual (=)</SelectItem>
-                          <SelectItem value="!=">Diferente (≠)</SelectItem>
-                          <SelectItem value=">">Mayor que (&gt;)</SelectItem>
-                          <SelectItem value="<">Menor que (&lt;)</SelectItem>
-                          <SelectItem value=">=">Mayor o igual (≥)</SelectItem>
-                          <SelectItem value="<=">Menor o igual (≤)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
+                {/* Solo mostrar configuración si viene de un trigger node */}
+                {detectedInputs.bottom?.nodeType === "trigger" ||
+                detectedInputs.bottom?.nodeType === "action" ||
+                detectedInputs.bottom?.nodeType === "actuatorState" ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>
+                          {detectedInputs.bottom?.nodeType === "action" ||
+                          detectedInputs.bottom?.nodeType === "actuatorState"
+                            ? "Modo"
+                            : "Comparación"}
+                        </Label>
+                        {(detectedInputs.bottom?.nodeType === "action" ||
+                          detectedInputs.bottom?.nodeType ===
+                            "actuatorState") &&
+                        detectedInputs.bottom?.modes?.length > 0 ? (
+                          <Select
+                            value={formData.bottomComparison || ""}
+                            onValueChange={(value) =>
+                              setFormData({
+                                ...formData,
+                                bottomComparison: value,
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona modo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {detectedInputs.bottom.modes.map((mode) => (
+                                <SelectItem key={mode} value={mode}>
+                                  {mode}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Select
+                            value={formData.bottomComparison || "=="}
+                            onValueChange={(value) =>
+                              setFormData({
+                                ...formData,
+                                bottomComparison: value,
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="==">Igual (=)</SelectItem>
+                              <SelectItem value="!=">Diferente (≠)</SelectItem>
+                              <SelectItem value=">">
+                                Mayor que (&gt;)
+                              </SelectItem>
+                              <SelectItem value="<">
+                                Menor que (&lt;)
+                              </SelectItem>
+                              <SelectItem value=">=">
+                                Mayor o igual (≥)
+                              </SelectItem>
+                              <SelectItem value="<=">
+                                Menor o igual (≤)
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label>Valor</Label>
-                    <Input
-                      type={
-                        detectedInputs.bottom?.nodeType === "action" ||
-                        detectedInputs.bottom?.nodeType === "actuatorState"
-                          ? "text"
-                          : "number"
-                      }
-                      placeholder={
-                        detectedInputs.bottom?.nodeType === "action" ||
-                        detectedInputs.bottom?.nodeType === "actuatorState"
-                          ? "Estado"
-                          : "Ej: valor"
-                      }
-                      value={formData.bottomComparisonValue || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          bottomComparisonValue: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
+                      <div className="space-y-2">
+                        <Label>Valor</Label>
+                        <Input
+                          type={
+                            detectedInputs.bottom?.nodeType === "action" ||
+                            detectedInputs.bottom?.nodeType === "actuatorState"
+                              ? "text"
+                              : "number"
+                          }
+                          placeholder={
+                            detectedInputs.bottom?.nodeType === "action" ||
+                            detectedInputs.bottom?.nodeType === "actuatorState"
+                              ? "Estado"
+                              : "Ej: valor"
+                          }
+                          value={formData.bottomComparisonValue || ""}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              bottomComparisonValue: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
 
-                <div className="text-xs text-muted-foreground">
-                  Ejemplo:{" "}
-                  <strong>
-                    {detectedInputs.bottom?.variableFullName || "variable"}
-                  </strong>{" "}
-                  {formData.bottomComparison || "=="}{" "}
-                  <strong>{formData.bottomComparisonValue || "valor"}</strong>
-                </div>
+                    <div className="text-xs text-muted-foreground">
+                      Ejemplo:{" "}
+                      <strong>
+                        {detectedInputs.bottom?.variableFullName || "variable"}
+                      </strong>{" "}
+                      {formData.bottomComparison || "=="}{" "}
+                      <strong>
+                        {formData.bottomComparisonValue || "valor"}
+                      </strong>
+                    </div>
+                  </>
+                ) : (
+                  detectedInputs.bottom && (
+                    <div className="text-sm text-muted-foreground border-l-4 border-green-500 pl-3 py-2 bg-green-50 dark:bg-green-950/20">
+                      <strong>Activador de rama:</strong> Este nodo se ejecuta
+                      cuando la señal llega por esta rama.
+                    </div>
+                  )
+                )}
               </div>
 
               {/* Información */}
@@ -1392,10 +1490,7 @@ export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
                     <strong>2 Salidas:</strong> Superior para resultado{" "}
                     <strong>true</strong>, inferior para <strong>false</strong>
                   </li>
-                  <li>
-                    El nodo espera recibir valores de ambas entradas (timeout:
-                    10 segundos)
-                  </li>
+                  <li>El nodo espera recibir valores de ambas entradas</li>
                   <li>
                     Evalúa ambas condiciones y aplica la lógica{" "}
                     {formData.joinMode === "and" ? "AND" : "OR"}

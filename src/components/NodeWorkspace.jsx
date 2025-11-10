@@ -134,16 +134,7 @@ function NodeWorkspaceContent({ userId }) {
   const [workflowName, setWorkflowName] = useState("Mi Workflow");
   const [validationErrors, setValidationErrors] = useState({});
   const [showValidation, setShowValidation] = useState(false);
-  const [simulationConfig, setSimulationConfig] = useState({
-    temperature: 25,
-    humidity: 60,
-    soilMoisture: 50,
-    co2: 400,
-    ph: 7.0,
-    hour: 14,
-    minute: 30,
-    season: "spring",
-  });
+  const [simulationConfig, setSimulationConfig] = useState({});
 
   // Hook del sidebar para controlar su estado
   const { setOpen } = useSidebar();
@@ -343,8 +334,51 @@ function NodeWorkspaceContent({ userId }) {
 
       // Si pasa todas las validaciones, agregar la conexión
       setEdges((eds) => addEdge(params, eds));
+
+      // Actualizar el nodo condition con la variable del trigger conectado
+      if (targetNode && targetNode.type === "condition" && sourceNode) {
+        // Extraer la variable del nodo fuente
+        let sourceVariable = null;
+        let sourceVariableFullName = null;
+
+        if (sourceNode.type === "trigger") {
+          sourceVariable =
+            sourceNode.data?.variable || sourceNode.data?.sensorType;
+          sourceVariableFullName =
+            sourceNode.data?.variableFullName || sourceNode.data?.label;
+        } else if (sourceNode.type === "action") {
+          sourceVariable =
+            sourceNode.data?.actuator || sourceNode.data?.targetWidget;
+          sourceVariableFullName = sourceNode.data?.label;
+        } else if (
+          sourceNode.type === "condition" ||
+          sourceNode.type === "join"
+        ) {
+          sourceVariable = sourceNode.data?.variable;
+          sourceVariableFullName = sourceNode.data?.variableFullName;
+        }
+
+        // Actualizar el nodo condition con la variable detectada
+        if (sourceVariable) {
+          setNodes((nds) =>
+            nds.map((node) => {
+              if (node.id === params.target) {
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    variable: sourceVariable,
+                    variableFullName: sourceVariableFullName,
+                  },
+                };
+              }
+              return node;
+            })
+          );
+        }
+      }
     },
-    [setEdges, edges, nodes, toast]
+    [setEdges, edges, nodes, toast, setNodes]
   );
 
   const onNodeDoubleClick = useCallback((_, node) => {
@@ -500,83 +534,561 @@ function NodeWorkspaceContent({ userId }) {
     );
   }, [setOpen, setNodes]);
 
-  const executeSimulation = useCallback(
-    (config) => {
-      if (isSimulating) return;
+  const executeSimulation = (config) => {
+    if (isSimulating) return;
 
-      setIsSimulating(true);
-      console.log("[v0] Starting simulation with config:", config);
+    setIsSimulating(true);
 
-      // Find all trigger nodes (starting points)
-      const triggerNodes = nodes.filter((n) => n.type === "trigger");
-      if (triggerNodes.length === 0) {
-        console.log("[v0] No trigger nodes found");
-        setIsSimulating(false);
-        return;
+    // Función auxiliar para evaluar una condición
+    const evaluateCondition = (node, config) => {
+      if (!node) return false;
+
+      const { comparison, value, variable, comparisonValue } = node.data;
+
+      // Buscar el valor simulado por ID del widget
+      let simulatedValue = null;
+      if (config[variable]) {
+        simulatedValue = config[variable].value;
+      } else {
+        simulatedValue = parseFloat(value) || 0;
       }
 
-      // Build execution path by following edges
-      const buildExecutionPath = (startNodeId) => {
-        const path = [startNodeId];
-        const visited = new Set([startNodeId]);
+      const targetValue = parseFloat(comparisonValue || value);
 
-        const traverse = (nodeId) => {
-          const outgoingEdges = edges.filter((e) => e.source === nodeId);
-          for (const edge of outgoingEdges) {
-            if (!visited.has(edge.target)) {
-              visited.add(edge.target);
-              path.push(edge.target);
-              traverse(edge.target);
-            }
-          }
-        };
+      // Evaluar la comparación
+      let result;
+      switch (comparison) {
+        case ">":
+          result = simulatedValue > targetValue;
+          break;
+        case "<":
+          result = simulatedValue < targetValue;
+          break;
+        case ">=":
+          result = simulatedValue >= targetValue;
+          break;
+        case "<=":
+          result = simulatedValue <= targetValue;
+          break;
+        case "==":
+        case "===":
+          result = simulatedValue === targetValue;
+          break;
+        case "!=":
+        case "!==":
+          result = simulatedValue !== targetValue;
+          break;
+        default:
+          result = false;
+      }
 
-        traverse(startNodeId);
-        return path;
+      return result;
+    };
+
+    // Función auxiliar para evaluar un nodo join
+    const evaluateJoin = (node, config) => {
+      if (!node) return false;
+
+      const {
+        joinMode,
+        topInputVariable,
+        topComparison,
+        topComparisonValue,
+        bottomInputVariable,
+        bottomComparison,
+        bottomComparisonValue,
+      } = node.data;
+
+      // Obtener las conexiones de entrada al JOIN
+      const incomingEdges = edges.filter((e) => e.target === node.id);
+      const topEdge = incomingEdges.find((e) => e.targetHandle === "input-top");
+      const bottomEdge = incomingEdges.find(
+        (e) => e.targetHandle === "input-bottom"
+      );
+
+      // Función para obtener el valor simulado según el ID del widget
+      const getSimulatedValue = (widgetId) => {
+        if (!widgetId) {
+          return null;
+        }
+
+        // Buscar directamente por ID del widget en la configuración
+        if (config[widgetId]) {
+          const value = config[widgetId].value;
+          return value;
+        }
+
+        return null;
       };
 
-      // Execute each trigger's path
-      triggerNodes.forEach((triggerNode, triggerIndex) => {
-        const executionPath = buildExecutionPath(triggerNode.id);
-        console.log("[v0] Execution path:", executionPath);
+      // Función para evaluar una comparación
+      const evaluateComparison = (variable, comparison, comparisonValue) => {
+        const simulatedValue = getSimulatedValue(variable);
+        if (simulatedValue === null || simulatedValue === undefined) {
+          return false;
+        }
 
-        // Animate through the path
-        executionPath.forEach((nodeId, index) => {
+        const targetValue = parseFloat(comparisonValue);
+        if (isNaN(targetValue)) {
+          return false;
+        }
+
+        let result;
+        switch (comparison) {
+          case ">":
+            result = simulatedValue > targetValue;
+            break;
+          case "<":
+            result = simulatedValue < targetValue;
+            break;
+          case ">=":
+            result = simulatedValue >= targetValue;
+            break;
+          case "<=":
+            result = simulatedValue <= targetValue;
+            break;
+          case "==":
+          case "===":
+            result = simulatedValue === targetValue;
+            break;
+          case "!=":
+          case "!==":
+            result = simulatedValue !== targetValue;
+            break;
+          default:
+            result = false;
+        }
+
+        return result;
+      };
+
+      // Evaluar entrada superior (top)
+      let topResult = true; // Por defecto true
+
+      if (topEdge) {
+        const sourceNode = nodes.find((n) => n.id === topEdge.source);
+
+        // Si topInputVariable es "condicion", significa que viene de una condición ya evaluada
+        if (
+          topInputVariable === "condicion" ||
+          topInputVariable === "condition"
+        ) {
+          topResult = true;
+        }
+        // Si viene de condition/join node, es TRUE porque ya pasó la evaluación
+        else if (
+          sourceNode?.type === "condition" ||
+          sourceNode?.type === "join"
+        ) {
+          topResult = true;
+        }
+        // Si viene de trigger y tiene condición configurada en el JOIN
+        else if (
+          sourceNode?.type === "trigger" &&
+          topComparison &&
+          topComparisonValue &&
+          topInputVariable
+        ) {
+          topResult = evaluateComparison(
+            topInputVariable,
+            topComparison,
+            topComparisonValue
+          );
+        }
+        // Cualquier otro caso (trigger sin condición, delay, action)
+        else {
+          topResult = true;
+        }
+      }
+
+      // Evaluar entrada inferior (bottom)
+      let bottomResult = true; // Por defecto true
+
+      if (bottomEdge) {
+        const sourceNode = nodes.find((n) => n.id === bottomEdge.source);
+
+        // Si bottomInputVariable es "condicion", significa que viene de una condición ya evaluada
+        if (
+          bottomInputVariable === "condicion" ||
+          bottomInputVariable === "condition"
+        ) {
+          bottomResult = true;
+        }
+        // Si viene de condition/join node, es TRUE porque ya pasó la evaluación
+        else if (
+          sourceNode?.type === "condition" ||
+          sourceNode?.type === "join"
+        ) {
+          bottomResult = true;
+        }
+        // Si viene de trigger y tiene condición configurada en el JOIN
+        else if (
+          sourceNode?.type === "trigger" &&
+          bottomComparison &&
+          bottomComparisonValue &&
+          bottomInputVariable
+        ) {
+          bottomResult = evaluateComparison(
+            bottomInputVariable,
+            bottomComparison,
+            bottomComparisonValue
+          );
+        }
+        // Cualquier otro caso (trigger sin condición, delay, action)
+        else {
+          bottomResult = true;
+        }
+      }
+
+      // Aplicar lógica AND u OR
+      const finalResult =
+        joinMode === "and"
+          ? topResult && bottomResult
+          : topResult || bottomResult;
+
+      return finalResult;
+    };
+
+    // Find all trigger nodes
+    const triggerNodes = nodes.filter((n) => n.type === "trigger");
+    if (triggerNodes.length === 0) {
+      setIsSimulating(false);
+      return;
+    }
+
+    // Build execution paths with support for JOIN nodes
+    const buildExecutionPaths = (startNodeId, config) => {
+      const paths = []; // Array de paths (cada path es un array de {nodeId, direction, fromHandle})
+
+      // Función recursiva para construir paths
+      const buildPath = (currentId, currentPath, visitedInPath) => {
+        if (visitedInPath.has(currentId)) return; // Evitar ciclos
+
+        const currentNode = nodes.find((n) => n.id === currentId);
+        if (!currentNode) return;
+
+        const newVisited = new Set(visitedInPath);
+        newVisited.add(currentId);
+
+        const outgoingEdges = edges.filter((e) => e.source === currentId);
+
+        switch (currentNode.type) {
+          case "trigger":
+          case "delay":
+          case "action": {
+            // Nodos simples sin ramificación
+            const newPath = [
+              ...currentPath,
+              { nodeId: currentId, direction: null, fromHandle: null },
+            ];
+
+            if (outgoingEdges.length === 0) {
+              // Nodo terminal
+              paths.push(newPath);
+            } else {
+              // Continuar con las salidas
+              outgoingEdges.forEach((edge) => {
+                buildPath(edge.target, newPath, newVisited);
+              });
+            }
+            break;
+          }
+
+          case "condition": {
+            // Evaluar la condición
+            const conditionResult = evaluateCondition(currentNode, config);
+            const direction = conditionResult ? "true" : "false";
+            const targetHandle = direction;
+
+            const newPath = [
+              ...currentPath,
+              { nodeId: currentId, direction, fromHandle: null },
+            ];
+
+            // Seguir solo la rama que corresponde
+            const targetEdge = outgoingEdges.find(
+              (e) => e.sourceHandle === targetHandle
+            );
+            if (targetEdge) {
+              buildPath(targetEdge.target, newPath, newVisited);
+            } else {
+              // No hay salida, terminar path
+              paths.push(newPath);
+            }
+            break;
+          }
+
+          case "join": {
+            // Para JOIN, necesitamos verificar cuántas entradas tiene
+            const incomingEdges = edges.filter((e) => e.target === currentId);
+
+            // El JOIN necesita esperar a que lleguen ambas entradas
+            // Por ahora, agregamos el nodo con marca de "espera"
+            const newPath = [
+              ...currentPath,
+              {
+                nodeId: currentId,
+                direction: null,
+                fromHandle: null,
+                waitForJoin: true,
+                incomingCount: incomingEdges.length,
+              },
+            ];
+
+            // Después de la espera, evaluar y continuar
+            const joinResult = evaluateJoin(currentNode, config);
+            const direction = joinResult ? "output-true" : "output-false";
+
+            // Agregar el nodo de evaluación después de la espera
+            const evaluatedPath = [
+              ...newPath,
+              {
+                nodeId: currentId,
+                direction,
+                fromHandle: null,
+                isJoinEvaluation: true,
+              },
+            ];
+
+            // Seguir con la salida correspondiente
+            const targetEdge = outgoingEdges.find(
+              (e) => e.sourceHandle === direction
+            );
+            if (targetEdge) {
+              buildPath(targetEdge.target, evaluatedPath, newVisited);
+            } else {
+              paths.push(evaluatedPath);
+            }
+            break;
+          }
+
+          default: {
+            const newPath = [
+              ...currentPath,
+              { nodeId: currentId, direction: null, fromHandle: null },
+            ];
+
+            if (outgoingEdges.length === 0) {
+              paths.push(newPath);
+            } else {
+              outgoingEdges.forEach((edge) => {
+                buildPath(edge.target, newPath, newVisited);
+              });
+            }
+            break;
+          }
+        }
+      };
+
+      buildPath(startNodeId, [], new Set());
+      return paths;
+    };
+
+    // Execute simulation with support for multiple paths reaching JOIN nodes
+    const allPaths = [];
+    triggerNodes.forEach((triggerNode) => {
+      const paths = buildExecutionPaths(triggerNode.id, config);
+      paths.forEach((path) =>
+        allPaths.push({ path, triggerId: triggerNode.id })
+      );
+    });
+
+    if (allPaths.length === 0) {
+      setIsSimulating(false);
+      return;
+    }
+
+    const STEP_DURATION = 1000;
+
+    // Limpiar todos los paths (combinar waitForJoin + isJoinEvaluation)
+    const cleanedPaths = allPaths.map(({ path, triggerId }) => {
+      const cleanedPath = [];
+      let skipNext = false;
+
+      path.forEach((item, index) => {
+        if (skipNext) {
+          skipNext = false;
+          return;
+        }
+
+        if (item.waitForJoin) {
+          const nextItem = path[index + 1];
+          if (nextItem && nextItem.isJoinEvaluation) {
+            cleanedPath.push({
+              ...item,
+              direction: nextItem.direction,
+              combinedJoin: true,
+            });
+            skipNext = true;
+          } else {
+            cleanedPath.push(item);
+          }
+        } else if (!item.isJoinEvaluation) {
+          cleanedPath.push(item);
+        }
+      });
+
+      return { path: cleanedPath, triggerId };
+    });
+
+    // Encontrar todos los nodos JOIN en todos los paths
+    const joinNodeIds = new Set();
+    cleanedPaths.forEach(({ path }) => {
+      path.forEach((item) => {
+        if (item.waitForJoin || item.combinedJoin) {
+          joinNodeIds.add(item.nodeId);
+        }
+      });
+    });
+
+    // Usar el primer path como referencia
+    const cleanedPath = cleanedPaths[0].path;
+    let currentTime = 0;
+
+    cleanedPath.forEach((pathItem, stepIndex) => {
+      const { nodeId, direction, waitForJoin, combinedJoin } = pathItem;
+
+      setTimeout(() => {
+        if (waitForJoin || combinedJoin) {
+          // JOIN node - mostrar espera primero
+          setNodes((nds) =>
+            nds.map((node) => ({
+              ...node,
+              data: {
+                ...node.data,
+                isWaiting: node.id === nodeId ? true : false,
+                isExecuting: node.id === nodeId ? true : false,
+                executionDirection: null,
+              },
+            }))
+          );
+
+          // Animar TODAS las edges de entrada del JOIN
+          const incomingEdges = edges.filter((e) => e.target === nodeId);
+
+          if (incomingEdges.length > 0) {
+            // Obtener IDs de los edges de entrada
+            const incomingEdgeIds = incomingEdges.map((e) => e.id);
+
+            setEdges((eds) =>
+              eds.map((edge) => ({
+                ...edge,
+                animated: incomingEdgeIds.includes(edge.id),
+                style: incomingEdgeIds.includes(edge.id)
+                  ? { stroke: "#22c55e", strokeWidth: 3 }
+                  : {},
+              }))
+            );
+          }
+
+          // Después de 1 segundo, evaluar el JOIN
           setTimeout(() => {
             setNodes((nds) =>
               nds.map((node) => ({
                 ...node,
                 data: {
                   ...node.data,
-                  isExecuting: node.id === nodeId,
+                  isWaiting: node.id === nodeId ? false : node.data.isWaiting,
+                  isExecuting: node.id === nodeId ? true : false,
+                  executionDirection: node.id === nodeId ? direction : null,
                 },
               }))
             );
 
-            // Clear execution state after animation
-            if (index === executionPath.length - 1) {
-              setTimeout(() => {
-                setNodes((nds) =>
-                  nds.map((node) => ({
-                    ...node,
-                    data: {
-                      ...node.data,
-                      isExecuting: false,
-                    },
-                  }))
-                );
-                if (triggerIndex === triggerNodes.length - 1) {
-                  setIsSimulating(false);
-                  console.log("[v0] Simulation complete");
-                }
-              }, 1000);
+            // Limpiar animación de edge de entrada
+            setEdges((eds) =>
+              eds.map((edge) => ({
+                ...edge,
+                animated: false,
+                style: {},
+              }))
+            );
+          }, STEP_DURATION);
+        } else {
+          // Nodo normal
+          setNodes((nds) =>
+            nds.map((node) => ({
+              ...node,
+              data: {
+                ...node.data,
+                isExecuting: node.id === nodeId ? true : false,
+                executionDirection: node.id === nodeId ? direction : null,
+                isWaiting: false,
+              },
+            }))
+          );
+
+          // Animar el edge que conecta al nodo anterior
+          if (stepIndex > 0) {
+            const prevNodeId = cleanedPath[stepIndex - 1].nodeId;
+            const prevDirection = cleanedPath[stepIndex - 1].direction;
+            let targetEdge = null;
+
+            const prevNode = nodes.find((n) => n.id === prevNodeId);
+
+            if (prevNode?.type === "condition" || prevNode?.type === "join") {
+              targetEdge = edges.find(
+                (e) =>
+                  e.source === prevNodeId &&
+                  e.target === nodeId &&
+                  e.sourceHandle === prevDirection
+              );
+            } else {
+              targetEdge = edges.find(
+                (e) => e.source === prevNodeId && e.target === nodeId
+              );
             }
-          }, triggerIndex * executionPath.length * 1000 + index * 1000);
-        });
-      });
-    },
-    [nodes, edges, isSimulating, setNodes]
-  );
+
+            if (targetEdge) {
+              setEdges((eds) =>
+                eds.map((edge) => ({
+                  ...edge,
+                  animated: edge.id === targetEdge.id,
+                  style:
+                    edge.id === targetEdge.id
+                      ? { stroke: "#22c55e", strokeWidth: 3 }
+                      : {},
+                }))
+              );
+            }
+          }
+        }
+
+        // Limpiar al final del path
+        if (stepIndex === cleanedPath.length - 1) {
+          setTimeout(
+            () => {
+              setNodes((nds) =>
+                nds.map((node) => ({
+                  ...node,
+                  data: {
+                    ...node.data,
+                    isExecuting: false,
+                    executionDirection: null,
+                    isWaiting: false,
+                  },
+                }))
+              );
+              setEdges((eds) =>
+                eds.map((edge) => ({
+                  ...edge,
+                  animated: false,
+                  style: {},
+                }))
+              );
+              setIsSimulating(false);
+            },
+            waitForJoin || combinedJoin ? STEP_DURATION * 2 : STEP_DURATION
+          );
+        }
+      }, currentTime);
+
+      // Aumentar tiempo para el siguiente paso
+      // JOIN nodes toman el doble de tiempo (espera + evaluación)
+      currentTime +=
+        waitForJoin || combinedJoin ? STEP_DURATION * 2 : STEP_DURATION;
+    });
+  };
 
   const handleExecuteClick = () => {
     setIsSimConfigOpen(true);
@@ -592,7 +1104,7 @@ function NodeWorkspaceContent({ userId }) {
     const errors = [];
 
     switch (node.type) {
-      case "trigger":
+      case "trigger": {
         // Validar que tenga configuración básica
         if (node.data.sensorType === "schedule") {
           if (!node.data.hour || !node.data.minute) {
@@ -613,8 +1125,9 @@ function NodeWorkspaceContent({ userId }) {
           errors.push("El trigger debe conectarse a otro nodo");
         }
         break;
+      }
 
-      case "condition":
+      case "condition": {
         // Validar que tenga configuración
         if (node.data.conditionType === "comparison") {
           if (
@@ -644,8 +1157,9 @@ function NodeWorkspaceContent({ userId }) {
           errors.push("La condición debe conectarse a otro nodo");
         }
         break;
+      }
 
-      case "action":
+      case "action": {
         // Validar que tenga actuador seleccionado
         if (!node.data.targetWidget && !node.data.actuator) {
           errors.push("Falta seleccionar el actuador");
@@ -673,8 +1187,9 @@ function NodeWorkspaceContent({ userId }) {
           errors.push("La acción debe recibir una conexión de entrada");
         }
         break;
+      }
 
-      case "delay":
+      case "delay": {
         // Validar que tenga duración
         if (!node.data.delayDuration) {
           errors.push("Falta configurar la duración");
@@ -689,8 +1204,9 @@ function NodeWorkspaceContent({ userId }) {
           errors.push("El delay debe conectarse a otro nodo");
         }
         break;
+      }
 
-      case "join":
+      case "join": {
         // Validar que tenga ambas entradas conectadas
         const topInput = allEdges.find(
           (edge) => edge.target === node.id && edge.targetHandle === "input-top"
@@ -718,6 +1234,7 @@ function NodeWorkspaceContent({ userId }) {
           errors.push("El join debe conectarse a otro nodo");
         }
         break;
+      }
 
       default:
         break;
@@ -1020,6 +1537,7 @@ function NodeWorkspaceContent({ userId }) {
         onClose={() => setIsSimConfigOpen(false)}
         onStart={executeSimulation}
         currentConfig={simulationConfig}
+        selectedDevice={selectedDevice}
       />
     </div>
   );
