@@ -404,6 +404,23 @@ export const updateDeviceLocation = (dId, locationData) => {
   };
 };
 
+export const loginWithGoogle = (idToken) => {
+  const controller = loadAbort();
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL + "/auth/google",
+        { credential: idToken },
+        { signal: controller.signal }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 /**********
  * FUNCTIONS
  ************/

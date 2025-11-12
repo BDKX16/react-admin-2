@@ -892,6 +892,50 @@ export const createPayment = (paymentData) => {
 };
 
 /**********
+ * GOOGLE AUTH
+ ************/
+
+// GET /users/auth/status - Get authentication status
+export const getAuthStatus = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/auth/status", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+// DELETE /users/auth/google/unlink - Unlink Google account
+export const unlinkGoogleAccount = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .delete(import.meta.env.VITE_BASE_URL + "/auth/google/unlink", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+/**********
  * FUNCTIONS
  ************/
 

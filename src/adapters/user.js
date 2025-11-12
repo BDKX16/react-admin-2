@@ -3,9 +3,16 @@ const createUserAdapter = (user) => ({
   token: user.data.token,
   email: user.data.userData.email,
   confirmed: user.data.userData.confirmed,
-  role: user.data.userData.role,
   id: user.data.userData._id,
-  plan: user.data.userData.plan || "free", // Agregar plan del usuario
+
+  // Subscription data
+  plan: user.data.userData.plan || "free",
+
+  // Login method (normal, google, etc.)
+  loginMethod: user.data.userData.loginMethod || "normal",
+
+  // Google Auth data (if exists)
+  googleAuth: user.data.userData.googleAuth || null,
 });
 
 const createUserManagmentAdapter = (user) => ({
