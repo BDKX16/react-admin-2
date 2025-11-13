@@ -22,6 +22,40 @@ const LoginFormulario = () => {
   const { setUserData } = useAuth();
 
   useEffect(() => {
+    // Check if we're returning from Google OAuth redirect
+    const handleGoogleCallback = async () => {
+      const idToken = googleAuthService.handleRedirectCallback();
+      if (idToken) {
+        console.log("✅ Token de Google recibido desde redirect");
+        setGoogleLoading(true);
+
+        try {
+          const result = await callEndpoint(loginWithGoogle(idToken));
+          if (result.error === true) {
+            console.error("❌ Google login falló:", result);
+            alert("Error al iniciar sesión con Google. Inténtalo de nuevo.");
+            setGoogleLoading(false);
+            return;
+          }
+
+          console.log("✅ Login con Google exitoso");
+          setUserData(createUserAdapter(result));
+
+          // Redirect to saved location or dashboard
+          const redirectPath =
+            sessionStorage.getItem("redirectAfterLogin") || "/dashboard";
+          sessionStorage.removeItem("redirectAfterLogin");
+          window.location.href = redirectPath;
+        } catch (error) {
+          console.error("❌ Error procesando login de Google:", error);
+          alert("Error al procesar el inicio de sesión");
+          setGoogleLoading(false);
+        }
+      }
+    };
+
+    handleGoogleCallback();
+
     // Inicializar Google Identity Services
     const initializeGoogle = async () => {
       try {
@@ -35,7 +69,7 @@ const LoginFormulario = () => {
     if (window.google?.accounts?.id) {
       initializeGoogle();
     }
-  }, []);
+  }, [callEndpoint, setUserData]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();

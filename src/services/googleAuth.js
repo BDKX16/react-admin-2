@@ -49,21 +49,57 @@ class GoogleAuthService {
     console.log("Credential received:", response);
   }
 
+  /**
+   * Sign in with redirect flow (works in in-app browsers)
+   */
+  signInWithRedirect() {
+    const redirectUri = window.location.origin + "/login";
+    const scope = "email profile openid";
+    const responseType = "token id_token";
+    const nonce = Math.random().toString(36).substring(7);
+
+    // Store current location to redirect back after login
+    sessionStorage.setItem("redirectAfterLogin", window.location.pathname);
+
+    const authUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${this.clientId}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=${encodeURIComponent(responseType)}` +
+      `&scope=${encodeURIComponent(scope)}` +
+      `&nonce=${nonce}` +
+      `&prompt=select_account`;
+
+    window.location.href = authUrl;
+  }
+
+  /**
+   * Handle redirect callback and extract token
+   */
+  handleRedirectCallback() {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const idToken = params.get("id_token");
+
+    if (idToken) {
+      // Clear hash from URL
+      window.history.replaceState(null, "", window.location.pathname);
+      return idToken;
+    }
+
+    return null;
+  }
+
   async signIn() {
     if (!this.isInitialized) {
       await this.initialize();
     }
 
-    // If in-app browser, show message to open in regular browser
+    // Use redirect flow for in-app browsers
     if (this.isInAppBrowser()) {
-      const message =
-        "Para iniciar sesión con Google, abrí este sitio en tu navegador principal:\n\n" +
-        "1. Tocá los tres puntos (⋯) arriba a la derecha\n" +
-        "2. Seleccioná 'Abrir en navegador' o 'Open in Chrome/Safari'\n\n" +
-        "Los navegadores de Instagram/Facebook bloquean el inicio de sesión de Google por seguridad.";
-
-      alert(message);
-      throw new Error("In-app browser detected");
+      console.log("📱 In-app browser detected, using redirect flow");
+      this.signInWithRedirect();
+      return new Promise(() => {}); // Never resolves as we redirect
     }
 
     return new Promise((resolve, reject) => {
