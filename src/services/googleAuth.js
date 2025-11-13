@@ -4,6 +4,14 @@ class GoogleAuthService {
     this.isInitialized = false;
   }
 
+  /**
+   * Check if running in an in-app browser (Instagram, Facebook, etc.)
+   */
+  isInAppBrowser() {
+    const ua = navigator.userAgent || navigator.vendor;
+    return /Instagram|FBAN|FBAV/i.test(ua);
+  }
+
   async initialize() {
     return new Promise((resolve, reject) => {
       // Verificar si Google Identity Services está disponible
@@ -44,6 +52,18 @@ class GoogleAuthService {
   async signIn() {
     if (!this.isInitialized) {
       await this.initialize();
+    }
+
+    // If in-app browser, show message to open in regular browser
+    if (this.isInAppBrowser()) {
+      const message =
+        "Para iniciar sesión con Google, abrí este sitio en tu navegador principal:\n\n" +
+        "1. Tocá los tres puntos (⋯) arriba a la derecha\n" +
+        "2. Seleccioná 'Abrir en navegador' o 'Open in Chrome/Safari'\n\n" +
+        "Los navegadores de Instagram/Facebook bloquean el inicio de sesión de Google por seguridad.";
+
+      alert(message);
+      throw new Error("In-app browser detected");
     }
 
     return new Promise((resolve, reject) => {
