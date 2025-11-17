@@ -108,7 +108,7 @@ export default function ClaimDevice() {
             <KeyRound className="h-6 w-6 text-primary" />
           </div>
           <CardTitle className="text-center text-2xl">
-            Reclamar dispositivo
+            Vincular dispositivo
           </CardTitle>
           <CardDescription className="text-center">
             Vincula tu equipo Confi a tu cuenta con el serial del QR
@@ -172,7 +172,7 @@ export default function ClaimDevice() {
                   Reclamando dispositivo...
                 </>
               ) : (
-                "Reclamar dispositivo"
+                "Vincular dispositivo"
               )}
             </Button>
 
