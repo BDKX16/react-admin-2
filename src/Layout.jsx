@@ -11,6 +11,7 @@ import PaymentPending from "./pages/PaymentPending.jsx";
 import PaymentSuccess from "./pages/PaymentSuccess.jsx";
 import PaymentError from "./pages/PaymentError.jsx";
 import TransferInfo from "./pages/TransferInfo.jsx";
+import ClaimDevice from "./pages/ClaimDevice.jsx";
 import { useSelector } from "react-redux";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -40,6 +41,11 @@ const Layout = () => {
         <Route
           path="/confirm-email"
           element={<ConfirmEmailChange />}
+          caseSensitive={false}
+        ></Route>
+        <Route
+          path="/claim"
+          element={<ClaimDevice />}
           caseSensitive={false}
         ></Route>
         <Route

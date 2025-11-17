@@ -83,7 +83,13 @@ const LoginFormulario = () => {
       return;
     } else {
       setUserData(createUserAdapter(result));
-      window.location.href = "/dashboard";
+
+      // Redirect to saved location or dashboard
+      const redirectPath =
+        sessionStorage.getItem("redirectAfterLogin") || "/dashboard";
+      console.log("✅ Login exitoso, redirigiendo a:", redirectPath);
+      sessionStorage.removeItem("redirectAfterLogin");
+      window.location.href = redirectPath;
     }
   };
 
@@ -107,7 +113,12 @@ const LoginFormulario = () => {
 
       console.log("✅ Login con Google exitoso");
       setUserData(createUserAdapter(result));
-      window.location.href = "/dashboard";
+
+      // Redirect to saved location or dashboard
+      const redirectPath =
+        sessionStorage.getItem("redirectAfterLogin") || "/dashboard";
+      sessionStorage.removeItem("redirectAfterLogin");
+      window.location.href = redirectPath;
     } catch (error) {
       console.error("❌ Error en Google login:", error);
 
