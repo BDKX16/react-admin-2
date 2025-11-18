@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// import UnifiedChartsSection from "@/components/dashboard/unified-charts-section";
+import UnifiedChartsSection from "@/components/dashboard/unified-charts-section";
 import DeviceOverviewGrid from "@/components/dashboard/device-overview-grid";
 import {
   OTAUpdateModal,
@@ -17,7 +17,7 @@ import useDevices from "../hooks/useDevices";
 
 export default function DashboardPage() {
   const { devicesArr } = useDevices();
-  // const [timeRange] = useState("24h");
+  const [timeRange] = useState("24h");
   const [otaModalOpen, setOtaModalOpen] = useState(false);
   const [allDevicesOTA, setAllDevicesOTA] = useState(null);
   const [selectedOTADevice, setSelectedOTADevice] = useState(null);
@@ -31,13 +31,15 @@ export default function DashboardPage() {
         setAllDevicesOTA(response.data);
 
         // Si hay algún dispositivo con actualización disponible, mostrar modal
-        const deviceWithUpdate = response.data.devices.find((d) =>
-          shouldShowOTAModal(d)
-        );
+        if (response.data.devices && Array.isArray(response.data.devices)) {
+          const deviceWithUpdate = response.data.devices.find((d) =>
+            shouldShowOTAModal(d)
+          );
 
-        if (deviceWithUpdate) {
-          setSelectedOTADevice(deviceWithUpdate);
-          setOtaModalOpen(true);
+          if (deviceWithUpdate) {
+            setSelectedOTADevice(deviceWithUpdate);
+            setOtaModalOpen(true);
+          }
         }
       }
     } catch (error) {
@@ -91,7 +93,7 @@ export default function DashboardPage() {
       <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <DeviceOverviewGrid devices={devicesArr} />
 
-        {/* <UnifiedChartsSection timeRange={timeRange} /> */}
+        <UnifiedChartsSection timeRange={timeRange} />
       </div>
 
       {/* Modal de actualizaciones OTA */}

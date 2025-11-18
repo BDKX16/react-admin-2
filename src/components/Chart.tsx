@@ -334,6 +334,20 @@ export default function Chart({ device }) {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Función helper para obtener color basado en widget.name
+  const getColorBySensorName = (sensorName) => {
+    // Mapeo de nombres de sensores a variables CSS
+    const colorMapping = {
+      "Temperatura": "hsl(var(--chart-temperature))",
+      "Humedad Ambiente": "hsl(var(--chart-humidity))",
+      "Humedad del Suelo": "hsl(var(--chart-soil-humidity))",
+      "pH": "hsl(var(--chart-ph))",
+      "CO2": "hsl(var(--chart-carbon-dioxide))",
+    };
+
+    return colorMapping[sensorName] || null;
+  };
+
   // Generar configuración dinámica del gráfico
   const chartConfig = useMemo(() => {
     const config = {};
@@ -369,11 +383,17 @@ export default function Chart({ device }) {
       const isActuator = widget.isActuator;
       const chartType = isActuator ? "area" : "natural";
 
-      // Colores específicos para ciertos tipos de variables
-      let color = colorIndex[index % colorIndex.length];
+      // Intentar obtener color específico basado en widget.name
+      let color = getColorBySensorName(widget.name);
+      
+      // Si no hay color específico, usar colores por defecto
+      if (!color) {
+        color = colorIndex[index % colorIndex.length];
+      }
+
       let fillColor = isActuator ? "rgba(255, 235, 59, 0)" : undefined;
 
-      // Asignar color amarillo específico para luces
+      // Asignar color amarillo específico para luces (actuadores)
       const variableName =
         widget.variableFullName?.toLowerCase() ||
         widget.variable?.toLowerCase() ||

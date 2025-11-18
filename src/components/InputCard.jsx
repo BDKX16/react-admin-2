@@ -199,6 +199,7 @@ export const InputCard = ({ widget, dId, userId }) => {
               color={widget.color}
               variable={widget.variable}
               dId={dId}
+              sensorName={widget.name}
             />
           </div>
         </div>

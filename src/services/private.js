@@ -94,6 +94,37 @@ export const getChartData = (dId, timeRange = "1day", variables = null) => {
   };
 };
 
+export const getMultiDeviceChartData = (variables, timeRange = "24h") => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  // Convertir array de variables a string separado por comas
+  const variablesParam = Array.isArray(variables)
+    ? variables.join(",")
+    : variables;
+
+  headers.params = { variables: variablesParam, timeRange };
+
+  return {
+    call: axios
+      .get(
+        import.meta.env.VITE_BASE_URL + "/multi-device-chart-data",
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 export const getInitialDevices = () => {
   const controller = loadAbort();
 
@@ -213,6 +244,28 @@ export const getNotifications = () => {
   return {
     call: axios
       .get(import.meta.env.VITE_BASE_URL + "/notifications", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const getRecentEvents = (limit = 10) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+
+  headers.params = { limit };
+
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/recent-events", headers, {
         signal: controller.signal,
       })
       .catch((error) => {

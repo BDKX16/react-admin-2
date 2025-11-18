@@ -68,8 +68,8 @@ function RadialGauge({
   const percentage = ((value - min) / (max - min)) * 100;
   const normalizedPercentage = Math.max(0, Math.min(100, percentage));
 
-  let color = "#10b981"; // Green - optimal
-  let bgColor = "rgba(16, 185, 129, 0.1)";
+  let color = "#4CB649"; // Brand green-bright - optimal
+  let bgColor = "rgba(76, 182, 73, 0.1)";
 
   // Si está offline, usar colores grises
   if (!isOnline) {
@@ -78,21 +78,21 @@ function RadialGauge({
   } else {
     if (label === "Temperatura") {
       if (value < 18 || value > 28) {
-        color = "#f59e0b"; // Amber - warning
-        bgColor = "rgba(245, 158, 11, 0.1)";
+        color = "#248A49"; // Brand green-mid - warning
+        bgColor = "rgba(36, 138, 73, 0.1)";
       }
       if (value < 15 || value > 32) {
-        color = "#ef4444"; // Red - critical
-        bgColor = "rgba(239, 68, 68, 0.1)";
+        color = "#0A5F3C"; // Brand green-dark - critical
+        bgColor = "rgba(10, 95, 60, 0.1)";
       }
     } else if (label === "Humedad" || label === "Humedad Suelo") {
       if (value < 40 || value > 80) {
-        color = "#f59e0b";
-        bgColor = "rgba(245, 158, 11, 0.1)";
+        color = "#248A49";
+        bgColor = "rgba(36, 138, 73, 0.1)";
       }
       if (value < 30 || value > 90) {
-        color = "#ef4444";
-        bgColor = "rgba(239, 68, 68, 0.1)";
+        color = "#0A5F3C";
+        bgColor = "rgba(10, 95, 60, 0.1)";
       }
     }
   }
