@@ -23,6 +23,7 @@ import Notifications from "./pages/Notifications.jsx";
 import RuleEngine from "./pages/RuleEngine.jsx";
 import DeviceConfig from "./pages/DeviceConfig.jsx";
 import AutomationEditor from "./pages/AutomationEditor.jsx";
+import MainDashboard from "./pages/MainDashboard.jsx";
 const Layout = () => {
   const userState = useSelector((state) => state.user);
   return (
@@ -98,8 +99,13 @@ const Layout = () => {
                     <SidebarProvider>
                       <AppSidebar>
                         <Routes>
+                          <Route path={`/`} element={<MainDashboard />}></Route>
                           <Route
                             path={`/dashboard`}
+                            element={<MainDashboard />}
+                          ></Route>
+                          <Route
+                            path={`/device`}
                             element={<Dashboard />}
                           ></Route>
                           <Route
@@ -130,7 +136,10 @@ const Layout = () => {
                             path={`/payment-history`}
                             element={<PaymentHistory />}
                           ></Route>
-                          <Route path={`/*`} element={<Dashboard />}></Route>
+                          <Route
+                            path={`/*`}
+                            element={<MainDashboard />}
+                          ></Route>
                         </Routes>
                       </AppSidebar>
                     </SidebarProvider>

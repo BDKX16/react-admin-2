@@ -43,6 +43,11 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
   const { recived, setSend } = useMqtt();
   const { isPro } = useSubscription();
 
+  // Reset value when device changes
+  React.useEffect(() => {
+    setCurrentValue(null);
+  }, [dId]);
+
   // Verificar si el usuario es Pro
   const isProPlan = isPro();
 

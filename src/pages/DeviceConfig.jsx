@@ -25,8 +25,9 @@ import useFetchAndLoad from "../hooks/useFetchAndLoad";
 import { deleteDevice, updateDeviceConfig } from "../services/private";
 import useDevices from "../hooks/useDevices";
 import { LocationConfigModal } from "../components/automation/LocationConfigModal";
-import { MapPin } from "lucide-react";
+import { MapPin, Download } from "lucide-react";
 import { updateDeviceLocation } from "../services/public";
+import { getDeviceOTAStatus } from "../services/private";
 
 const DeviceConfig = () => {
   const { selectedDevice } = useDevices();
@@ -35,6 +36,8 @@ const DeviceConfig = () => {
   const [deviceName, setDeviceName] = useState("");
   const [configs, setConfigs] = useState([]);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [otaStatus, setOtaStatus] = useState(null);
+  const [loadingOTA, setLoadingOTA] = useState(false);
   useEffect(() => {
     if (selectedDevice) {
       setDeviceName(selectedDevice.name);
@@ -49,8 +52,29 @@ const DeviceConfig = () => {
             };
           })
       );
+
+      // Cargar estado OTA
+      loadOTAStatus();
     }
   }, [selectedDevice]);
+
+  const loadOTAStatus = async () => {
+    if (!selectedDevice?.dId) return;
+
+    setLoadingOTA(true);
+    try {
+      const response = await callEndpoint(
+        getDeviceOTAStatus(selectedDevice.dId)
+      );
+      if (!response.error && response.data) {
+        setOtaStatus(response.data);
+      }
+    } catch (error) {
+      console.error("Error loading OTA status:", error);
+    } finally {
+      setLoadingOTA(false);
+    }
+  };
 
   const handleSave = async () => {
     const toSend = {
@@ -168,6 +192,68 @@ const DeviceConfig = () => {
         </Label>
       </div>
 
+      {/* Sección de Firmware OTA */}
+      <div className="flex flex-col items-start gap-3 mb-6">
+        <Label className="font-bold">Versión de Firmware</Label>
+        {loadingOTA ? (
+          <div className="p-3 bg-muted rounded-lg w-full">
+            <span className="text-sm text-muted-foreground">
+              Cargando información OTA...
+            </span>
+          </div>
+        ) : otaStatus ? (
+          <div className="p-3 bg-muted rounded-lg w-full">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium">
+                  Versión actual: {otaStatus.currentVersion || "Desconocida"}
+                </span>
+                {otaStatus.updateAvailable && otaStatus.availableFirmware && (
+                  <span className="text-xs text-green-600 dark:text-green-400">
+                    Nueva versión {otaStatus.availableFirmware.version}{" "}
+                    disponible ({otaStatus.availableFirmware.fileSizeMB} MB)
+                    {otaStatus.availableFirmware.isCritical &&
+                      " - Actualización crítica"}
+                  </span>
+                )}
+                {otaStatus.ongoingUpdate && (
+                  <span className="text-xs text-blue-600 dark:text-blue-400">
+                    Actualización en progreso: {otaStatus.ongoingUpdate.status}{" "}
+                    ({otaStatus.ongoingUpdate.progress}%)
+                  </span>
+                )}
+              </div>
+              {otaStatus.updateAvailable && !otaStatus.ongoingUpdate && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => (window.location.href = "/dashboard")}
+                >
+                  <Download className="h-4 w-4" />
+                  Ver actualización
+                </Button>
+              )}
+            </div>
+            {otaStatus.availableFirmware?.changelog && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {otaStatus.availableFirmware.changelog}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="p-3 bg-muted rounded-lg w-full">
+            <span className="text-sm text-muted-foreground">
+              Información de firmware no disponible
+            </span>
+          </div>
+        )}
+        <Label className="text-gray-500">
+          El dispositivo se actualiza automáticamente cuando detecta una nueva
+          versión disponible.
+        </Label>
+      </div>
+
       <div className=" mb-10">
         <div className="flex items-center font-bold justify-between">
           <Label className="mr-4">Guardar datos de sensores:</Label>
@@ -215,6 +301,7 @@ const DeviceConfig = () => {
               <SelectItem value="5">Ciclos</SelectItem>
             </SelectContent>
           </Select>
+
           <Label className="text-gray-500">
             Puedes configurar el estado al encender el dispositivo. Ante cortes
             de luz el dispositivo iniciara en este modo.

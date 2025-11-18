@@ -29,6 +29,11 @@ export const InputCard = ({ widget, dId, userId }) => {
   const { recived, setSend } = useMqtt();
   const [isCalibrating, setIsCalibrating] = React.useState(false);
 
+  // Reset value when device changes
+  React.useEffect(() => {
+    setValue(null);
+  }, [dId]);
+
   React.useEffect(() => {
     if (recived) {
       //console.log(recived);

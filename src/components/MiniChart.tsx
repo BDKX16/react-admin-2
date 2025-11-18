@@ -9,9 +9,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-import {
-  createChartDateTimeAdapter,
-} from "@/adapters/chart-data";
+import { createChartDateTimeAdapter } from "@/adapters/chart-data";
 
 import { getChartsData } from "../services/private";
 
@@ -30,6 +28,9 @@ export default function MiniChart({ color, variable, dId }) {
   const { loading, callEndpoint } = useFetchAndLoad();
 
   useEffect(() => {
+    // Reset chart data when device changes
+    setChartData(null);
+
     const fetchData = async () => {
       var timeAgo = 2000; //9000;
       const data = await callEndpoint(getChartsData(dId, variable, timeAgo));
@@ -46,7 +47,7 @@ export default function MiniChart({ color, variable, dId }) {
       );
     };
     fetchData();
-  }, []);
+  }, [dId, variable]);
 
   const combineArrays = (array, threshold = 3000000) => {
     //golden ratio: 7000000

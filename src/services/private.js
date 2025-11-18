@@ -936,6 +936,99 @@ export const unlinkGoogleAccount = () => {
 };
 
 /**********
+ * OTA UPDATES
+ ************/
+
+export const getDeviceOTAStatus = (dId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(
+        import.meta.env.VITE_BASE_URL + `/device/${dId}/ota/status`,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const getAllDevicesOTAStatus = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(import.meta.env.VITE_BASE_URL + "/devices/ota/status", headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const triggerDeviceOTAUpdate = (dId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL + `/device/${dId}/ota/update`,
+        {},
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const cancelDeviceOTAUpdate = (dId) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .delete(
+        import.meta.env.VITE_BASE_URL + `/device/${dId}/ota/update`,
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+/**********
  * FUNCTIONS
  ************/
 

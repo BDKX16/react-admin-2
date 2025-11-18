@@ -24,7 +24,12 @@ export function AppSidebar({ children }) {
   // Generar breadcrumbs jerárquicos
   const getBreadcrumbs = (pathname) => {
     const breadcrumbConfig = {
+      "/": [{ title: "Dashboard", href: "/dashboard" }],
       "/dashboard": [{ title: "Dashboard", href: "/dashboard" }],
+      "/device": [
+        { title: "Dashboard", href: "/dashboard" },
+        { title: "Dispositivo", href: "/device" },
+      ],
       "/charts": [
         { title: "Dashboard", href: "/dashboard" },
         { title: "Gráficos", href: "/charts" },
@@ -56,7 +61,7 @@ export function AppSidebar({ children }) {
       <SidebarLeft />
       <SidebarInset>
         {!isAutomationEditor && (
-          <header className="sticky top-0 flex h-14 shrink-0 items-center gap-2 bg-background">
+          <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background">
             <div className="flex flex-1 items-center gap-2 px-3">
               <SidebarTrigger />
               <Separator orientation="vertical" className="mr-2 h-4" />

@@ -44,8 +44,12 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "Dispositivo",
+          title: "Inicio",
           url: "/dashboard",
+        },
+        {
+          title: "Dispositivo",
+          url: "/device",
         },
         {
           title: "Graficos",
@@ -125,7 +129,7 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "Dispositivo",
+          title: "Inicio",
           url: "/dashboard",
         },
       ],

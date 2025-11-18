@@ -13,6 +13,7 @@ export const DevicesProvider = ({ children }) => {
   const [devicesArr, setDevicesArr] = useState([]);
   const [reload, setReload] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState(null);
+  const [isSwitchingDevice, setIsSwitchingDevice] = useState(false);
   const { auth } = useAuth();
   const { closeSnackbar } = useSnackbar();
 
@@ -47,6 +48,13 @@ export const DevicesProvider = ({ children }) => {
     }
   }, [reload]);
 
+  // Reset isSwitchingDevice when selectedDevice changes
+  useEffect(() => {
+    if (selectedDevice && !selectedDevice.error) {
+      setIsSwitchingDevice(false);
+    }
+  }, [selectedDevice]);
+
   const getDevices = async () => {
     const result = await callEndpoint(getInitialDevices());
     if (!result || Object.keys(result)?.length === 0) {
@@ -70,6 +78,8 @@ export const DevicesProvider = ({ children }) => {
     selectedDevice,
     setReload,
     loading,
+    isSwitchingDevice,
+    setIsSwitchingDevice,
   };
 
   return (
