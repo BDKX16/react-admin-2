@@ -338,11 +338,11 @@ export default function Chart({ device }) {
   const getColorBySensorName = (sensorName) => {
     // Mapeo de nombres de sensores a variables CSS
     const colorMapping = {
-      "Temperatura": "hsl(var(--chart-temperature))",
+      Temperatura: "hsl(var(--chart-temperature))",
       "Humedad Ambiente": "hsl(var(--chart-humidity))",
       "Humedad del Suelo": "hsl(var(--chart-soil-humidity))",
-      "pH": "hsl(var(--chart-ph))",
-      "CO2": "hsl(var(--chart-carbon-dioxide))",
+      pH: "hsl(var(--chart-ph))",
+      CO2: "hsl(var(--chart-carbon-dioxide))",
     };
 
     return colorMapping[sensorName] || null;
@@ -385,7 +385,7 @@ export default function Chart({ device }) {
 
       // Intentar obtener color específico basado en widget.name
       let color = getColorBySensorName(widget.name);
-      
+
       // Si no hay color específico, usar colores por defecto
       if (!color) {
         color = colorIndex[index % colorIndex.length];

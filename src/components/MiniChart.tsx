@@ -79,11 +79,11 @@ export default function MiniChart({ color, variable, dId, sensorName }) {
   const selectColor = () => {
     // Primero intentar mapeo basado en widget.name (sensor type)
     const colorMapping = {
-      "Temperatura": "hsl(var(--chart-temperature))",
+      Temperatura: "hsl(var(--chart-temperature))",
       "Humedad Ambiente": "hsl(var(--chart-humidity))",
       "Humedad del Suelo": "hsl(var(--chart-soil-humidity))",
-      "pH": "hsl(var(--chart-ph))",
-      "CO2": "hsl(var(--chart-carbon-dioxide))",
+      pH: "hsl(var(--chart-ph))",
+      CO2: "hsl(var(--chart-carbon-dioxide))",
     };
 
     // Si hay un sensorName, usar el mapeo específico
