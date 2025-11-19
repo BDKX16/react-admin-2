@@ -3,82 +3,131 @@
 import { useState, useEffect } from "react";
 import UnifiedChartsSection from "@/components/dashboard/unified-charts-section";
 import DeviceOverviewGrid from "@/components/dashboard/device-overview-grid";
-import {
-  OTAUpdateModal,
-  shouldShowOTAModal,
-} from "@/components/ota/OTAUpdateModal";
+import { OTABulkUpdateModal } from "@/components/ota/OTABulkUpdateModal";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
-import {
-  getAllDevicesOTAStatus,
-  triggerDeviceOTAUpdate,
-  cancelDeviceOTAUpdate,
-} from "../services/private";
+import { getDevicesOTAStatus } from "../services/private";
 import useDevices from "../hooks/useDevices";
+import useMqtt from "../hooks/useMqtt";
+import useAuth from "../hooks/useAuth";
 
 export default function DashboardPage() {
   const { devicesArr } = useDevices();
+  const { recived, mqttStatus, setSend } = useMqtt();
+  const { auth } = useAuth();
   const [timeRange] = useState("24h");
   const [otaModalOpen, setOtaModalOpen] = useState(false);
-  const [allDevicesOTA, setAllDevicesOTA] = useState(null);
-  const [selectedOTADevice, setSelectedOTADevice] = useState(null);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [otaDevicesData, setOtaDevicesData] = useState([]);
+  const [otaStatusCache, setOtaStatusCache] = useState(null);
+  const [isFetchingStatus, setIsFetchingStatus] = useState(false);
+  const [hasCheckedOnce, setHasCheckedOnce] = useState(false);
+  const [updateRequestSent, setUpdateRequestSent] = useState(false);
   const { callEndpoint } = useFetchAndLoad();
 
-  const loadAllDevicesOTA = async () => {
+  // Enviar solicitud de actualización a todos los dispositivos cuando MQTT esté online
+  useEffect(() => {
+    if (
+      mqttStatus === "online" &&
+      devicesArr.length > 0 &&
+      !updateRequestSent
+    ) {
+      devicesArr.forEach((device) => {
+        const toSend = {
+          topic: auth.userData.id + "/" + device.dId + "/updater/actdata",
+          msg: {
+            value: true,
+          },
+        };
+        setSend({ msg: toSend.msg, topic: toSend.topic });
+      });
+      setUpdateRequestSent(true);
+    }
+  }, [mqttStatus, devicesArr, auth.userData?.id, setSend, updateRequestSent]);
+
+  const shouldShowOTAModal = () => {
+    const hideUntil = localStorage.getItem("ota_modal_hide_until");
+    if (hideUntil) {
+      const hideDate = new Date(hideUntil);
+      const now = new Date();
+      if (now < hideDate) {
+        return false; // No mostrar si aún está dentro del período de ocultación
+      } else {
+        // Limpiar si ya pasó el período
+        localStorage.removeItem("ota_modal_hide_until");
+      }
+    }
+    return true;
+  };
+
+  const checkForUpdates = async () => {
+    // No verificar si ya se chequeó una vez, si está en proceso, o si el usuario ocultó el modal
+    if (hasCheckedOnce || isFetchingStatus || !shouldShowOTAModal()) {
+      return;
+    }
+
     try {
-      const response = await callEndpoint(getAllDevicesOTAStatus());
-      if (!response.error && response.data) {
-        setAllDevicesOTA(response.data);
+      // Si ya tenemos el cache, usar esos datos
+      let statusData = otaStatusCache;
 
-        // Solo mostrar modal si no está ya abierto
-        if (
-          !otaModalOpen &&
-          response.data.devices &&
-          Array.isArray(response.data.devices)
-        ) {
-          // Filtrar dispositivos que necesitan mostrar actualización
-          const devicesNeedingUpdate = response.data.devices.filter((d) =>
-            shouldShowOTAModal(d)
-          );
+      // Solo llamar al endpoint si no tenemos cache
+      if (!statusData) {
+        setIsFetchingStatus(true); // Marcar que está en proceso
+        const response = await callEndpoint(getDevicesOTAStatus());
+        if (!response.error && response.data?.data?.devices) {
+          statusData = response.data.data.devices;
+          setOtaStatusCache(statusData); // Guardar en cache
+        }
+        setIsFetchingStatus(false); // Marcar que terminó
+      }
 
-          if (devicesNeedingUpdate.length > 0) {
-            // Priorizar actualizaciones críticas
-            const criticalUpdate = devicesNeedingUpdate.find(
-              (d) => d.availableFirmware?.isCritical
-            );
+      if (statusData) {
+        // Crear set de dispositivos que están enviando mensajes (online)
+        const onlineDevicesSet = new Set(recived.map((msg) => msg.dId));
 
-            // Mostrar crítica si existe, sino la primera disponible
-            const deviceToShow = criticalUpdate || devicesNeedingUpdate[0];
+        // Filtrar dispositivos con actualizaciones disponibles o críticas, sin ongoing updates y que estén online
+        const devicesWithUpdates = statusData.filter(
+          (device) =>
+            (device.updateAvailable || device.criticalUpdate) &&
+            !device.ongoingUpdate &&
+            onlineDevicesSet.has(device.dId)
+        );
 
-            setSelectedOTADevice(deviceToShow);
-            setOtaModalOpen(true);
-
-            // Log para debugging
-            console.log(
-              `📡 OTA Update available for device: ${
-                deviceToShow.dId
-              } - Version: ${deviceToShow.availableFirmware?.version}${
-                deviceToShow.availableFirmware?.isCritical ? " (CRITICAL)" : ""
-              }`
-            );
-          }
+        // Si hay dispositivos con actualizaciones, mostrar el modal
+        if (devicesWithUpdates.length > 0) {
+          setOtaDevicesData(devicesWithUpdates);
+          setOtaModalOpen(true);
+          setHasCheckedOnce(true); // Marcar que ya se verificó
+        } else {
+          // No hay dispositivos online con actualizaciones, marcar como chequeado para no reintentar
+          setHasCheckedOnce(true);
         }
       }
     } catch (error) {
-      console.error("Error loading OTA status:", error);
+      console.error("Error checking for updates:", error);
+      setIsFetchingStatus(false);
     }
   };
 
-  // Cargar estado OTA al montar el componente
-  useEffect(() => {
-    loadAllDevicesOTA();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleOTAUpdateComplete = async () => {
-    // Recargar estado OTA después de actualización exitosa
-    await loadAllDevicesOTA();
+  const handleCloseModal = (hideFor7Days = false) => {
+    const hideUntil = new Date();
+    if (hideFor7Days) {
+      // Ocultar por 7 días
+      hideUntil.setDate(hideUntil.getDate() + 7);
+    } else {
+      // Ocultar por 1 día (hasta el final del día actual)
+      hideUntil.setHours(23, 59, 59, 999);
+    }
+    localStorage.setItem("ota_modal_hide_until", hideUntil.toISOString());
+    setOtaModalOpen(false);
   };
+
+  // Verificar actualizaciones cuando lleguen mensajes MQTT
+  useEffect(() => {
+    // Solo verificar si hay mensajes recibidos y no se ha chequeado aún
+    if (recived.length > 0 && !hasCheckedOnce) {
+      checkForUpdates();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recived]);
 
   return (
     <main className="min-h-screen bg-background">
@@ -88,15 +137,12 @@ export default function DashboardPage() {
         <UnifiedChartsSection timeRange={timeRange} />
       </div>
 
-      {/* Modal de actualizaciones OTA */}
-      {selectedOTADevice && (
-        <OTAUpdateModal
-          open={otaModalOpen}
-          onClose={() => setOtaModalOpen(false)}
-          otaStatus={selectedOTADevice}
-          onUpdate={handleOTAUpdateComplete}
-        />
-      )}
+      {/* Modal de actualizaciones OTA masivas */}
+      <OTABulkUpdateModal
+        open={otaModalOpen}
+        onClose={handleCloseModal}
+        devicesData={otaDevicesData}
+      />
     </main>
   );
 }

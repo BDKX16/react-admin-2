@@ -49,19 +49,30 @@ export function OTAUpdateModal({
 
   // Escuchar mensajes MQTT del topic updater/sdata para progreso OTA en tiempo real
   useEffect(() => {
+    console.log(recived);
     if (!otaStatus?.dId || !recived || recived.length === 0) return;
 
+    // Debug: Ver todos los mensajes MQTT recibidos
+    console.log("🔍 [OTA DEBUG] Mensajes MQTT recibidos:", recived);
+    console.log("🔍 [OTA DEBUG] Device ID buscado:", otaStatus.dId);
+
     const otaMessages = recived.filter(
-      (msg) => msg.dId === otaStatus.dId && msg.variable === "updater-sdata"
+      (msg) => msg.dId === otaStatus.dId && msg.variable === "updater"
     );
+
+    console.log("🔍 [OTA DEBUG] Mensajes filtrados para updater:", otaMessages);
 
     if (otaMessages.length > 0) {
       const latestMsg = otaMessages[otaMessages.length - 1];
+      console.log("📡 [OTA DEBUG] Último mensaje OTA:", latestMsg);
+
       try {
         const payload =
           typeof latestMsg.value === "string"
             ? JSON.parse(latestMsg.value)
             : latestMsg.value;
+
+        console.log("📦 [OTA DEBUG] Payload parseado:", payload);
 
         if (payload.ota_status) {
           setOtaProgress({

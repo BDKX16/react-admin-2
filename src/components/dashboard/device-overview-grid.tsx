@@ -3,7 +3,25 @@
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Power, PowerOff, Sun, Moon, Plus } from "lucide-react";
+import {
+  Power,
+  PowerOff,
+  Sun,
+  Moon,
+  Plus,
+  Clock,
+  XCircle,
+  Unplug,
+  AlertTriangle,
+  Radio,
+  Wrench,
+  Zap,
+  AlertOctagon,
+  BarChart3,
+  Wifi,
+  Database,
+  Timer,
+} from "lucide-react";
 import { AddDeviceDialog } from "@/components/add-device-dialog";
 import useMqtt from "@/hooks/useMqtt";
 import useAuth from "@/hooks/useAuth";
@@ -65,14 +83,40 @@ function RadialGauge({
   min?: number;
   isOnline?: boolean;
 }) {
+  // Códigos de error del sensor con iconos
+  const errorIcons: { [key: number]: React.ReactNode } = {
+    0: null, // SENSOR_OK - Funcionando correctamente
+    [-1]: <Clock className="w-6 h-6" />, // Timeout
+    [-2]: <XCircle className="w-6 h-6" />, // Error lectura
+    [-3]: <Unplug className="w-6 h-6" />, // Desconectado
+    [-4]: <AlertTriangle className="w-6 h-6" />, // Datos inválidos
+    [-5]: <Radio className="w-6 h-6" />, // Error I2C
+    [-6]: <Wrench className="w-6 h-6" />, // Error calibración
+    [-7]: <Zap className="w-6 h-6" />, // Error alimentación
+    [-8]: <AlertOctagon className="w-6 h-6" />, // Error inicialización
+    [-9]: <BarChart3 className="w-6 h-6" />, // Fuera de rango
+    [-10]: <Unplug className="w-6 h-6" />, // Múltiples desconectados
+    [-11]: <Wifi className="w-6 h-6" />, // Conflicto WiFi-ADC2
+    [-12]: <Database className="w-6 h-6" />, // Error buffer
+    [-13]: <Timer className="w-6 h-6" />, // Error frecuencia
+  };
+
+  // Verificar si hay un código de error
+  const hasError = value < 0 && errorIcons[value];
+
   const percentage = ((value - min) / (max - min)) * 100;
   const normalizedPercentage = Math.max(0, Math.min(100, percentage));
 
   let color = "#4CB649"; // Brand green-bright - optimal
   let bgColor = "rgba(76, 182, 73, 0.1)";
 
+  // Si hay error, usar colores rojos
+  if (hasError) {
+    color = "#ef4444"; // Red
+    bgColor = "rgba(239, 68, 68, 0.1)";
+  }
   // Si está offline, usar colores grises
-  if (!isOnline) {
+  else if (!isOnline) {
     color = "#6b7280"; // Gray
     bgColor = "rgba(107, 114, 128, 0.1)";
   } else {
@@ -100,16 +144,14 @@ function RadialGauge({
   return (
     <div className="flex flex-col items-center justify-center">
       <div
-        className="relative w-24 h-24 rounded-full flex items-center justify-center"
+        className="relative w-full aspect-square max-w-24 rounded-full flex items-center justify-center"
         style={{
           background: bgColor,
           border: `3px solid ${color}`,
         }}
       >
         <svg
-          className="absolute"
-          width="96"
-          height="96"
+          className="absolute w-full h-full"
           viewBox="0 0 96 96"
           style={{ transform: "rotate(-90deg)" }}
         >
@@ -128,15 +170,23 @@ function RadialGauge({
             fill="none"
             stroke={color}
             strokeWidth="4"
-            strokeDasharray={`${(normalizedPercentage / 100) * 251.2} 251.2`}
+            strokeDasharray={`${
+              hasError ? 0 : (normalizedPercentage / 100) * 251.2
+            } 251.2`}
             style={{ transition: "stroke-dasharray 0.5s ease" }}
           />
         </svg>
-        <div className="text-center z-10">
-          <p className="text-lg font-bold" style={{ color }}>
-            {value}
-          </p>
-          <p className="text-xs text-muted-foreground">{unit}</p>
+        <div className="text-center z-10 px-1 flex items-center justify-center">
+          {hasError ? (
+            <div style={{ color }}>{errorIcons[value]}</div>
+          ) : (
+            <div>
+              <p className="text-lg font-bold" style={{ color }}>
+                {value}
+              </p>
+              <p className="text-xs text-muted-foreground">{unit}</p>
+            </div>
+          )}
         </div>
       </div>
       <p className="text-xs text-muted-foreground mt-2 text-center">{label}</p>
@@ -360,13 +410,26 @@ function getLightCycle(device: any): { on: number; off: number } | undefined {
 
   if (!timer) return undefined;
 
-  // Convert milliseconds to hours
-  const onHours = Math.round(timer.encendido / (1000 * 60 * 60));
-  const offHours = Math.round(
-    (timer.apagado - timer.encendido) / (1000 * 60 * 60)
-  );
+  // Convert milliseconds to hours (absolute times in a 24h period)
+  const onTimeHours = timer.encendido / (1000 * 60 * 60);
+  const offTimeHours = timer.apagado / (1000 * 60 * 60);
 
-  return { on: onHours, off: offHours };
+  let hoursOn: number;
+  let hoursOff: number;
+
+  if (offTimeHours > onTimeHours) {
+    // Normal case: encendido < apagado (e.g., 4 AM to 8 AM)
+    // Device is ON from onTime to offTime
+    hoursOn = offTimeHours - onTimeHours;
+    hoursOff = 24 - hoursOn;
+  } else {
+    // Cross-midnight case: encendido > apagado (e.g., 8 PM to 8 AM next day)
+    // Device is ON from onTime to midnight, then midnight to offTime
+    hoursOn = 24 - onTimeHours + offTimeHours;
+    hoursOff = 24 - hoursOn;
+  }
+
+  return { on: Math.round(hoursOn), off: Math.round(hoursOff) };
 }
 
 export default function DeviceOverviewGrid({

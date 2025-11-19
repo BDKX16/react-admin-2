@@ -203,6 +203,49 @@ export const MqttProvider = ({ children }) => {
             value: valor.value,
             topic: topic,
           };
+
+          // ⚠️ LIMPIEZA AUTOMÁTICA DE MENSAJES OTA
+          // Evita que se muestren múltiples notificaciones del mismo mensaje
+          // Se limpian tanto los mensajes "completed" como los de "available" (críticos o no)
+          if (newItem.variable === "updater") {
+            const otaStatus = valor.value?.ota_status;
+            const shouldAutoClean =
+              otaStatus === "completed" || otaStatus === "available";
+
+            setRecived((prevRecived) => {
+              const existingItem = prevRecived.find(
+                (item) => item.topic === newItem.topic
+              );
+
+              const updated = existingItem
+                ? prevRecived.map((item) =>
+                    item.topic === newItem.topic
+                      ? { ...item, value: newItem.value }
+                      : item
+                  )
+                : [...prevRecived, newItem];
+
+              return updated;
+            });
+
+            // Eliminar mensaje después de 3 segundos para dar tiempo a procesarlo
+            if (shouldAutoClean) {
+              setTimeout(() => {
+                setRecived((prevRecived) =>
+                  prevRecived.filter(
+                    (item) =>
+                      !(
+                        item.topic === newItem.topic &&
+                        item.variable === "updater"
+                      )
+                  )
+                );
+              }, 3000);
+            }
+
+            return;
+          }
+
           setRecived((prevRecived) => {
             const existingItem = prevRecived.find(
               (item) => item.topic === newItem.topic
