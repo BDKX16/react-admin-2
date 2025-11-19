@@ -22,12 +22,17 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
-import { deleteDevice, updateDeviceConfig } from "../services/private";
+import {
+  deleteDevice,
+  updateDeviceConfig,
+  getDeviceOTAStatus,
+} from "../services/private";
 import useDevices from "../hooks/useDevices";
 import { LocationConfigModal } from "../components/automation/LocationConfigModal";
-import { MapPin, Download } from "lucide-react";
+import { MapPin, RefreshCw, Zap } from "lucide-react";
 import { updateDeviceLocation } from "../services/public";
-import { getDeviceOTAStatus } from "../services/private";
+import { useSnackbar } from "notistack";
+import { OTAUpdateModal } from "../components/ota/OTAUpdateModal";
 
 const DeviceConfig = () => {
   const { selectedDevice } = useDevices();
@@ -36,8 +41,11 @@ const DeviceConfig = () => {
   const [deviceName, setDeviceName] = useState("");
   const [configs, setConfigs] = useState([]);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [otaModalOpen, setOtaModalOpen] = useState(false);
   const [otaStatus, setOtaStatus] = useState(null);
   const [loadingOTA, setLoadingOTA] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
+
   useEffect(() => {
     if (selectedDevice) {
       setDeviceName(selectedDevice.name);
@@ -74,6 +82,15 @@ const DeviceConfig = () => {
     } finally {
       setLoadingOTA(false);
     }
+  };
+
+  const handleOpenOTAModal = () => {
+    setOtaModalOpen(true);
+  };
+
+  const handleOTAUpdateComplete = () => {
+    // Recargar estado OTA después de actualización exitosa
+    loadOTAStatus();
   };
 
   const handleSave = async () => {
@@ -194,7 +211,22 @@ const DeviceConfig = () => {
 
       {/* Sección de Firmware OTA */}
       <div className="flex flex-col items-start gap-3 mb-6">
-        <Label className="font-bold">Versión de Firmware</Label>
+        <div className="flex items-center justify-between w-full">
+          <Label className="font-bold">Versión de Firmware</Label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadOTAStatus}
+            disabled={loadingOTA}
+            className="gap-2"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${loadingOTA ? "animate-spin" : ""}`}
+            />
+            Actualizar
+          </Button>
+        </div>
+
         {loadingOTA ? (
           <div className="p-3 bg-muted rounded-lg w-full">
             <span className="text-sm text-muted-foreground">
@@ -209,37 +241,27 @@ const DeviceConfig = () => {
                   Versión actual: {otaStatus.currentVersion || "Desconocida"}
                 </span>
                 {otaStatus.updateAvailable && otaStatus.availableFirmware && (
-                  <span className="text-xs text-green-600 dark:text-green-400">
+                  <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                    {otaStatus.availableFirmware.isCritical && (
+                      <Zap className="h-3 w-3" />
+                    )}
                     Nueva versión {otaStatus.availableFirmware.version}{" "}
                     disponible ({otaStatus.availableFirmware.fileSizeMB} MB)
-                    {otaStatus.availableFirmware.isCritical &&
-                      " - Actualización crítica"}
-                  </span>
-                )}
-                {otaStatus.ongoingUpdate && (
-                  <span className="text-xs text-blue-600 dark:text-blue-400">
-                    Actualización en progreso: {otaStatus.ongoingUpdate.status}{" "}
-                    ({otaStatus.ongoingUpdate.progress}%)
                   </span>
                 )}
               </div>
-              {otaStatus.updateAvailable && !otaStatus.ongoingUpdate && (
+              {otaStatus.updateAvailable && (
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="sm"
                   className="gap-2"
-                  onClick={() => (window.location.href = "/dashboard")}
+                  onClick={handleOpenOTAModal}
                 >
-                  <Download className="h-4 w-4" />
-                  Ver actualización
+                  <Zap className="h-4 w-4" />
+                  Gestionar OTA
                 </Button>
               )}
             </div>
-            {otaStatus.availableFirmware?.changelog && (
-              <p className="text-xs text-muted-foreground mt-2">
-                {otaStatus.availableFirmware.changelog}
-              </p>
-            )}
           </div>
         ) : (
           <div className="p-3 bg-muted rounded-lg w-full">
@@ -248,10 +270,15 @@ const DeviceConfig = () => {
             </span>
           </div>
         )}
-        <Label className="text-gray-500">
-          El dispositivo se actualiza automáticamente cuando detecta una nueva
-          versión disponible.
-        </Label>
+
+        <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <p className="text-xs text-blue-700 dark:text-blue-300">
+            <strong>💡 Actualizaciones OTA via MQTT:</strong> Las
+            actualizaciones se gestionan mediante comandos MQTT en tiempo real.
+            El ESP32 descarga el firmware automáticamente y reporta el progreso
+            al instante.
+          </p>
+        </div>
       </div>
 
       <div className=" mb-10">
@@ -359,6 +386,16 @@ const DeviceConfig = () => {
           !!(selectedDevice?.location && selectedDevice.location.latitude)
         }
       />
+
+      {/* Modal de actualizaciones OTA */}
+      {otaStatus && (
+        <OTAUpdateModal
+          open={otaModalOpen}
+          onClose={() => setOtaModalOpen(false)}
+          otaStatus={otaStatus}
+          onUpdate={handleOTAUpdateComplete}
+        />
+      )}
     </div>
   );
 };

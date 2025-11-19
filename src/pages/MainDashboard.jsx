@@ -30,15 +30,37 @@ export default function DashboardPage() {
       if (!response.error && response.data) {
         setAllDevicesOTA(response.data);
 
-        // Si hay algún dispositivo con actualización disponible, mostrar modal
-        if (response.data.devices && Array.isArray(response.data.devices)) {
-          const deviceWithUpdate = response.data.devices.find((d) =>
+        // Solo mostrar modal si no está ya abierto
+        if (
+          !otaModalOpen &&
+          response.data.devices &&
+          Array.isArray(response.data.devices)
+        ) {
+          // Filtrar dispositivos que necesitan mostrar actualización
+          const devicesNeedingUpdate = response.data.devices.filter((d) =>
             shouldShowOTAModal(d)
           );
 
-          if (deviceWithUpdate) {
-            setSelectedOTADevice(deviceWithUpdate);
+          if (devicesNeedingUpdate.length > 0) {
+            // Priorizar actualizaciones críticas
+            const criticalUpdate = devicesNeedingUpdate.find(
+              (d) => d.availableFirmware?.isCritical
+            );
+
+            // Mostrar crítica si existe, sino la primera disponible
+            const deviceToShow = criticalUpdate || devicesNeedingUpdate[0];
+
+            setSelectedOTADevice(deviceToShow);
             setOtaModalOpen(true);
+
+            // Log para debugging
+            console.log(
+              `📡 OTA Update available for device: ${
+                deviceToShow.dId
+              } - Version: ${deviceToShow.availableFirmware?.version}${
+                deviceToShow.availableFirmware?.isCritical ? " (CRITICAL)" : ""
+              }`
+            );
           }
         }
       }
@@ -53,39 +75,9 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleOTAUpdate = async () => {
-    if (!selectedOTADevice) return;
-
-    setIsUpdating(true);
-    try {
-      const response = await callEndpoint(
-        triggerDeviceOTAUpdate(selectedOTADevice.dId)
-      );
-      if (!response.error) {
-        // Recargar estado OTA después de iniciar la actualización
-        await loadAllDevicesOTA();
-      }
-    } catch (error) {
-      console.error("Error triggering OTA update:", error);
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleOTACancel = async () => {
-    if (!selectedOTADevice) return;
-
-    try {
-      const response = await callEndpoint(
-        cancelDeviceOTAUpdate(selectedOTADevice.dId)
-      );
-      if (!response.error) {
-        await loadAllDevicesOTA();
-        setOtaModalOpen(false);
-      }
-    } catch (error) {
-      console.error("Error cancelling OTA update:", error);
-    }
+  const handleOTAUpdateComplete = async () => {
+    // Recargar estado OTA después de actualización exitosa
+    await loadAllDevicesOTA();
   };
 
   return (
@@ -102,9 +94,7 @@ export default function DashboardPage() {
           open={otaModalOpen}
           onClose={() => setOtaModalOpen(false)}
           otaStatus={selectedOTADevice}
-          onUpdate={handleOTAUpdate}
-          onCancel={handleOTACancel}
-          isUpdating={isUpdating}
+          onUpdate={handleOTAUpdateComplete}
         />
       )}
     </main>
