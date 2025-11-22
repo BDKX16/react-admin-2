@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import PropTypes from "prop-types";
 
 import { useState, useEffect } from "react";
 import useAuth from "../../hooks/useAuth";
@@ -40,6 +41,13 @@ const LoginFormulario = () => {
 
           console.log("✅ Login con Google exitoso");
           setUserData(createUserAdapter(result));
+
+          // Verificar si necesita onboarding
+          if (result.needsOnboarding) {
+            console.log("🔄 Usuario necesita onboarding, redirigiendo...");
+            window.location.href = "/onboarding";
+            return;
+          }
 
           // Redirect to saved location or dashboard
           const redirectPath =
@@ -80,9 +88,22 @@ const LoginFormulario = () => {
     );
 
     if (result.error === true) {
+      // Verificar si el error es por email no confirmado
+      if (result.code === 0) {
+        alert(
+          "⚠️ Debes confirmar tu correo antes de continuar.\n\nRevisa tu bandeja de entrada y haz clic en el enlace de confirmación."
+        );
+      }
       return;
     } else {
       setUserData(createUserAdapter(result));
+
+      // Verificar si necesita onboarding
+      if (result.needsOnboarding) {
+        console.log("🔄 Usuario necesita onboarding, redirigiendo...");
+        window.location.href = "/onboarding";
+        return;
+      }
 
       // Redirect to saved location or dashboard
       const redirectPath =
@@ -113,6 +134,13 @@ const LoginFormulario = () => {
 
       console.log("✅ Login con Google exitoso");
       setUserData(createUserAdapter(result));
+
+      // Verificar si necesita onboarding
+      if (result.needsOnboarding) {
+        console.log("🔄 Usuario necesita onboarding, redirigiendo...");
+        window.location.href = "/onboarding";
+        return;
+      }
 
       // Redirect to saved location or dashboard
       const redirectPath =
@@ -233,14 +261,22 @@ const LoginFormulario = () => {
           </div>
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
-            <a href="#" className="underline">
+            <button
+              type="button"
+              onClick={() => (window.location.href = "/register")}
+              className="underline hover:text-primary"
+            >
               Sign up
-            </a>
+            </button>
           </div>
         </form>
       </CardContent>
     </Card>
   );
+};
+
+LoginFormulario.propTypes = {
+  onSwitchToRegister: PropTypes.func,
 };
 
 export default LoginFormulario;

@@ -24,9 +24,12 @@ import {
 } from "@/components/ui/accordion";
 import { Info, HelpCircle, Target } from "lucide-react";
 import useMqtt from "../hooks/useMqtt";
+import useFetchAndLoad from "@/hooks/useFetchAndLoad";
+import { setSinglePI } from "../services/public";
 
 const PIForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
+  const { loading, callEndpoint } = useFetchAndLoad();
   const [config, setConfig] = useState({
     pid_kp: 1.5,
     pid_ki: 0.2,
@@ -82,7 +85,7 @@ const PIForm = ({ userId, dId, widget }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const sendPIConfig = () => {
+  const sendPIConfig = async () => {
     if (!validateForm()) return;
 
     const toSend = {
@@ -96,7 +99,22 @@ const PIForm = ({ userId, dId, widget }) => {
       },
     };
 
+    // Send MQTT message
     setSend({ msg: toSend.msg, topic: toSend.topic });
+
+    // Persist to database
+    const piConfig = {
+      variable: widget.variable,
+      pid_kp: config.pid_kp,
+      pid_ki: config.pid_ki,
+      pid_setpoint: config.pid_setpoint,
+      sensor_input: config.sensor_input,
+    };
+
+    const res = await callEndpoint(setSinglePI(piConfig, dId));
+    if (res?.data?.status === "success") {
+      console.log("PI configuration saved successfully");
+    }
   };
 
   // Funciones para describir los parámetros
@@ -363,8 +381,8 @@ const PIForm = ({ userId, dId, widget }) => {
           </div>
         </div>
 
-        <Button onClick={sendPIConfig} className="w-full">
-          Aplicar Configuración PI
+        <Button onClick={sendPIConfig} className="w-full" disabled={loading}>
+          {loading ? "Guardando..." : "Aplicar Configuración PI"}
         </Button>
       </div>
     </div>

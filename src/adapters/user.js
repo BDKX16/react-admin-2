@@ -1,19 +1,31 @@
-const createUserAdapter = (user) => ({
-  name: user.data.userData.name,
-  token: user.data.token,
-  email: user.data.userData.email,
-  confirmed: user.data.userData.confirmed,
-  id: user.data.userData._id,
+const createUserAdapter = (user) => {
+  // Manejar tanto la estructura de login como de verify-email
+  const userData = user.data?.userData || user.userData;
+  const token = user.data?.token || user.token;
 
-  // Subscription data
-  plan: user.data.userData.plan || "free",
+  return {
+    name: userData.name,
+    token: token,
+    email: userData.email,
+    confirmed: userData.confirmed,
+    id: userData._id,
 
-  // Login method (normal, google, etc.)
-  loginMethod: user.data.userData.loginMethod || "normal",
+    // Subscription data
+    plan: userData.plan || "free",
 
-  // Google Auth data (if exists)
-  googleAuth: user.data.userData.googleAuth || null,
-});
+    // Login method (normal, google, etc.)
+    loginMethod: userData.loginMethod || "normal",
+
+    // Google Auth data (if exists)
+    googleAuth: userData.googleAuth || null,
+
+    // Onboarding flag
+    needsOnboarding:
+      user.data?.needsOnboarding !== undefined
+        ? user.data.needsOnboarding
+        : userData.needsOnboarding,
+  };
+};
 
 const createUserManagmentAdapter = (user) => ({
   id: user._id,

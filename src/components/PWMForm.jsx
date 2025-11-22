@@ -12,9 +12,12 @@ import {
 } from "@/components/ui/tooltip";
 import { Info, HelpCircle, Zap } from "lucide-react";
 import useMqtt from "../hooks/useMqtt";
+import useFetchAndLoad from "@/hooks/useFetchAndLoad";
+import { setSinglePWM } from "../services/public";
 
 const PWMForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
+  const { loading, callEndpoint } = useFetchAndLoad();
   const [config, setConfig] = useState({
     pwm_frequency: 1000,
     pwm_duty_cycle: 50,
@@ -60,7 +63,7 @@ const PWMForm = ({ userId, dId, widget }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const sendPWMConfig = () => {
+  const sendPWMConfig = async () => {
     if (!validateForm()) return;
 
     const toSend = {
@@ -72,7 +75,20 @@ const PWMForm = ({ userId, dId, widget }) => {
       },
     };
 
+    // Send MQTT message
     setSend({ msg: toSend.msg, topic: toSend.topic });
+
+    // Persist to database
+    const pwmConfig = {
+      variable: widget.variable,
+      pwm_frequency: config.pwm_frequency,
+      pwm_duty_cycle: config.pwm_duty_cycle,
+    };
+
+    const res = await callEndpoint(setSinglePWM(pwmConfig, dId));
+    if (res?.data?.status === "success") {
+      console.log("PWM configuration saved successfully");
+    }
   };
 
   const getFrequencyRecommendation = (frequency) => {
@@ -266,8 +282,8 @@ const PWMForm = ({ userId, dId, widget }) => {
           </p>
         </div>
 
-        <Button onClick={sendPWMConfig} className="w-full">
-          Aplicar Configuración PWM
+        <Button onClick={sendPWMConfig} className="w-full" disabled={loading}>
+          {loading ? "Guardando..." : "Aplicar Configuración PWM"}
         </Button>
       </div>
     </div>

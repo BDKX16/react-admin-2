@@ -40,7 +40,7 @@ import { generateDeviceTour } from "../utils/deviceTourGenerator";
 const DeviceConfig = () => {
   const { selectedDevice } = useDevices();
   const { callEndpoint } = useFetchAndLoad();
-  const { isTourCompleted, startTour, setTourSteps } = useOnboarding();
+  const { hasCompletedOnboarding, startTour } = useOnboarding();
   const [saveToDatabase, setSaveToDatabase] = useState(false);
   const [deviceName, setDeviceName] = useState("");
   const [configs, setConfigs] = useState([]);
@@ -71,20 +71,19 @@ const DeviceConfig = () => {
       // Check if device-model onboarding should be shown
       const deviceModel =
         selectedDevice.template?.model || selectedDevice.template?.name;
-      if (deviceModel && !isTourCompleted("device-model", deviceModel)) {
+      if (deviceModel && !hasCompletedOnboarding("device-model")) {
         // Generate dynamic tour based on device template
         const timer = setTimeout(() => {
           const deviceTour = generateDeviceTour(
             selectedDevice.template,
             selectedDevice.name
           );
-          setTourSteps(deviceTour);
-          startTour("device-model", deviceModel);
+          startTour("device-model", deviceTour);
         }, 1500);
         return () => clearTimeout(timer);
       }
     }
-  }, [selectedDevice, isTourCompleted, startTour, setTourSteps]);
+  }, [selectedDevice, hasCompletedOnboarding, startTour]);
 
   const loadOTAStatus = async () => {
     if (!selectedDevice?.dId) return;

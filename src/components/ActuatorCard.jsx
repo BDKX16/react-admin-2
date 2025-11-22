@@ -36,12 +36,15 @@ import PWMForm from "./PWMForm";
 import PIDForm from "./PIDForm";
 import PIForm from "./PIForm";
 import ProportionalForm from "./ProportionalForm";
+import useFetchAndLoad from "@/hooks/useFetchAndLoad";
+import { setInitialMode } from "../services/public";
 
 export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
   const [currentValue, setCurrentValue] = React.useState(null);
 
   const { recived, setSend } = useMqtt();
   const { isPro } = useSubscription();
+  const { callEndpoint } = useFetchAndLoad();
 
   // Reset value when device changes
   React.useEffect(() => {
@@ -395,7 +398,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
     );
   };
 
-  const sendValue = (originalValue) => {
+  const sendValue = async (originalValue) => {
     console.log(originalValue);
     if (originalValue === null) {
       return;
@@ -428,6 +431,15 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
     };
 
     setSend({ msg: toSend.msg, topic: toSend.topic });
+
+    // Persist initial mode to database
+    const initialConfig = {
+      variable: widget.variable,
+      variableFullName: widget.variableFullName,
+      value: value,
+    };
+
+    await callEndpoint(setInitialMode(initialConfig, dId));
     // Nota: No reseteamos el valor a null para evitar que mapValue reciba null
   };
 

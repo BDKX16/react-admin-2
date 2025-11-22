@@ -24,9 +24,12 @@ import {
 } from "@/components/ui/accordion";
 import { Info, HelpCircle, TrendingUp } from "lucide-react";
 import useMqtt from "../hooks/useMqtt";
+import useFetchAndLoad from "@/hooks/useFetchAndLoad";
+import { setSingleProportional } from "../services/public";
 
 const ProportionalForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
+  const { loading, callEndpoint } = useFetchAndLoad();
   const [config, setConfig] = useState({
     pid_kp: 2.0,
     pid_setpoint: 25.0,
@@ -77,7 +80,7 @@ const ProportionalForm = ({ userId, dId, widget }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const sendProportionalConfig = () => {
+  const sendProportionalConfig = async () => {
     if (!validateForm()) return;
 
     const toSend = {
@@ -90,7 +93,21 @@ const ProportionalForm = ({ userId, dId, widget }) => {
       },
     };
 
+    // Send MQTT message
     setSend({ msg: toSend.msg, topic: toSend.topic });
+
+    // Persist to database
+    const pConfig = {
+      variable: widget.variable,
+      pid_kp: config.pid_kp,
+      pid_setpoint: config.pid_setpoint,
+      sensor_input: config.sensor_input,
+    };
+
+    const res = await callEndpoint(setSingleProportional(pConfig, dId));
+    if (res?.data?.status === "success") {
+      console.log("Proportional configuration saved successfully");
+    }
   };
 
   const getResponseDescription = (kp) => {
@@ -309,8 +326,8 @@ const ProportionalForm = ({ userId, dId, widget }) => {
           </div>
         </div>
 
-        <Button onClick={sendProportionalConfig} className="w-full">
-          Aplicar Control Proporcional
+        <Button onClick={sendProportionalConfig} className="w-full" disabled={loading}>
+          {loading ? "Guardando..." : "Aplicar Control Proporcional"}
         </Button>
       </div>
     </div>

@@ -50,6 +50,23 @@ export const register = (name, username, password) => {
   };
 };
 
+export const verifyEmail = (token) => {
+  const controller = loadAbort();
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL + "/verify-email",
+        { token },
+        { signal: controller.signal }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 export const selectDevice = (dId) => {
   const controller = loadAbort();
 
@@ -119,9 +136,14 @@ export const setSinglePID = (pidConfig, dId) => {
   }
   return {
     call: axios
-      .put(`${import.meta.env.VITE_BASE_URL}/pid`, { pidConfig, dId }, headers, {
-        signal: controller.signal,
-      })
+      .put(
+        `${import.meta.env.VITE_BASE_URL}/pid`,
+        { pidConfig, dId },
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
       .catch((error) => {
         notifyError(error);
         return { error: true };
@@ -159,9 +181,14 @@ export const setSingleProportional = (pConfig, dId) => {
   }
   return {
     call: axios
-      .put(`${import.meta.env.VITE_BASE_URL}/proportional`, { pConfig, dId }, headers, {
-        signal: controller.signal,
-      })
+      .put(
+        `${import.meta.env.VITE_BASE_URL}/proportional`,
+        { pConfig, dId },
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
       .catch((error) => {
         notifyError(error);
         return { error: true };
@@ -179,9 +206,39 @@ export const setInitialMode = (initialConfig, dId) => {
   }
   return {
     call: axios
-      .put(`${import.meta.env.VITE_BASE_URL}/initial-mode`, { initialConfig, dId }, headers, {
-        signal: controller.signal,
-      })
+      .put(
+        `${import.meta.env.VITE_BASE_URL}/initial-mode`,
+        { initialConfig, dId },
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const setSinglePWM = (pwmConfig, dId) => {
+  const controller = loadAbort();
+
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(
+        `${import.meta.env.VITE_BASE_URL}/pwm`,
+        { pwmConfig, dId },
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
       .catch((error) => {
         notifyError(error);
         return { error: true };

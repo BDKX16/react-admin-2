@@ -1,8 +1,11 @@
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
+import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ChartDashboard from "./pages/ChartDashboard.jsx";
 import ConfirmEmailChange from "./pages/ConfirmEmailChange.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
+import OnboardingWizard from "./pages/OnboardingWizard.jsx";
 import UserProfile from "./pages/UserProfile.jsx";
 import PaymentHistory from "./pages/PaymentHistory.jsx";
 import Subscription from "./pages/Subscription.jsx";
@@ -24,6 +27,8 @@ import RuleEngine from "./pages/RuleEngine.jsx";
 import DeviceConfig from "./pages/DeviceConfig.jsx";
 import AutomationEditor from "./pages/AutomationEditor.jsx";
 import MainDashboard from "./pages/MainDashboard.jsx";
+import OnboardingGuard from "./components/guards/OnboardingGuard.jsx";
+
 const Layout = () => {
   const userState = useSelector((state) => state.user);
   return (
@@ -37,6 +42,23 @@ const Layout = () => {
         <Route
           path="/login"
           element={userState?.token ? <Navigate to="/" /> : <Login />}
+          caseSensitive={false}
+        ></Route>
+        <Route
+          path="/register"
+          element={userState?.token ? <Navigate to="/" /> : <Register />}
+          caseSensitive={false}
+        ></Route>
+        <Route
+          path="/confirmaremail"
+          element={<VerifyEmail />}
+          caseSensitive={false}
+        ></Route>
+        <Route
+          path="/onboarding"
+          element={
+            userState?.token ? <OnboardingWizard /> : <Navigate to="/login" />
+          }
           caseSensitive={false}
         ></Route>
         <Route
@@ -93,7 +115,7 @@ const Layout = () => {
           path="/*"
           element={
             userState?.token ? (
-              <>
+              <OnboardingGuard>
                 <MqttProvider>
                   <DevicesProvider>
                     <SidebarProvider>
@@ -145,7 +167,7 @@ const Layout = () => {
                     </SidebarProvider>
                   </DevicesProvider>
                 </MqttProvider>
-              </>
+              </OnboardingGuard>
             ) : (
               <Navigate to="/login" />
             )

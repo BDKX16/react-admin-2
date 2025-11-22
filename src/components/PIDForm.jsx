@@ -24,9 +24,12 @@ import {
 } from "@/components/ui/accordion";
 import { Info, HelpCircle } from "lucide-react";
 import useMqtt from "../hooks/useMqtt";
+import useFetchAndLoad from "@/hooks/useFetchAndLoad";
+import { setSinglePID } from "../services/public";
 
 const PIDForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
+  const { loading, callEndpoint } = useFetchAndLoad();
   const [config, setConfig] = useState({
     pid_kp: 1.0,
     pid_ki: 0.1,
@@ -88,7 +91,7 @@ const PIDForm = ({ userId, dId, widget }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const sendPIDConfig = () => {
+  const sendPIDConfig = async () => {
     if (!validateForm()) return;
 
     const toSend = {
@@ -103,7 +106,23 @@ const PIDForm = ({ userId, dId, widget }) => {
       },
     };
 
+    // Send MQTT message
     setSend({ msg: toSend.msg, topic: toSend.topic });
+
+    // Persist to database
+    const pidConfig = {
+      variable: widget.variable,
+      pid_kp: config.pid_kp,
+      pid_ki: config.pid_ki,
+      pid_kd: config.pid_kd,
+      pid_setpoint: config.pid_setpoint,
+      sensor_input: config.sensor_input,
+    };
+
+    const res = await callEndpoint(setSinglePID(pidConfig, dId));
+    if (res?.data?.status === "success") {
+      console.log("PID configuration saved successfully");
+    }
   };
 
   // Funciones para describir los parámetros
@@ -454,8 +473,8 @@ const PIDForm = ({ userId, dId, widget }) => {
           </div>
         </div>
 
-        <Button onClick={sendPIDConfig} className="w-full">
-          Aplicar Configuración PID
+        <Button onClick={sendPIDConfig} className="w-full" disabled={loading}>
+          {loading ? "Guardando..." : "Aplicar Configuración PID"}
         </Button>
       </div>
     </div>

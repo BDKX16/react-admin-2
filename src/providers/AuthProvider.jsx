@@ -54,10 +54,9 @@ export const AuthProvider = ({ children }) => {
     }
 
     const parsedUserData = JSON.parse(userData);
-    const cleanToken = token.replace(/"/g, ""); // Remover comillas si existen
 
     dispatch(createUser(parsedUserData));
-    setAuth({ token: cleanToken, userData: parsedUserData });
+    setAuth({ token: token, userData: parsedUserData });
 
     // Obtener estado actual de la suscripción
     await fetchSubscriptionStatus();
@@ -71,7 +70,7 @@ export const AuthProvider = ({ children }) => {
 
   const setUserData = useCallback(
     async (data) => {
-      localStorage.setItem("token", JSON.stringify(data.token));
+      localStorage.setItem("token", data.token); // No stringify el token
       localStorage.setItem("userData", JSON.stringify(data));
 
       dispatch(createUser(data));
