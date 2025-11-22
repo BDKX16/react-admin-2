@@ -16,6 +16,8 @@ import useFetchAndLoad from "@/hooks/useFetchAndLoad";
 import { newDevice } from "@/services/public";
 import useDevices from "@/hooks/useDevices";
 import { enqueueSnackbar } from "notistack";
+import { useOnboarding } from "@/contexts/OnboardingContext";
+import { deviceTour } from "@/config/tours";
 
 interface AddDeviceDialogProps {
   open: boolean;
@@ -25,6 +27,7 @@ interface AddDeviceDialogProps {
 export function AddDeviceDialog({ open, onOpenChange }: AddDeviceDialogProps) {
   const { callEndpoint } = useFetchAndLoad();
   const { setReload, devicesArr, setDevicesArr } = useDevices();
+  const { startTour } = useOnboarding();
   const [serialInput, setSerialInput] = React.useState("");
   const [nameInput, setNameInput] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
@@ -77,6 +80,14 @@ export function AddDeviceDialog({ open, onOpenChange }: AddDeviceDialogProps) {
           setLoadingTextIndex(0);
           setReload(true); // Recargar la lista de dispositivos
           onOpenChange(false); // Cerrar el modal
+
+          // Iniciar tour de dispositivo después de cerrar modal
+          setTimeout(() => {
+            startTour("device", deviceTour, {
+              allowClose: true, // Permitir cerrar con X
+              overlayClickNext: false, // No avanzar con click en overlay
+            });
+          }, 500);
         }, remainingTime);
       } else {
         setIsLoading(false);

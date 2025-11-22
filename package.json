@@ -47,6 +47,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
+    "driver.js": "^1.4.0",
     "framer-motion": "^11.11.11",
     "lucide-react": "^0.454.0",
     "million": "^3.1.11",

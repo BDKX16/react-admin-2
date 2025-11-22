@@ -4,16 +4,20 @@ import { useState, useEffect } from "react";
 import UnifiedChartsSection from "@/components/dashboard/unified-charts-section";
 import DeviceOverviewGrid from "@/components/dashboard/device-overview-grid";
 import { OTABulkUpdateModal } from "@/components/ota/OTABulkUpdateModal";
+import { TourTrigger } from "@/components/onboarding/TourTrigger";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
 import { getDevicesOTAStatus } from "../services/private";
 import useDevices from "../hooks/useDevices";
 import useMqtt from "../hooks/useMqtt";
 import useAuth from "../hooks/useAuth";
+import { useOnboarding } from "../contexts/OnboardingContext";
+import { initialTour } from "../config/tours";
 
 export default function DashboardPage() {
   const { devicesArr } = useDevices();
   const { recived, mqttStatus, setSend } = useMqtt();
   const { auth } = useAuth();
+  const { hasCompletedOnboarding, startTour } = useOnboarding();
   const [timeRange] = useState("24h");
   const [otaModalOpen, setOtaModalOpen] = useState(false);
   const [otaDevicesData, setOtaDevicesData] = useState([]);
@@ -22,6 +26,17 @@ export default function DashboardPage() {
   const [hasCheckedOnce, setHasCheckedOnce] = useState(false);
   const [updateRequestSent, setUpdateRequestSent] = useState(false);
   const { callEndpoint } = useFetchAndLoad();
+
+  // Check for initial onboarding
+  useEffect(() => {
+    if (!hasCompletedOnboarding("inicio")) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        startTour("initial", initialTour);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasCompletedOnboarding, startTour]);
 
   // Enviar solicitud de actualización a todos los dispositivos cuando MQTT esté online
   useEffect(() => {
@@ -130,9 +145,14 @@ export default function DashboardPage() {
   }, [recived]);
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <DeviceOverviewGrid devices={devicesArr} />
+    <main className="min-h-screen bg-background" data-tour="main-dashboard">
+      <div
+        className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6"
+        data-tour="main-content"
+      >
+        <div data-tour="device-grid">
+          <DeviceOverviewGrid devices={devicesArr} />
+        </div>
 
         <UnifiedChartsSection timeRange={timeRange} />
       </div>
@@ -143,6 +163,9 @@ export default function DashboardPage() {
         onClose={handleCloseModal}
         devicesData={otaDevicesData}
       />
+
+      {/* Tour trigger button */}
+      <TourTrigger />
     </main>
   );
 }

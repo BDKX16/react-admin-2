@@ -110,6 +110,86 @@ export const setSingleCicle = (cicle, dId) => {
   };
 };
 
+export const setSinglePID = (pidConfig, dId) => {
+  const controller = loadAbort();
+
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(`${import.meta.env.VITE_BASE_URL}/pid`, { pidConfig, dId }, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const setSinglePI = (piConfig, dId) => {
+  const controller = loadAbort();
+
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(`${import.meta.env.VITE_BASE_URL}/pi`, { piConfig, dId }, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const setSingleProportional = (pConfig, dId) => {
+  const controller = loadAbort();
+
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(`${import.meta.env.VITE_BASE_URL}/proportional`, { pConfig, dId }, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const setInitialMode = (initialConfig, dId) => {
+  const controller = loadAbort();
+
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(`${import.meta.env.VITE_BASE_URL}/initial-mode`, { initialConfig, dId }, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 export const newDevice = (serial, name) => {
   const controller = loadAbort();
   const headers = getAxiosHeaders();

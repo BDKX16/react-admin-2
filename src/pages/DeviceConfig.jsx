@@ -33,10 +33,14 @@ import { MapPin, RefreshCw, Zap } from "lucide-react";
 import { updateDeviceLocation } from "../services/public";
 import { useSnackbar } from "notistack";
 import { OTAUpdateModal } from "../components/ota/OTAUpdateModal";
+import { TourTrigger } from "@/components/onboarding/TourTrigger";
+import { useOnboarding } from "../contexts/OnboardingContext";
+import { generateDeviceTour } from "../utils/deviceTourGenerator";
 
 const DeviceConfig = () => {
   const { selectedDevice } = useDevices();
   const { callEndpoint } = useFetchAndLoad();
+  const { isTourCompleted, startTour, setTourSteps } = useOnboarding();
   const [saveToDatabase, setSaveToDatabase] = useState(false);
   const [deviceName, setDeviceName] = useState("");
   const [configs, setConfigs] = useState([]);
@@ -63,8 +67,24 @@ const DeviceConfig = () => {
 
       // Cargar estado OTA
       loadOTAStatus();
+
+      // Check if device-model onboarding should be shown
+      const deviceModel =
+        selectedDevice.template?.model || selectedDevice.template?.name;
+      if (deviceModel && !isTourCompleted("device-model", deviceModel)) {
+        // Generate dynamic tour based on device template
+        const timer = setTimeout(() => {
+          const deviceTour = generateDeviceTour(
+            selectedDevice.template,
+            selectedDevice.name
+          );
+          setTourSteps(deviceTour);
+          startTour("device-model", deviceModel);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [selectedDevice]);
+  }, [selectedDevice, isTourCompleted, startTour, setTourSteps]);
 
   const loadOTAStatus = async () => {
     if (!selectedDevice?.dId) return;
@@ -145,7 +165,10 @@ const DeviceConfig = () => {
   };
 
   return (
-    <div className="p-4 rounded-lg shadow-md text-left w-full max-w-2xl mx-auto">
+    <div
+      className="p-4 rounded-lg shadow-md text-left w-full max-w-2xl mx-auto"
+      data-tour="device-config-page"
+    >
       <h2 className="text-xl font-semibold mb-2">
         Configuración del dispositivo
       </h2>
@@ -281,7 +304,7 @@ const DeviceConfig = () => {
         </div>
       </div>
 
-      <div className=" mb-10">
+      <div className=" mb-10" data-tour="device-storage">
         <div className="flex items-center font-bold justify-between">
           <Label className="mr-4">Guardar datos de sensores:</Label>
           <Switch
@@ -297,6 +320,7 @@ const DeviceConfig = () => {
         <div
           key={config.variable}
           className="flex flex-col items-start gap-3 mb-10"
+          data-tour={index === 0 ? "device-timers" : undefined}
         >
           <Label className="mr-4 font-bold text-md">{`Actuador ${
             index + 1
@@ -396,6 +420,9 @@ const DeviceConfig = () => {
           onUpdate={handleOTAUpdateComplete}
         />
       )}
+
+      {/* Tour trigger button */}
+      <TourTrigger />
     </div>
   );
 };

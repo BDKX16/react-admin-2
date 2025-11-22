@@ -1,0 +1,221 @@
+/* Estilos para Driver.js con tema shadcn/ui de la aplicación */
+
+/* Popover principal - Usando colores del tema */
+.driver-popover-futuristic {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 10px 40px -10px hsl(var(--foreground) / 0.2),
+    0 0 0 1px hsl(var(--border) / 0.5) !important;
+  border-radius: 0.75rem !important;
+  padding: 1.5rem !important;
+  animation: slideInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 400px !important;
+  color: hsl(var(--card-foreground)) !important;
+}
+
+/* Título con color del tema */
+.driver-popover-futuristic .driver-popover-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: hsl(var(--foreground));
+  line-height: 1.3;
+}
+
+/* Descripción */
+.driver-popover-futuristic .driver-popover-description {
+  color: hsl(var(--muted-foreground));
+  font-size: 1rem;
+  line-height: 1.625;
+  margin-bottom: 1.5rem;
+}
+
+/* Contenedor de botones */
+.driver-popover-futuristic .driver-popover-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* Botones - Estilo shadcn/ui */
+.driver-popover-futuristic .driver-popover-next-btn,
+.driver-popover-futuristic .driver-popover-prev-btn {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.driver-popover-futuristic .driver-popover-next-btn:hover {
+  background: hsl(var(--primary) / 0.9);
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.3);
+}
+
+.driver-popover-futuristic .driver-popover-prev-btn {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+
+.driver-popover-futuristic .driver-popover-prev-btn:hover {
+  background: hsl(var(--secondary) / 0.9);
+}
+
+/* Botón de cerrar */
+.driver-popover-futuristic .driver-popover-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.driver-popover-futuristic .driver-popover-close-btn:hover {
+  color: hsl(var(--foreground));
+  background: transparent;
+  transform: rotate(90deg);
+}
+
+/* Progreso - Estilo moderno */
+.driver-popover-futuristic .driver-popover-progress-text {
+  color: hsl(var(--primary));
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background: hsl(var(--primary) / 0.1);
+  border: 1px solid hsl(var(--primary) / 0.2);
+}
+
+/* Flecha del popover */
+.driver-popover-futuristic .driver-popover-arrow {
+  @apply border-primary/20 !important;
+}
+
+.driver-popover-futuristic
+  .driver-popover-arrow-side-left.driver-popover-arrow {
+  border-left-color: hsl(var(--primary) / 0.2) !important;
+}
+
+.driver-popover-futuristic
+  .driver-popover-arrow-side-right.driver-popover-arrow {
+  border-right-color: hsl(var(--primary) / 0.2) !important;
+}
+
+.driver-popover-futuristic .driver-popover-arrow-side-top.driver-popover-arrow {
+  border-top-color: hsl(var(--primary) / 0.2) !important;
+}
+
+.driver-popover-futuristic
+  .driver-popover-arrow-side-bottom.driver-popover-arrow {
+  border-bottom-color: hsl(var(--primary) / 0.2) !important;
+}
+
+/* Overlay - Oscuro sin difuminar el contenido */
+.driver-overlay {
+  backdrop-filter: none !important;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.dark .driver-overlay {
+}
+
+/* Elemento destacado - Opacidad completa sin efectos que reduzcan visibilidad */
+.driver-active-element {
+  opacity: 1 !important;
+  filter: none !important;
+  z-index: 10000 !important;
+  position: relative !important;
+}
+
+/* Asegurar que los hijos también mantengan opacidad */
+.driver-active-element * {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Stage (el recuadro que rodea el elemento) */
+.driver-active-element::before {
+  @apply rounded-lg;
+  box-shadow: 0 0 0 4px hsl(var(--primary) / 0.3),
+    0 0 0 8px hsl(var(--primary) / 0.1);
+}
+
+/* Animaciones */
+@keyframes slideInScale {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes highlightPulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.05);
+  }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 640px) {
+  .driver-popover-futuristic {
+    @apply p-4 rounded-xl;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  .driver-popover-futuristic .driver-popover-title {
+    @apply text-xl;
+  }
+
+  .driver-popover-futuristic .driver-popover-description {
+    @apply text-sm;
+  }
+
+  .driver-popover-futuristic .driver-popover-footer {
+    @apply flex-col gap-2;
+  }
+
+  .driver-popover-futuristic .driver-popover-next-btn,
+  .driver-popover-futuristic .driver-popover-prev-btn {
+    @apply w-full;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .driver-popover-futuristic {
+    @apply shadow-[0_0_50px_rgba(0,0,0,0.8)];
+  }
+}

@@ -8,6 +8,7 @@ import { SnackbarProvider } from "notistack";
 import Layout from "./Layout";
 import { AuthProvider } from "./providers/AuthProvider";
 import { CalendarProvider } from "./providers/CalendarProvider";
+import { OnboardingProvider } from "./contexts/OnboardingContext";
 
 function App({ children }) {
   return (
@@ -16,7 +17,9 @@ function App({ children }) {
         <Provider store={store}>
           <CalendarProvider>
             <AuthProvider>
-              <Layout />
+              <OnboardingProvider>
+                <Layout />
+              </OnboardingProvider>
             </AuthProvider>
           </CalendarProvider>
         </Provider>

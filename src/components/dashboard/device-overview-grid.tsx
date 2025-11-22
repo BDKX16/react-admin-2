@@ -451,6 +451,7 @@ export default function DeviceOverviewGrid({
             size="sm"
             className="shrink-0"
             onClick={() => setIsAddDeviceDialogOpen(true)}
+            data-tour="add-device-btn"
           >
             <Plus className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Agregar dispositivo</span>
@@ -498,6 +499,7 @@ export default function DeviceOverviewGrid({
         <Button
           variant="default"
           size="sm"
+          data-tour="add-device-btn"
           className="shrink-0"
           onClick={() => setIsAddDeviceDialogOpen(true)}
         >
@@ -626,6 +628,8 @@ function DeviceCardWithMqtt({ device }: { device: Device }) {
           : "cursor-not-allowed opacity-75"
       }`}
       onClick={handleDeviceClick}
+      data-tour="device-card"
+      data-tour-config="device-config"
     >
       {/* Header */}
       <CardHeader className="pb-3">
@@ -635,6 +639,7 @@ function DeviceCardWithMqtt({ device }: { device: Device }) {
             <p className="text-xs text-muted-foreground mt-1">{device.type}</p>
           </div>
           <div
+            data-tour="device-status"
             className={`w-3 h-3 rounded-full flex-shrink-0 transition-colors ${
               isOnline ? "bg-green-500" : "bg-red-500/50"
             }`}
@@ -648,7 +653,7 @@ function DeviceCardWithMqtt({ device }: { device: Device }) {
         {device.isGrowthDevice ? (
           <>
             {/* Radial Gauges for Sensors */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3" data-tour="device-sensors">
               {sensors.map((sensor) => {
                 const value = parseFloat(sensor.value) || 0;
                 const max =
@@ -713,7 +718,10 @@ function DeviceCardWithMqtt({ device }: { device: Device }) {
 
         {/* Controls */}
         {controls.length > 0 && (
-          <div className="space-y-2 pt-2 border-t border-border/20">
+          <div
+            className="space-y-2 pt-2 border-t border-border/20"
+            data-tour="device-controls"
+          >
             <p className="text-xs font-semibold text-muted-foreground uppercase">
               Controles
             </p>
