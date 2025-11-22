@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,11 +29,10 @@ import {
 } from "../services/private";
 import useDevices from "../hooks/useDevices";
 import { LocationConfigModal } from "../components/automation/LocationConfigModal";
-import { MapPin, RefreshCw, Zap } from "lucide-react";
+import { MapPin, RefreshCw, Zap, Download } from "lucide-react";
 import { updateDeviceLocation } from "../services/public";
 import { useSnackbar } from "notistack";
 import { OTAUpdateModal } from "../components/ota/OTAUpdateModal";
-import { TourTrigger } from "@/components/onboarding/TourTrigger";
 import { useOnboarding } from "../contexts/OnboardingContext";
 import { generateDeviceTour } from "../utils/deviceTourGenerator";
 
@@ -49,7 +48,47 @@ const DeviceConfig = () => {
   const [otaStatus, setOtaStatus] = useState(null);
   const [loadingOTA, setLoadingOTA] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const loadedDeviceRef = useRef(null);
 
+  const loadOTAStatus = async () => {
+    if (!selectedDevice?.dId) return;
+
+    setLoadingOTA(true);
+    try {
+      const response = await callEndpoint(
+        getDeviceOTAStatus(selectedDevice.dId)
+      );
+
+      if (!response.error && response.data) {
+        setOtaStatus(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error loading OTA status:", error);
+    } finally {
+      setLoadingOTA(false);
+    }
+  };
+
+  // Check for device-model onboarding (runs once)
+  useEffect(() => {
+    if (!hasCompletedOnboarding("devices") && selectedDevice?.template) {
+      const timer = setTimeout(() => {
+        const deviceTour = generateDeviceTour(
+          selectedDevice.template,
+          selectedDevice.name
+        );
+        startTour("device-model", deviceTour);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    hasCompletedOnboarding,
+    startTour,
+    selectedDevice?.template,
+    selectedDevice?.name,
+  ]);
+
+  // Update device config when selectedDevice changes
   useEffect(() => {
     if (selectedDevice) {
       setDeviceName(selectedDevice.name);
@@ -64,44 +103,17 @@ const DeviceConfig = () => {
             };
           })
       );
+    }
+  }, [selectedDevice]);
 
-      // Cargar estado OTA
+  // Cargar estado OTA cuando cambie el dispositivo (solo una vez por dispositivo)
+  useEffect(() => {
+    if (selectedDevice?.dId && loadedDeviceRef.current !== selectedDevice.dId) {
+      loadedDeviceRef.current = selectedDevice.dId;
       loadOTAStatus();
-
-      // Check if device-model onboarding should be shown
-      const deviceModel =
-        selectedDevice.template?.model || selectedDevice.template?.name;
-      if (deviceModel && !hasCompletedOnboarding("device-model")) {
-        // Generate dynamic tour based on device template
-        const timer = setTimeout(() => {
-          const deviceTour = generateDeviceTour(
-            selectedDevice.template,
-            selectedDevice.name
-          );
-          startTour("device-model", deviceTour);
-        }, 1500);
-        return () => clearTimeout(timer);
-      }
     }
-  }, [selectedDevice, hasCompletedOnboarding, startTour]);
-
-  const loadOTAStatus = async () => {
-    if (!selectedDevice?.dId) return;
-
-    setLoadingOTA(true);
-    try {
-      const response = await callEndpoint(
-        getDeviceOTAStatus(selectedDevice.dId)
-      );
-      if (!response.error && response.data) {
-        setOtaStatus(response.data);
-      }
-    } catch (error) {
-      console.error("Error loading OTA status:", error);
-    } finally {
-      setLoadingOTA(false);
-    }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDevice?.dId]);
 
   const handleOpenOTAModal = () => {
     setOtaModalOpen(true);
@@ -245,7 +257,6 @@ const DeviceConfig = () => {
             <RefreshCw
               className={`h-4 w-4 ${loadingOTA ? "animate-spin" : ""}`}
             />
-            Actualizar
           </Button>
         </div>
 
@@ -279,8 +290,8 @@ const DeviceConfig = () => {
                   className="gap-2"
                   onClick={handleOpenOTAModal}
                 >
-                  <Zap className="h-4 w-4" />
-                  Gestionar OTA
+                  <Download className="h-4 w-4" />
+                  Actualizar
                 </Button>
               )}
             </div>
@@ -292,15 +303,6 @@ const DeviceConfig = () => {
             </span>
           </div>
         )}
-
-        <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <p className="text-xs text-blue-700 dark:text-blue-300">
-            <strong>💡 Actualizaciones OTA via MQTT:</strong> Las
-            actualizaciones se gestionan mediante comandos MQTT en tiempo real.
-            El ESP32 descarga el firmware automáticamente y reporta el progreso
-            al instante.
-          </p>
-        </div>
       </div>
 
       <div className=" mb-10" data-tour="device-storage">
@@ -419,9 +421,6 @@ const DeviceConfig = () => {
           onUpdate={handleOTAUpdateComplete}
         />
       )}
-
-      {/* Tour trigger button */}
-      <TourTrigger />
     </div>
   );
 };

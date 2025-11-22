@@ -326,7 +326,11 @@ const ProportionalForm = ({ userId, dId, widget }) => {
           </div>
         </div>
 
-        <Button onClick={sendProportionalConfig} className="w-full" disabled={loading}>
+        <Button
+          onClick={sendProportionalConfig}
+          className="w-full"
+          disabled={loading}
+        >
           {loading ? "Guardando..." : "Aplicar Control Proporcional"}
         </Button>
       </div>

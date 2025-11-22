@@ -77,11 +77,13 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
 
   // Driver instance ref
   const driverInstanceRef = useRef<Driver | null>(null);
+  const hasLoadedOnboardingsRef = useRef(false);
 
-  // Load completed onboardings on mount
+  // Load completed onboardings on mount (solo una vez)
   useEffect(() => {
     const loadCompletedOnboardings = async () => {
-      if (auth?.token) {
+      if (auth?.token && !hasLoadedOnboardingsRef.current) {
+        hasLoadedOnboardingsRef.current = true;
         try {
           setIsLoadingOnboardings(true);
           setHasLoadError(false);
@@ -106,7 +108,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
         } finally {
           setIsLoadingOnboardings(false);
         }
-      } else {
+      } else if (!auth?.token) {
         setIsLoadingOnboardings(false);
       }
     };

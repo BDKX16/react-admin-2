@@ -40,6 +40,8 @@ import useMqtt from "@/hooks/useMqtt";
 import useFetchAndLoad from "@/hooks/useFetchAndLoad";
 import { getSchedules, addDeviceSchedule } from "@/services/private";
 import useDevices from "@/hooks/useDevices";
+import { TourMenubarContent } from "../onboarding/TourMenu";
+import { BookOpen } from "lucide-react";
 
 // This is sample data.
 const data = {
@@ -245,6 +247,13 @@ export function SidebarRight({
               <MenubarContent className="w-[380px]">
                 <NotificationMenu />
               </MenubarContent>
+            </MenubarMenu>
+
+            <MenubarMenu>
+              <MenubarTrigger className="cursor-pointer">
+                <BookOpen size={17} />
+              </MenubarTrigger>
+              <TourMenubarContent />
             </MenubarMenu>
 
             <MenubarMenu>

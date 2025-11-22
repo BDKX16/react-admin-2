@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import UnifiedChartsSection from "@/components/dashboard/unified-charts-section";
 import DeviceOverviewGrid from "@/components/dashboard/device-overview-grid";
 import { OTABulkUpdateModal } from "@/components/ota/OTABulkUpdateModal";
-import { TourTrigger } from "@/components/onboarding/TourTrigger";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
 import { getDevicesOTAStatus } from "../services/private";
 import useDevices from "../hooks/useDevices";
@@ -163,9 +162,6 @@ export default function DashboardPage() {
         onClose={handleCloseModal}
         devicesData={otaDevicesData}
       />
-
-      {/* Tour trigger button */}
-      <TourTrigger />
     </main>
   );
 }

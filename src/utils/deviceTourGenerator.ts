@@ -23,163 +23,109 @@ export function generateDeviceTour(
   const widgets = deviceTemplate.widgets;
 
   // Welcome step
+  const modelName =
+    deviceTemplate?.name || deviceTemplate?.model || "Dispositivo IoT";
+  const displayName = deviceName || "tu dispositivo";
+
   steps.push({
     icon: "👋",
-    title: `Bienvenido a ${deviceName || "tu dispositivo"}`,
-    content: `
-      <p>Te mostraremos las funcionalidades específicas de este dispositivo.</p>
-      <p>Modelo: <strong>${
-        deviceTemplate.name || deviceTemplate.model || "Dispositivo IoT"
-      }</strong></p>
-    `,
-    selector: '[data-tour="device-config-page"]',
-    side: "bottom",
+    element: '[data-tour="device-config-page"]',
+    popover: {
+      title: `Configuración de ${displayName}`,
+      description: `
+        <p>Esta es la página de configuración de tu dispositivo.</p>
+        <p>Modelo: <strong>${modelName}</strong></p>
+        <p>Aquí puedes personalizar nombres, temporizadores, ubicación y firmware.</p>
+      `,
+      side: "bottom",
+    },
   });
 
-  // Check for sensors (Indicators)
-  const sensors = widgets.filter(
-    (w: any) => w.widgetType === "Indicator" && w.sensor === true
-  );
-  if (sensors.length > 0) {
-    const sensorNames = sensors
-      .map((s: any) => s.variableFullName || s.name)
-      .slice(0, 3)
-      .join(", ");
-
-    steps.push({
-      icon: "📊",
-      title: "Sensores en tiempo real",
-      content: `
-        <p>Este dispositivo tiene <strong>${
-          sensors.length
-        } sensor(es)</strong> activos.</p>
-        <p>${sensorNames}${sensors.length > 3 ? " y más..." : ""}</p>
-        <p>Los valores se actualizan automáticamente vía MQTT.</p>
-      `,
-      selector: '[data-tour="device-sensors"]',
-      side: "top",
-    });
-  }
-
-  // Check for switches/controls
+  // Check for switches/controls for timer configuration
   const switches = widgets.filter(
-    (w: any) => w.widgetType === "Switch" || w.widgetType === "Pump"
+    (w: any) => w?.widgetType === "Switch" || w?.widgetType === "Pump"
   );
   if (switches.length > 0) {
     const switchNames = switches
-      .map((s: any) => s.variableFullName || s.name)
+      .map((s: any) => {
+        const name = s?.variableFullName || s?.name || "Actuador";
+        return name;
+      })
+      .filter(Boolean)
       .slice(0, 2)
       .join(", ");
 
-    steps.push({
-      icon: "⚡",
-      title: "Controles del dispositivo",
-      content: `
-        <p>Controla <strong>${
-          switches.length
-        } actuador(es)</strong> desde aquí.</p>
-        <p>${switchNames}${switches.length > 2 ? " y más..." : ""}</p>
-        <p>Los cambios se aplican instantáneamente.</p>
-      `,
-      selector: '[data-tour="device-controls"]',
-      side: "top",
-    });
+    const displaySwitchNames = switchNames || "Actuador 1, Actuador 2";
 
-    // If device has switches, show timer configuration
+    // Timer configuration step
     steps.push({
       icon: "⏰",
-      title: "Temporizadores",
-      content: `
-        <p>Configura horarios de encendido y apagado automático.</p>
-        <p>Perfecto para automatizar riego, luces, ventilación, etc.</p>
-      `,
-      selector: '[data-tour="device-timers"]',
-      side: "top",
+      element: '[data-tour="device-timers"]',
+      popover: {
+        title: "Configuración de Actuadores",
+        description: `
+          <p>Configura los <strong>${
+            switches.length
+          } actuador(es)</strong> de tu dispositivo.</p>
+          <p>Actuadores: ${displaySwitchNames}${
+          switches.length > 2 ? " y más..." : ""
+        }</p>
+          <p>Puedes establecer el comportamiento inicial al encender:</p>
+          <ul>
+            <li><strong>Apagado/Encendido:</strong> Estado fijo</li>
+            <li><strong>Timer:</strong> Horarios programados</li>
+            <li><strong>Ciclos:</strong> Encendido/apagado automático</li>
+          </ul>
+        `,
+        side: "top",
+      },
     });
   }
 
-  // Check for charts
-  const charts = widgets.filter((w: any) => w.widgetType === "Chart");
-  if (charts.length > 0) {
-    steps.push({
-      icon: "📈",
-      title: "Gráficos históricos",
-      content: `
-        <p>Visualiza el historial de datos de tus sensores.</p>
-        <p>Analiza tendencias y patrones de comportamiento.</p>
-      `,
-      selector: '[data-tour="device-charts"]',
-      side: "top",
-    });
-  }
-
-  // Check for growth-specific widgets (temperature + humidity)
-  const hasTemperature = sensors.some(
-    (s: any) =>
-      s.variableFullName?.toLowerCase().includes("temp") ||
-      s.name?.toLowerCase().includes("temp")
-  );
-  const hasHumidity = sensors.some(
-    (s: any) =>
-      s.variableFullName?.toLowerCase().includes("hum") ||
-      s.name?.toLowerCase().includes("hum")
+  // Check for sensors
+  const sensors = widgets.filter(
+    (w: any) => w?.widgetType === "Indicator" && w?.sensor === true
   );
 
-  if (hasTemperature && hasHumidity) {
-    steps.push({
-      icon: "🌱",
-      title: "Dispositivo de cultivo",
-      content: `
-        <p>Este dispositivo está optimizado para cultivo indoor.</p>
-        <p>Monitorea temperatura y humedad para mantener condiciones ideales.</p>
-        <p>Puedes configurar ciclos de luz y ventilación.</p>
-      `,
-      selector: '[data-tour="device-growth-info"]',
-      side: "top",
-    });
-  }
-
-  // Calibration step (if device has sensors)
-  if (sensors.length > 0) {
-    steps.push({
-      icon: "🔧",
-      title: "Calibración de sensores",
-      content: `
-        <p>Ajusta la precisión de tus sensores con factores de calibración.</p>
-        <p>Útil para compensar variaciones en las lecturas.</p>
-      `,
-      selector: '[data-tour="device-calibration"]',
-      side: "left",
-    });
-  }
+  const sensorCount = sensors?.length || 0;
 
   // Data storage step
   steps.push({
     icon: "💾",
-    title: "Almacenamiento de datos",
-    content: `
-      <p>Activa el almacenamiento para guardar datos históricos.</p>
-      <p>Necesario para visualizar gráficos y analíticas.</p>
-    `,
-    selector: '[data-tour="device-storage"]',
-    side: "left",
+    element: '[data-tour="device-storage"]',
+    popover: {
+      title: "Almacenamiento de datos",
+      description: `
+        <p>Activa el almacenamiento para guardar datos históricos de tus sensores.</p>
+        ${
+          sensorCount > 0
+            ? `<p>Tu dispositivo tiene <strong>${sensorCount} sensor(es)</strong> que pueden registrar datos.</p>`
+            : "<p>Si tu dispositivo tiene sensores, sus datos se guardarán aquí.</p>"
+        }
+        <p>Necesario para visualizar gráficos y analíticas en el dashboard.</p>
+      `,
+      side: "left",
+    },
   });
 
-  // Advanced settings step
+  // Final step
   steps.push({
-    icon: "⚙️",
-    title: "Configuración avanzada",
-    content: `
-      <p>Aquí encontrarás opciones adicionales:</p>
-      <ul>
-        <li>Cambiar nombre del dispositivo</li>
-        <li>Actualizar firmware (OTA)</li>
-        <li>Configurar ubicación</li>
-        <li>Resetear configuración</li>
-      </ul>
-    `,
-    selector: '[data-tour="device-advanced"]',
-    side: "left",
+    icon: "✅",
+    element: '[data-tour="device-config-page"]',
+    popover: {
+      title: "¡Listo para configurar!",
+      description: `
+        <p>Ahora puedes personalizar tu dispositivo:</p>
+        <ul>
+          <li><strong>Cambiar nombre</strong> para identificarlo fácilmente</li>
+          <li><strong>Configurar ubicación</strong> para automatizaciones climáticas</li>
+          <li><strong>Actualizar firmware (OTA)</strong> para nuevas funciones</li>
+          <li><strong>Ajustar comportamiento</strong> de actuadores al encender</li>
+        </ul>
+        <p>Puedes acceder a estos tutoriales en cualquier momento desde el menú.</p>
+      `,
+      side: "bottom",
+    },
   });
 
   return steps;
@@ -192,42 +138,51 @@ function getBasicDeviceTour(deviceName?: string): OnboardingStep[] {
   return [
     {
       icon: "📱",
-      title: `Configuración de ${deviceName || "dispositivo"}`,
-      content: `
-        <p>Aquí puedes configurar todas las opciones de tu dispositivo.</p>
-        <p>Desde sensores hasta controles y temporizadores.</p>
-      `,
-      selector: '[data-tour="device-config-page"]',
-      side: "bottom",
+      element: '[data-tour="device-config-page"]',
+      popover: {
+        title: `Configuración de ${deviceName || "dispositivo"}`,
+        description: `
+          <p>Aquí puedes configurar todas las opciones de tu dispositivo.</p>
+          <p>Desde sensores hasta controles y temporizadores.</p>
+        `,
+        side: "bottom",
+      },
     },
     {
-      icon: "📊",
-      title: "Monitoreo en tiempo real",
-      content: `
-        <p>Ve los valores de tus sensores actualizándose en tiempo real.</p>
-        <p>Controla tus actuadores con un solo clic.</p>
-      `,
-      selector: '[data-tour="device-sensors"]',
-      side: "top",
+      icon: "💾",
+      element: '[data-tour="device-storage"]',
+      popover: {
+        title: "Almacenamiento de datos",
+        description: `
+          <p>Activa el almacenamiento de datos de sensores.</p>
+          <p>Necesario para ver gráficos históricos.</p>
+        `,
+        side: "left",
+      },
     },
     {
       icon: "⏰",
-      title: "Automatización",
-      content: `
-        <p>Configura temporizadores para automatizar tus dispositivos.</p>
-        <p>Define horarios de encendido y apagado.</p>
-      `,
-      selector: '[data-tour="device-timers"]',
-      side: "top",
+      element: '[data-tour="device-timers"]',
+      popover: {
+        title: "Configuración de Actuadores",
+        description: `
+          <p>Configura el comportamiento de tus actuadores.</p>
+          <p>Define modo Timer o Ciclos para automatización.</p>
+        `,
+        side: "top",
+      },
     },
     {
-      icon: "⚙️",
-      title: "Opciones avanzadas",
-      content: `
-        <p>Accede a configuración avanzada, calibración y actualizaciones OTA.</p>
-      `,
-      selector: '[data-tour="device-advanced"]',
-      side: "left",
+      icon: "✅",
+      element: '[data-tour="device-config-page"]',
+      popover: {
+        title: "¡Todo listo!",
+        description: `
+          <p>Explora las opciones de configuración disponibles.</p>
+          <p>Puedes cambiar nombre, ubicación y actualizar firmware.</p>
+        `,
+        side: "bottom",
+      },
     },
   ];
 }

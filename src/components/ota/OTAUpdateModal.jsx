@@ -26,10 +26,6 @@ import { triggerDeviceOTAUpdate } from "../../services/private";
 import { useSnackbar } from "notistack";
 import useMqtt from "../../hooks/useMqtt";
 
-const OTA_STORAGE_KEY = "ota_notification_dismissed";
-const OTA_EXPIRATION_DAYS = 7; // Mostrar nuevamente después de 7 días
-const CRITICAL_CHECK_INTERVAL_HOURS = 24; // Para actualizaciones críticas, mostrar cada 24h
-
 export function OTAUpdateModal({
   open,
   onClose,
@@ -42,14 +38,12 @@ export function OTAUpdateModal({
   const { enqueueSnackbar } = useSnackbar();
   const { recived } = useMqtt();
 
-  const [dontShowAgain, setDontShowAgain] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [otaProgress, setOtaProgress] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
 
   // Escuchar mensajes MQTT del topic updater/sdata para progreso OTA en tiempo real
   useEffect(() => {
-    console.log(recived);
     if (!otaStatus?.dId || !recived || recived.length === 0) return;
 
     // Debug: Ver todos los mensajes MQTT recibidos
@@ -166,9 +160,6 @@ export function OTAUpdateModal({
       );
       return;
     }
-    if (dontShowAgain && otaStatus?.availableFirmware) {
-      saveDismissal(otaStatus.availableFirmware);
-    }
     setOtaProgress(null);
     onClose();
   };
@@ -180,15 +171,6 @@ export function OTAUpdateModal({
     setOtaProgress(null);
     setIsUpdating(false);
     onClose();
-  };
-
-  const saveDismissal = (firmware) => {
-    const dismissalData = {
-      version: firmware.version,
-      timestamp: Date.now(),
-      isCritical: firmware.isCritical,
-    };
-    localStorage.setItem(OTA_STORAGE_KEY, JSON.stringify(dismissalData));
   };
 
   if (!otaStatus) return null;
@@ -365,28 +347,6 @@ export function OTAUpdateModal({
               </p>
             </div>
           )}
-
-          {/* Opción "No mostrar de nuevo" solo si NO hay progreso activo */}
-          {!otaProgress &&
-            updateAvailable &&
-            availableFirmware &&
-            !availableFirmware.isCritical && (
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="dontShowAgain"
-                  checked={dontShowAgain}
-                  onChange={(e) => setDontShowAgain(e.target.checked)}
-                  className="rounded border-gray-300"
-                />
-                <label
-                  htmlFor="dontShowAgain"
-                  className="text-sm text-muted-foreground cursor-pointer"
-                >
-                  No volver a mostrar este aviso por 7 días
-                </label>
-              </div>
-            )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -458,53 +418,4 @@ export function OTAUpdateModal({
       </DialogContent>
     </Dialog>
   );
-}
-
-// Helper para verificar si debe mostrarse el modal
-export function shouldShowOTAModal(otaStatus) {
-  if (!otaStatus?.availableFirmware || !otaStatus.updateAvailable) {
-    return false;
-  }
-
-  // Si hay una actualización en progreso, siempre mostrar
-  if (otaStatus.ongoingUpdate) {
-    return true;
-  }
-
-  const { availableFirmware } = otaStatus;
-  const dismissalData = localStorage.getItem(OTA_STORAGE_KEY);
-
-  if (!dismissalData) {
-    return true; // Primera vez, mostrar
-  }
-
-  try {
-    const parsed = JSON.parse(dismissalData);
-
-    // Si es una nueva versión diferente, mostrar
-    if (parsed.version !== availableFirmware.version) {
-      return true;
-    }
-
-    const now = Date.now();
-    const timeSinceDismissal = now - parsed.timestamp;
-
-    // Si es crítica, mostrar cada 24h
-    if (availableFirmware.isCritical) {
-      const hoursElapsed = timeSinceDismissal / (1000 * 60 * 60);
-      return hoursElapsed >= CRITICAL_CHECK_INTERVAL_HOURS;
-    }
-
-    // Si no es crítica, mostrar después de N días
-    const daysElapsed = timeSinceDismissal / (1000 * 60 * 60 * 24);
-    return daysElapsed >= OTA_EXPIRATION_DAYS;
-  } catch (error) {
-    console.error("Error parsing OTA dismissal data:", error);
-    return true; // Si hay error, mostrar por seguridad
-  }
-}
-
-// Helper para limpiar datos obsoletos
-export function clearOTADismissal() {
-  localStorage.removeItem(OTA_STORAGE_KEY);
 }

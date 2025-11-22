@@ -15,7 +15,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { ThemeModeToggle } from "@/components/theme-mode-toggle";
 
 export function AppSidebar({ children }) {
   const location = useLocation();
