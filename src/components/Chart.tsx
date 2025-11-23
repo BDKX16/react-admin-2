@@ -1091,6 +1091,14 @@ export default function Chart({ device }) {
     fetchChartData();
   }, [selectedTimeRange, availableVariables, device?.dId]);
 
+  // Resetear el brushRange cuando cambie el período de tiempo
+  useEffect(() => {
+    setBrushRange({
+      startIndex: undefined,
+      endIndex: undefined,
+    });
+  }, [selectedTimeRange]);
+
   // Generar líneas y áreas dinámicamente (solo las visibles)
   const renderLines = useMemo(() => {
     return availableVariables
@@ -1160,7 +1168,7 @@ export default function Chart({ device }) {
             isMobile ? "flex-col gap-3" : "justify-between items-start"
           }`}
         >
-          <div>
+          <div className="text-left">
             <CardTitle>{device.name}</CardTitle>
             <CardDescription>
               {
@@ -1322,7 +1330,10 @@ export default function Chart({ device }) {
 
         {/* Gráfico normal */}
         {!hasError && !isEmpty && (
-          <div className={isMobile ? "overflow-x-auto pb-4" : ""}>
+          <div
+            className={isMobile ? "overflow-x-auto pb-4" : ""}
+            data-tour="chart-timeline"
+          >
             <div data-tour="chart-visualization">
               <ChartContainer
                 config={chartConfig}
@@ -1332,154 +1343,158 @@ export default function Chart({ device }) {
                     : "max-h-[78dvh] w-[100%]"
                 }
               >
-              <ComposedChart
-                accessibilityLayer
-                data={data}
-                margin={{
-                  left: isMobile ? 0 : 12,
-                  right: isMobile ? 0 : 12,
-                  top: 5,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  allowDataOverflow={false}
-                  dataKey="time"
-                  interval="preserveStartEnd"
-                  tickLine={false}
-                  axisLine={true}
-                  tickMargin={8}
-                  tick={{ fontSize: isMobile ? 10 : 12 }}
-                />
-                <YAxis
-                  domain={[-15, "dataMax"]}
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tick={{ fontSize: isMobile ? 10 : 12 }}
-                  tickFormatter={(value) => (value >= 0 ? value : "")}
-                  width={isMobile ? 40 : 60}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={({ active, payload, label }) => (
-                    <CustomTooltipContent
-                      active={active}
-                      payload={payload}
-                      config={chartConfig}
-                    />
-                  )}
-                />
-                <ChartLegend
-                  content={<ChartLegendContent />}
-                  wrapperStyle={{ paddingTop: "20px" }}
-                  data-tour="chart-legend"
-                />
-
-                {/* Área de fondo azulado para zona negativa */}
-                <Area
-                  dataKey="_backgroundArea"
-                  type="monotone"
-                  stroke="transparent"
-                  fill="rgba(59, 130, 246, 0.1)"
-                  fillOpacity={1}
-                  dot={false}
-                  connectNulls={false}
-                  isAnimationActive={false}
-                  legendType="none"
-                  hide={false}
-                />
-
-                {/* Línea de referencia en 0 */}
-                <ReferenceLine
-                  y={0}
-                  stroke="hsl(var(--muted-foreground))"
-                  strokeDasharray="2 2"
-                  strokeOpacity={0.8}
-                />
-
-                {/* Líneas y áreas dinámicas generadas automáticamente */}
-                {renderLines}
-
-                {/* Puntos de eventos para usuarios Pro/Plus */}
-                {(isPro || isPlus) && (
-                  <Scatter
-                    dataKey="eventY"
-                    fill="#dc2626"
-                    shape={(props) => {
-                      const { cx, cy, payload } = props;
-
-                      // Solo renderizar si hay evento en este punto
-                      if (!payload?.eventType) return null;
-
-                      const eventConf = eventConfig[payload.eventType];
-                      if (!eventConf) return null;
-
-                      return (
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={5}
-                          fill={eventConf.color}
-                          stroke="#fff"
-                          strokeWidth={2}
-                          style={{ cursor: "pointer" }}
-                        />
-                      );
-                    }}
-                  />
-                )}
-
-                {/* Timeline interactivo para zoom y navegación */}
-                <Brush
-                  dataKey="time"
-                  height={40}
-                  stroke="hsl(var(--primary))"
-                  fill="hsl(var(--muted))"
-                  startIndex={brushRange.startIndex}
-                  endIndex={brushRange.endIndex}
-                  data-tour="chart-timeline"
-                  onChange={(range) => {
-                    if (range) {
-                      setBrushRange({
-                        startIndex: range.startIndex,
-                        endIndex: range.endIndex,
-                      });
-                    }
+                <ComposedChart
+                  accessibilityLayer
+                  data={data}
+                  margin={{
+                    left: isMobile ? 0 : 12,
+                    right: isMobile ? 0 : 12,
+                    top: 5,
+                    bottom: 5,
                   }}
-                  travellerWidth={10}
-                  gap={2}
                 >
-                  <ComposedChart>
-                    {/* Mini vista de las variables en el brush */}
-                    {availableVariables
-                      .filter((widget) => visibleVariables.has(widget.variable))
-                      .slice(0, 3)
-                      .map((widget) => {
-                        const config = chartConfig[widget.variable];
-                        if (!config || config.type === "area") return null;
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    allowDataOverflow={false}
+                    dataKey="time"
+                    interval="preserveStartEnd"
+                    tickLine={false}
+                    axisLine={true}
+                    tickMargin={8}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                  />
+                  <YAxis
+                    domain={[-15, "dataMax"]}
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                    tickFormatter={(value) => (value >= 0 ? value : "")}
+                    width={isMobile ? 40 : 60}
+                  />
+                  <ChartTooltip
+                    cursor={false}
+                    content={({ active, payload, label }) => (
+                      <CustomTooltipContent
+                        active={active}
+                        payload={payload}
+                        config={chartConfig}
+                      />
+                    )}
+                  />
+                  <div data-tour="chart-legend">
+                    <ChartLegend
+                      content={<ChartLegendContent />}
+                      wrapperStyle={{ paddingTop: "20px" }}
+                    />
+                  </div>
+
+                  {/* Área de fondo azulado para zona negativa */}
+                  <Area
+                    dataKey="_backgroundArea"
+                    type="monotone"
+                    stroke="transparent"
+                    fill="rgba(59, 130, 246, 0.1)"
+                    fillOpacity={1}
+                    dot={false}
+                    connectNulls={false}
+                    isAnimationActive={false}
+                    legendType="none"
+                    hide={false}
+                  />
+
+                  {/* Línea de referencia en 0 */}
+                  <ReferenceLine
+                    y={0}
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeDasharray="2 2"
+                    strokeOpacity={0.8}
+                  />
+
+                  {/* Líneas y áreas dinámicas generadas automáticamente */}
+                  {renderLines}
+
+                  {/* Puntos de eventos para usuarios Pro/Plus */}
+                  {(isPro || isPlus) && (
+                    <Scatter
+                      dataKey="eventY"
+                      fill="#dc2626"
+                      shape={(props) => {
+                        const { cx, cy, payload } = props;
+
+                        // Solo renderizar si hay evento en este punto
+                        if (!payload?.eventType) return null;
+
+                        const eventConf = eventConfig[payload.eventType];
+                        if (!eventConf) return null;
+
                         return (
-                          <Line
-                            key={widget.variable}
-                            type="monotone"
-                            dataKey={widget.variable}
-                            stroke={config.color}
-                            strokeWidth={1}
-                            dot={false}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={5}
+                            fill={eventConf.color}
+                            stroke="#fff"
+                            strokeWidth={2}
+                            style={{ cursor: "pointer" }}
                           />
                         );
-                      })}
-                  </ComposedChart>
-                </Brush>
-              </ComposedChart>
-            </ChartContainer>
+                      }}
+                    />
+                  )}
+
+                  {/* Timeline interactivo para zoom y navegación */}
+                  <Brush
+                    dataKey="time"
+                    height={40}
+                    stroke="hsl(var(--primary))"
+                    fill="hsl(var(--muted))"
+                    startIndex={brushRange.startIndex}
+                    endIndex={brushRange.endIndex}
+                    onChange={(range) => {
+                      if (range) {
+                        setBrushRange({
+                          startIndex: range.startIndex,
+                          endIndex: range.endIndex,
+                        });
+                      }
+                    }}
+                    travellerWidth={10}
+                    gap={2}
+                  >
+                    <ComposedChart>
+                      {/* Mini vista de las variables en el brush */}
+                      {availableVariables
+                        .filter((widget) =>
+                          visibleVariables.has(widget.variable)
+                        )
+                        .slice(0, 3)
+                        .map((widget) => {
+                          const config = chartConfig[widget.variable];
+                          if (!config || config.type === "area") return null;
+                          return (
+                            <Line
+                              key={widget.variable}
+                              type="monotone"
+                              dataKey={widget.variable}
+                              stroke={config.color}
+                              strokeWidth={1}
+                              dot={false}
+                            />
+                          );
+                        })}
+                    </ComposedChart>
+                  </Brush>
+                </ComposedChart>
+              </ChartContainer>
+            </div>
           </div>
         )}
 
         {/* Panel de eventos para usuarios Pro/Plus */}
         {(isPro || isPlus) && events.length > 0 && (
           <div
+            data-tour="chart-events"
             className={`mt-4 p-3 rounded-lg bg-muted/50 border border-border ${
               isMobile ? "text-xs" : ""
             }`}

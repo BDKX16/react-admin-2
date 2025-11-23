@@ -640,6 +640,17 @@ export const chartsTour: OnboardingStep[] = [
     icon: createElement(TrendingUp, { size: 20, className: "inline-block" }),
   },
   {
+    element: '[data-tour="chart-events"]',
+    popover: {
+      title: "Eventos del Sistema (Solo Pro)",
+      description:
+        "<p>Los usuarios <strong>Pro</strong> pueden ver eventos importantes del sistema como:</p><ul class='list-disc pl-4 mt-2 space-y-1'><li>Cambios automáticos de setpoint</li><li>Activación/desactivación de actuadores</li><li>Alarmas y notificaciones</li><li>Detalles técnicos con valores de sensores y salidas de control</li></ul><p class='text-sm text-muted-foreground mt-2'>💡 <em>Mejora a Pro para acceder a esta funcionalidad avanzada.</em></p>",
+      side: "top",
+      align: "start",
+    },
+    icon: createElement(Bell, { size: 20, className: "inline-block" }),
+  },
+  {
     element: '[data-tour="charts-dashboard"]',
     popover: {
       title: "Análisis Completo",
