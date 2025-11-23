@@ -35,7 +35,7 @@ import {
   initialTour,
   otaTour,
   settingsTour,
-  analyticsTour,
+  chartsTour,
   rulesTour,
   automationEditorTour,
 } from "@/config/tours";
@@ -77,7 +77,7 @@ export const useTourConfig = () => {
       case "settings":
         return settingsTour;
       case "analytics":
-        return analyticsTour;
+        return chartsTour;
       case "rules":
         return rulesTour;
       case "automation-editor":

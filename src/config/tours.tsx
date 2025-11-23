@@ -10,6 +10,7 @@ import {
   Activity,
   Cog,
   CheckCircle,
+  CheckCircle2,
   Bell,
   User,
   Calendar,
@@ -588,66 +589,66 @@ export const chartsTour: OnboardingStep[] = [
     popover: {
       title: "Dashboard de Gráficos",
       description:
-        "Convierte datos en claridad. Aquí verás la historia de tus sensores y descubrirás patrones ocultos.",
+        "<p>Convierte datos en claridad. Aquí verás <strong>la historia completa</strong> de tus sensores y descubrirás patrones ocultos en tiempo real.</p>",
       side: "bottom",
       align: "start",
     },
     icon: createElement(BarChart3, { size: 20, className: "inline-block" }),
   },
   {
-    element: '[data-tour="chart-variable-selector"]',
-    popover: {
-      title: "Seleccionar Variables",
-      description:
-        "Elige lo que importa. Compara temperatura, humedad y más en un mismo gráfico.",
-      side: "right",
-      align: "start",
-    },
-    icon: createElement(Filter, { size: 20, className: "inline-block" }),
-  },
-  {
     element: '[data-tour="time-range-selector"]',
     popover: {
-      title: "Rango de Tiempo",
+      title: "Selector de Período",
       description:
-        "Viaja en el tiempo. Analiza desde la última hora hasta meses completos con un simple selector.",
+        "<p>Viaja en el tiempo. Analiza desde <strong>la última hora hasta meses completos</strong> con un simple selector. Cambiar el período actualiza todos los gráficos automáticamente.</p>",
       side: "bottom",
       align: "start",
     },
     icon: createElement(Clock, { size: 20, className: "inline-block" }),
   },
   {
-    element: '[data-tour="chart-type-selector"]',
+    element: '[data-tour="chart-variable-selector"]',
     popover: {
-      title: "Tipo de Gráfico",
+      title: "Filtro de Variables",
       description:
-        "Cambia la perspectiva. Líneas, barras o áreas, cada visualización te cuenta una historia distinta.",
+        "<p>Tú decides qué ver. <strong>Activa o desactiva variables</strong> con checkboxes para enfocarte en lo que importa. Compara temperatura, humedad, actuadores y más en el mismo gráfico.</p><ul class='list-disc pl-4 mt-2 text-sm'><li>Sensores: datos continuos</li><li>Actuadores: estados ON/OFF</li><li>Usa 'Todas' o 'Ninguna' para selección rápida</li></ul>",
       side: "left",
+      align: "start",
+    },
+    icon: createElement(Filter, { size: 20, className: "inline-block" }),
+  },
+  {
+    element: '[data-tour="chart-timeline"]',
+    popover: {
+      title: "Timeline Interactivo",
+      description:
+        "<p>Navega con precisión. <strong>Arrastra los controles</strong> en la barra inferior para hacer zoom y explorar tramos específicos de tiempo sin perder la vista general.</p><p class='text-sm mt-2'>💡 Tip: Perfecto para identificar eventos puntuales o anomalías en períodos largos.</p>",
+      side: "top",
+      align: "start",
+    },
+    icon: createElement(Activity, { size: 20, className: "inline-block" }),
+  },
+  {
+    element: '[data-tour="chart-legend"]',
+    popover: {
+      title: "Leyenda y Colores",
+      description:
+        "<p>Identifica rápido. Cada variable tiene su <strong>color único</strong> y aparece en la leyenda. Click en la leyenda para ocultar/mostrar variables temporalmente.</p>",
+      side: "top",
       align: "start",
     },
     icon: createElement(TrendingUp, { size: 20, className: "inline-block" }),
   },
   {
-    element: '[data-tour="export-data-btn"]',
+    element: '[data-tour="charts-dashboard"]',
     popover: {
-      title: "Exportar Datos",
+      title: "Análisis Completo",
       description:
-        "Llévalos contigo. Descarga tus métricas en CSV o Excel para reportes o análisis externos.",
-      side: "left",
+        "<p>Ahora tenés todas las herramientas. <strong>Filtrá, navegá y analizá</strong> tus datos como un profesional. Descubrí patrones, optimizá procesos y tomá decisiones basadas en datos reales. 📊✨</p>",
+      side: "bottom",
       align: "start",
     },
-    icon: createElement(Download, { size: 20, className: "inline-block" }),
-  },
-  {
-    element: '[data-tour="chart-zoom"]',
-    popover: {
-      title: "Zoom Interactivo",
-      description:
-        "Acércate a los detalles. Haz zoom en secciones específicas para un análisis más profundo.",
-      side: "top",
-      align: "start",
-    },
-    icon: createElement(Activity, { size: 20, className: "inline-block" }),
+    icon: createElement(CheckCircle2, { size: 20, className: "inline-block" }),
   },
 ];
 

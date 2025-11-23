@@ -8,6 +8,7 @@ import {
   ComposedChart,
   ReferenceLine,
   Scatter,
+  Brush,
 } from "recharts";
 
 import {
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Filter, Eye, EyeOff } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -32,6 +34,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 import useFetchAndLoad from "@/hooks/useFetchAndLoad";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
@@ -323,6 +332,13 @@ export default function Chart({ device }) {
   const [isMobile, setIsMobile] = useState(false);
   const fetchingRef = useRef(false);
   const lastFetchParamsRef = useRef(null);
+  const [visibleVariables, setVisibleVariables] = useState<Set<string>>(
+    new Set()
+  );
+  const [brushRange, setBrushRange] = useState<{
+    startIndex?: number;
+    endIndex?: number;
+  }>({});
 
   // Detectar si es mobile
   useEffect(() => {
@@ -715,6 +731,8 @@ export default function Chart({ device }) {
       });
 
       setAvailableVariables(enrichedWidgets);
+      // Inicializar todas las variables como visibles
+      setVisibleVariables(new Set(enrichedWidgets.map((w) => w.variable)));
     } else {
       // Para pruebas, crear variables mock cuando no hay device.template
       const mockVariables = [
@@ -755,6 +773,8 @@ export default function Chart({ device }) {
         },
       ];
       setAvailableVariables(mockVariables);
+      // Inicializar todas las variables como visibles
+      setVisibleVariables(new Set(mockVariables.map((w) => w.variable)));
     }
   }, [device]);
 
@@ -1071,9 +1091,10 @@ export default function Chart({ device }) {
     fetchChartData();
   }, [selectedTimeRange, availableVariables, device?.dId]);
 
-  // Generar líneas y áreas dinámicamente
+  // Generar líneas y áreas dinámicamente (solo las visibles)
   const renderLines = useMemo(() => {
     return availableVariables
+      .filter((widget) => visibleVariables.has(widget.variable))
       .map((widget) => {
         const variableKey = widget.variable;
         const config = chartConfig[variableKey];
@@ -1107,14 +1128,36 @@ export default function Chart({ device }) {
         );
       })
       .filter(Boolean);
-  }, [availableVariables, chartConfig]);
+  }, [availableVariables, chartConfig, visibleVariables]);
+
+  // Función para toggle de visibilidad de variables
+  const toggleVariableVisibility = (variable: string) => {
+    setVisibleVariables((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(variable)) {
+        newSet.delete(variable);
+      } else {
+        newSet.add(variable);
+      }
+      return newSet;
+    });
+  };
+
+  // Función para mostrar/ocultar todas las variables
+  const toggleAllVariables = (show: boolean) => {
+    if (show) {
+      setVisibleVariables(new Set(availableVariables.map((w) => w.variable)));
+    } else {
+      setVisibleVariables(new Set());
+    }
+  };
 
   return (
-    <Card>
+    <Card data-tour="charts-dashboard">
       <CardHeader>
         <div
           className={`flex ${
-            isMobile ? "flex-col gap-3" : "justify-between items-center"
+            isMobile ? "flex-col gap-3" : "justify-between items-start"
           }`}
         >
           <div>
@@ -1124,34 +1167,123 @@ export default function Chart({ device }) {
                 timeRangeOptions.find(
                   (option) => option.value === selectedTimeRange
                 )?.label
-              }
+              }{" "}
+              • {visibleVariables.size}/{availableVariables.length} variables
+              visibles
             </CardDescription>
           </div>
           <div
-            className={`flex items-center gap-2 ${isMobile ? "w-full" : ""}`}
+            className={`flex items-center gap-2 ${
+              isMobile ? "w-full flex-col" : ""
+            }`}
           >
-            <span
-              className={`text-sm font-medium text-gray-700 ${
-                isMobile ? "hidden" : ""
-              }`}
+            {/* Selector de período */}
+            <div
+              className={`flex items-center gap-2 ${isMobile ? "w-full" : ""}`}
             >
-              Período:
-            </span>
-            <Select
-              value={selectedTimeRange}
-              onValueChange={setSelectedTimeRange}
-            >
-              <SelectTrigger className={isMobile ? "w-full" : "w-48"}>
-                <SelectValue placeholder="Seleccionar período" />
-              </SelectTrigger>
-              <SelectContent>
-                {timeRangeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <span
+                className={`text-sm font-medium text-gray-700 ${
+                  isMobile ? "hidden" : ""
+                }`}
+              >
+                Período:
+              </span>
+              <Select
+                value={selectedTimeRange}
+                onValueChange={setSelectedTimeRange}
+              >
+                <SelectTrigger
+                  className={isMobile ? "w-full" : "w-48"}
+                  data-tour="time-range-selector"
+                >
+                  <SelectValue placeholder="Seleccionar período" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeRangeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Selector de variables con checkboxes */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={isMobile ? "w-full" : ""}
+                  data-tour="chart-variable-selector"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Variables ({visibleVariables.size})
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm">
+                      Variables del gráfico
+                    </h4>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleAllVariables(true)}
+                        className="h-7 px-2 text-xs"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        Todas
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleAllVariables(false)}
+                        className="h-7 px-2 text-xs"
+                      >
+                        <EyeOff className="h-3 w-3 mr-1" />
+                        Ninguna
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {availableVariables.map((widget) => {
+                      const config = chartConfig[widget.variable];
+                      return (
+                        <div
+                          key={widget.variable}
+                          className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted"
+                        >
+                          <Checkbox
+                            id={widget.variable}
+                            checked={visibleVariables.has(widget.variable)}
+                            onCheckedChange={() =>
+                              toggleVariableVisibility(widget.variable)
+                            }
+                          />
+                          <div className="flex items-center gap-2 flex-1">
+                            <div
+                              className="h-3 w-3 rounded-sm"
+                              style={{ backgroundColor: config?.color }}
+                            />
+                            <Label
+                              htmlFor={widget.variable}
+                              className="text-sm font-normal cursor-pointer flex-1"
+                            >
+                              {widget.variableFullName}
+                            </Label>
+                            <Badge variant="secondary" className="text-xs">
+                              {widget.isActuator ? "Actuador" : "Sensor"}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </CardHeader>
@@ -1191,14 +1323,15 @@ export default function Chart({ device }) {
         {/* Gráfico normal */}
         {!hasError && !isEmpty && (
           <div className={isMobile ? "overflow-x-auto pb-4" : ""}>
-            <ChartContainer
-              config={chartConfig}
-              className={
-                isMobile
-                  ? "min-w-[600px] max-h-[60vh]"
-                  : "max-h-[78dvh] w-[100%]"
-              }
-            >
+            <div data-tour="chart-visualization">
+              <ChartContainer
+                config={chartConfig}
+                className={
+                  isMobile
+                    ? "min-w-[600px] max-h-[60vh]"
+                    : "max-h-[78dvh] w-[100%]"
+                }
+              >
               <ComposedChart
                 accessibilityLayer
                 data={data}
@@ -1238,7 +1371,11 @@ export default function Chart({ device }) {
                     />
                   )}
                 />
-                <ChartLegend content={<ChartLegendContent />} />
+                <ChartLegend
+                  content={<ChartLegendContent />}
+                  wrapperStyle={{ paddingTop: "20px" }}
+                  data-tour="chart-legend"
+                />
 
                 {/* Área de fondo azulado para zona negativa */}
                 <Area
@@ -1293,6 +1430,48 @@ export default function Chart({ device }) {
                     }}
                   />
                 )}
+
+                {/* Timeline interactivo para zoom y navegación */}
+                <Brush
+                  dataKey="time"
+                  height={40}
+                  stroke="hsl(var(--primary))"
+                  fill="hsl(var(--muted))"
+                  startIndex={brushRange.startIndex}
+                  endIndex={brushRange.endIndex}
+                  data-tour="chart-timeline"
+                  onChange={(range) => {
+                    if (range) {
+                      setBrushRange({
+                        startIndex: range.startIndex,
+                        endIndex: range.endIndex,
+                      });
+                    }
+                  }}
+                  travellerWidth={10}
+                  gap={2}
+                >
+                  <ComposedChart>
+                    {/* Mini vista de las variables en el brush */}
+                    {availableVariables
+                      .filter((widget) => visibleVariables.has(widget.variable))
+                      .slice(0, 3)
+                      .map((widget) => {
+                        const config = chartConfig[widget.variable];
+                        if (!config || config.type === "area") return null;
+                        return (
+                          <Line
+                            key={widget.variable}
+                            type="monotone"
+                            dataKey={widget.variable}
+                            stroke={config.color}
+                            strokeWidth={1}
+                            dot={false}
+                          />
+                        );
+                      })}
+                  </ComposedChart>
+                </Brush>
               </ComposedChart>
             </ChartContainer>
           </div>
