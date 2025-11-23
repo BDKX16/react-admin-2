@@ -31,13 +31,13 @@ import { useLocation } from "react-router-dom";
 import type { OnboardingType } from "@/types/onboarding";
 import {
   initialTour,
-  dashboardTour,
-  deviceTour,
   settingsTour,
   analyticsTour,
   rulesTour,
   automationEditorTour,
 } from "@/config/tours";
+import { generateDeviceTour } from "@/utils/deviceTourGenerator";
+import useDevices from "@/hooks/useDevices";
 
 interface TourOption {
   id: string;
@@ -51,16 +51,23 @@ interface TourOption {
 export const useTourConfig = () => {
   const { startTour, hasCompletedOnboarding } = useOnboarding();
   const location = useLocation();
+  const { selectedDevice } = useDevices();
 
   // Map tour types to their steps
   const getTourSteps = (tourType: OnboardingType) => {
     switch (tourType) {
       case "initial":
-        return initialTour;
       case "dashboard":
-        return dashboardTour;
-      case "device":
-        return deviceTour;
+        return initialTour;
+      case "device-model":
+        if (selectedDevice?.template) {
+          return generateDeviceTour(
+            selectedDevice.template,
+            selectedDevice.name,
+            selectedDevice.modelId
+          );
+        }
+        return [];
       case "settings":
         return settingsTour;
       case "analytics":

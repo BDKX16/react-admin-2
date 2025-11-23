@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import {
   Card,
@@ -16,6 +16,7 @@ import { createUserAdapter } from "../adapters/user";
 
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { setUserData } = useAuth();
   const { callEndpoint } = useFetchAndLoad();
   const [status, setStatus] = useState("verifying"); // verifying, success, error
@@ -60,11 +61,11 @@ const VerifyEmail = () => {
           if (response.data.needsOnboarding) {
             console.log("🔄 Usuario necesita onboarding, redirigiendo...");
             setTimeout(() => {
-              window.location.href = "/onboarding";
+              navigate("/onboarding");
             }, 1500);
           } else {
             setTimeout(() => {
-              window.location.href = "/dashboard";
+              navigate("/dashboard");
             }, 1500);
           }
         } else {
@@ -131,7 +132,7 @@ const VerifyEmail = () => {
         {status === "error" && (
           <CardContent className="space-y-4">
             <Button
-              onClick={() => (window.location.href = "/login")}
+              onClick={() => navigate("/login")}
               className="w-full"
               variant="default"
             >

@@ -198,6 +198,9 @@ const OnboardingWizard = () => {
       storedUserData.needsOnboarding = false;
       localStorage.setItem("userData", JSON.stringify(storedUserData));
 
+      // Marcar que el usuario acaba de completar el onboarding (para mostrar el modal de bienvenida)
+      sessionStorage.setItem("just_completed_onboarding", "true");
+
       // Redirigir al dashboard
       navigate("/");
     } catch (err) {

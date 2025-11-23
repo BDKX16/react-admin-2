@@ -21,7 +21,7 @@ import MiniChart from "./MiniChart";
 import CalibrationTimer from "./CalibrationTimer";
 import useMqtt from "../hooks/useMqtt";
 
-export const InputCard = ({ widget, dId, userId }) => {
+export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
   const valueRef = React.useRef(null);
   const setValue = (newValue) => {
     valueRef.current = newValue;
@@ -164,7 +164,10 @@ export const InputCard = ({ widget, dId, userId }) => {
   };
 
   return (
-    <Card className="text-left flex md:flex-col p-6 relative">
+    <Card
+      className="text-left flex md:flex-col p-6 relative"
+      data-tour={dataTour}
+    >
       {/* Botón de calibración en la esquina superior derecha */}
       {isSoilHumiditySensor() && !isCalibrating && (
         <Button

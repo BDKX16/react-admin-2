@@ -205,7 +205,7 @@ export function SidebarLeft({
           </>
         )}
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent data-tour="sidebar-nav">
         <NavMain
           items={devicesArr.length === 0 ? data.navMainNoDevices : data.navMain}
         />

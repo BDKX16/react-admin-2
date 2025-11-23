@@ -33,13 +33,10 @@ import { MapPin, RefreshCw, Zap, Download } from "lucide-react";
 import { updateDeviceLocation } from "../services/public";
 import { useSnackbar } from "notistack";
 import { OTAUpdateModal } from "../components/ota/OTAUpdateModal";
-import { useOnboarding } from "../contexts/OnboardingContext";
-import { generateDeviceTour } from "../utils/deviceTourGenerator";
 
 const DeviceConfig = () => {
   const { selectedDevice } = useDevices();
   const { callEndpoint } = useFetchAndLoad();
-  const { hasCompletedOnboarding, startTour } = useOnboarding();
   const [saveToDatabase, setSaveToDatabase] = useState(false);
   const [deviceName, setDeviceName] = useState("");
   const [configs, setConfigs] = useState([]);
@@ -68,25 +65,6 @@ const DeviceConfig = () => {
       setLoadingOTA(false);
     }
   };
-
-  // Check for device-model onboarding (runs once)
-  useEffect(() => {
-    if (!hasCompletedOnboarding("devices") && selectedDevice?.template) {
-      const timer = setTimeout(() => {
-        const deviceTour = generateDeviceTour(
-          selectedDevice.template,
-          selectedDevice.name
-        );
-        startTour("device-model", deviceTour);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [
-    hasCompletedOnboarding,
-    startTour,
-    selectedDevice?.template,
-    selectedDevice?.name,
-  ]);
 
   // Update device config when selectedDevice changes
   useEffect(() => {
@@ -244,7 +222,10 @@ const DeviceConfig = () => {
       </div>
 
       {/* Sección de Firmware OTA */}
-      <div className="flex flex-col items-start gap-3 mb-6">
+      <div
+        className="flex flex-col items-start gap-3 mb-6"
+        data-tour="firmware-section"
+      >
         <div className="flex items-center justify-between w-full">
           <Label className="font-bold">Versión de Firmware</Label>
           <Button
@@ -289,6 +270,7 @@ const DeviceConfig = () => {
                   size="sm"
                   className="gap-2"
                   onClick={handleOpenOTAModal}
+                  data-tour="ota-update-button"
                 >
                   <Download className="h-4 w-4" />
                   Actualizar

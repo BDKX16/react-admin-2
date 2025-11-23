@@ -88,6 +88,13 @@ export const AuthProvider = ({ children }) => {
     enqueueSnackbar("Logout successfully", { variant: "success" });
     localStorage.removeItem("token");
     localStorage.removeItem("userData");
+
+    // Limpiar flags del modal de bienvenida (específicos del usuario)
+    localStorage.removeItem("confi_welcome_modal_shown");
+    localStorage.removeItem("confi_welcome_modal_postponed");
+
+    // NO limpiar ota_modal_hide_until (preferencia global con expiración automática)
+
     setAuth({});
     window.location.reload();
   };

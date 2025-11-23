@@ -17,7 +17,6 @@ import { newDevice } from "@/services/public";
 import useDevices from "@/hooks/useDevices";
 import { enqueueSnackbar } from "notistack";
 import { useOnboarding } from "@/contexts/OnboardingContext";
-import { deviceTour } from "@/config/tours";
 
 interface AddDeviceDialogProps {
   open: boolean;
@@ -80,14 +79,6 @@ export function AddDeviceDialog({ open, onOpenChange }: AddDeviceDialogProps) {
           setLoadingTextIndex(0);
           setReload(true); // Recargar la lista de dispositivos
           onOpenChange(false); // Cerrar el modal
-
-          // Iniciar tour de dispositivo después de cerrar modal
-          setTimeout(() => {
-            startTour("device", deviceTour, {
-              allowClose: true, // Permitir cerrar con X
-              overlayClickNext: false, // No avanzar con click en overlay
-            });
-          }, 500);
         }, remainingTime);
       } else {
         setIsLoading(false);

@@ -557,7 +557,7 @@ const DeviceSetupDashboard = ({
       )}
 
       {/* Dashboard de sensores */}
-      {sensors.length > 0 && (
+      {sensors.length > 0 && hasReceivedData && (
         <div>
           <div className="flex flex-wrap md:flex-nowrap items-center justify-center gap-6">
             {/* Sensor combinado de Temperatura y Humedad Ambiente */}

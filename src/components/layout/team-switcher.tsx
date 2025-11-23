@@ -84,6 +84,7 @@ export function TeamSwitcher({
               size="lg"
               disabled={loading || !teams.length}
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              data-tour="team-switcher"
             >
               <div
                 className="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground"

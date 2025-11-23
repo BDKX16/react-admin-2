@@ -1,22 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import UnifiedChartsSection from "@/components/dashboard/unified-charts-section";
 import DeviceOverviewGrid from "@/components/dashboard/device-overview-grid";
 import { OTABulkUpdateModal } from "@/components/ota/OTABulkUpdateModal";
+import { useWelcomeModal } from "@/components/onboarding/WelcomeModal";
+import { useWelcomeModalContext } from "../contexts/WelcomeModalContext";
 import useFetchAndLoad from "../hooks/useFetchAndLoad";
+
+// Lazy load del modal de bienvenida (tiene video pesado)
+const WelcomeModal = lazy(() =>
+  import("@/components/onboarding/WelcomeModal").then((module) => ({
+    default: module.WelcomeModal,
+  }))
+);
 import { getDevicesOTAStatus } from "../services/private";
 import useDevices from "../hooks/useDevices";
 import useMqtt from "../hooks/useMqtt";
 import useAuth from "../hooks/useAuth";
-import { useOnboarding } from "../contexts/OnboardingContext";
-import { initialTour } from "../config/tours";
 
 export default function DashboardPage() {
   const { devicesArr } = useDevices();
   const { recived, mqttStatus, setSend } = useMqtt();
   const { auth } = useAuth();
-  const { hasCompletedOnboarding, startTour } = useOnboarding();
   const [timeRange] = useState("24h");
   const [otaModalOpen, setOtaModalOpen] = useState(false);
   const [otaDevicesData, setOtaDevicesData] = useState([]);
@@ -26,16 +32,21 @@ export default function DashboardPage() {
   const [updateRequestSent, setUpdateRequestSent] = useState(false);
   const { callEndpoint } = useFetchAndLoad();
 
-  // Check for initial onboarding
+  // Welcome modal (para usuarios que acaban de completar el onboarding)
+  const { showModal: showWelcomeModalAuto } = useWelcomeModal();
+
+  // Contexto compartido para abrir el modal desde el menu
+  const { showWelcomeModal, setShowWelcomeModal } = useWelcomeModalContext();
+
+  // Sincronizar el auto-show con el contexto
   useEffect(() => {
-    if (!hasCompletedOnboarding("inicio")) {
-      // Small delay to ensure DOM is ready
-      const timer = setTimeout(() => {
-        startTour("initial", initialTour);
-      }, 1000);
-      return () => clearTimeout(timer);
+    if (showWelcomeModalAuto) {
+      setShowWelcomeModal(true);
     }
-  }, [hasCompletedOnboarding, startTour]);
+  }, [showWelcomeModalAuto, setShowWelcomeModal]);
+
+  // El tour inicial solo se activa desde el modal de bienvenida
+  // No hay auto-inicio del tour aquí
 
   // Enviar solicitud de actualización a todos los dispositivos cuando MQTT esté online
   useEffect(() => {
@@ -58,14 +69,24 @@ export default function DashboardPage() {
   }, [mqttStatus, devicesArr, auth.userData?.id, setSend, updateRequestSent]);
 
   const shouldShowOTAModal = () => {
+    // No mostrar si el modal de bienvenida está activo
+    if (showWelcomeModal) {
+      return false;
+    }
+
     const hideUntil = localStorage.getItem("ota_modal_hide_until");
     if (hideUntil) {
-      const hideDate = new Date(hideUntil);
-      const now = new Date();
-      if (now < hideDate) {
-        return false; // No mostrar si aún está dentro del período de ocultación
-      } else {
-        // Limpiar si ya pasó el período
+      try {
+        const hideTimestamp = parseInt(hideUntil, 10);
+        const now = Date.now();
+        if (now < hideTimestamp) {
+          return false; // No mostrar si aún está dentro del período de ocultación
+        } else {
+          // Limpiar si ya pasó el período
+          localStorage.removeItem("ota_modal_hide_until");
+        }
+      } catch {
+        // Si hay error parseando, limpiar el valor corrupto
         localStorage.removeItem("ota_modal_hide_until");
       }
     }
@@ -127,10 +148,16 @@ export default function DashboardPage() {
       // Ocultar por 7 días
       hideUntil.setDate(hideUntil.getDate() + 7);
     } else {
-      // Ocultar por 1 día (hasta el final del día actual)
-      hideUntil.setHours(23, 59, 59, 999);
+      // Ocultar por 1 día (hasta mañana 00:00)
+      hideUntil.setDate(hideUntil.getDate() + 1);
     }
-    localStorage.setItem("ota_modal_hide_until", hideUntil.toISOString());
+    hideUntil.setHours(0, 0, 0, 0);
+
+    // Guardar como timestamp numérico (consistente con OTAUpdateStep)
+    localStorage.setItem(
+      "ota_modal_hide_until",
+      hideUntil.getTime().toString()
+    );
     setOtaModalOpen(false);
   };
 
@@ -162,6 +189,16 @@ export default function DashboardPage() {
         onClose={handleCloseModal}
         devicesData={otaDevicesData}
       />
+
+      {/* Modal de bienvenida (lazy-loaded, solo se carga cuando se muestra) */}
+      {showWelcomeModal && (
+        <Suspense fallback={null}>
+          <WelcomeModal
+            open={showWelcomeModal}
+            onOpenChange={setShowWelcomeModal}
+          />
+        </Suspense>
+      )}
     </main>
   );
 }

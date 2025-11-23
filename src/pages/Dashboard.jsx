@@ -2,11 +2,36 @@ import { InputCard } from "@/components/InputCard";
 import useDevices from "@/hooks/useDevices";
 import ActuatorCard from "../components/ActuatorCard";
 import useAuth from "../hooks/useAuth";
-import WelcomeCard from "../components/WelcomeCard"; // Import the new component
+import WelcomeCard from "../components/WelcomeCard";
+import { useOnboarding } from "@/contexts/OnboardingContext";
+import { generateDeviceTour } from "@/utils/deviceTourGenerator";
+import { useEffect } from "react";
 
 const Dashboard = () => {
   const { selectedDevice } = useDevices();
   const { auth } = useAuth();
+  const { startTour, hasCompletedOnboarding } = useOnboarding();
+
+  // Check for device-model onboarding (runs once per device model)
+  useEffect(() => {
+    if (!hasCompletedOnboarding("devices") && selectedDevice?.template) {
+      const timer = setTimeout(() => {
+        const deviceTour = generateDeviceTour(
+          selectedDevice.template,
+          selectedDevice.name,
+          selectedDevice.modelId
+        );
+        startTour("device-model", deviceTour);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    hasCompletedOnboarding,
+    startTour,
+    selectedDevice?.template,
+    selectedDevice?.name,
+    selectedDevice?.modelId,
+  ]);
 
   const calculateActuatorsCols = (widgets) => {
     const cant = widgets.filter(
@@ -24,9 +49,12 @@ const Dashboard = () => {
   }
   return (
     <>
-      <div className="grid auto-rows-min gap-4 md:grid-cols-3 sm:grid-cols-2">
+      <div
+        className="grid auto-rows-min gap-4 md:grid-cols-3 sm:grid-cols-2"
+        data-tour="device-sensors"
+      >
         {selectedDevice &&
-          selectedDevice.template.widgets.map((item) => {
+          selectedDevice.template.widgets.map((item, index) => {
             if (
               item.variableFullName === "Temp" ||
               item.variableFullName === "Hum" ||
@@ -38,6 +66,7 @@ const Dashboard = () => {
                   widget={item}
                   dId={selectedDevice.dId}
                   userId={auth.userData.id}
+                  data-tour={index === 0 ? "device-card" : undefined}
                 />
               );
             }
@@ -49,6 +78,7 @@ const Dashboard = () => {
             "grid auto-rows-min gap-4 sm:grid-cols-2 md:grid-cols-" +
             calculateActuatorsCols(selectedDevice.template.widgets)
           }
+          data-tour="device-controls"
         >
           {selectedDevice.template.widgets
             .filter(

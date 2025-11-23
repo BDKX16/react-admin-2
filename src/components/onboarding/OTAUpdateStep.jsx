@@ -17,6 +17,8 @@ import { triggerDeviceOTAUpdate } from "../../services/private";
 import { useSnackbar } from "notistack";
 import useMqtt from "../../hooks/useMqtt";
 
+const OTA_MODAL_HIDE_UNTIL_KEY = "ota_modal_hide_until";
+
 const OTAUpdateStep = ({ device, otaStatus, onSkip, onComplete }) => {
   const { callEndpoint } = useFetchAndLoad();
   const { enqueueSnackbar } = useSnackbar();
@@ -28,23 +30,37 @@ const OTAUpdateStep = ({ device, otaStatus, onSkip, onComplete }) => {
   const [updateCompleted, setUpdateCompleted] = useState(false);
   const [lastNotifiedStatus, setLastNotifiedStatus] = useState(null);
 
+  // Función para manejar el skip y ocultar el modal OTA hasta mañana
+  const handleSkip = () => {
+    // Guardar timestamp para mañana a las 00:00
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    localStorage.setItem(
+      OTA_MODAL_HIDE_UNTIL_KEY,
+      tomorrow.getTime().toString()
+    );
+
+    // Ejecutar la función onSkip original
+    onSkip();
+  };
+
   // Escuchar mensajes MQTT del topic updater/sdata para progreso OTA en tiempo real
   useEffect(() => {
     if (!device?.dId || !recived || recived.length === 0) return;
-
-    // Debug: Ver todos los mensajes MQTT recibidos
-    console.log("🔍 [OTA DEBUG] Mensajes MQTT recibidos:", recived);
-    console.log("🔍 [OTA DEBUG] Device ID buscado:", device.dId);
 
     const otaMessages = recived.filter(
       (msg) => msg.dId === device.dId && msg.variable === "updater"
     );
 
-    console.log("🔍 [OTA DEBUG] Mensajes filtrados para updater:", otaMessages);
-
     if (otaMessages.length > 0) {
       const latestMsg = otaMessages[otaMessages.length - 1];
-      console.log("📡 [OTA DEBUG] Último mensaje OTA:", latestMsg);
+
+      // Validar que el mensaje tenga un value válido
+      if (!latestMsg.value) {
+        return;
+      }
 
       try {
         const payload =
@@ -52,7 +68,10 @@ const OTAUpdateStep = ({ device, otaStatus, onSkip, onComplete }) => {
             ? JSON.parse(latestMsg.value)
             : latestMsg.value;
 
-        console.log("📦 [OTA DEBUG] Payload parseado:", payload);
+        // Validar que el payload tenga la estructura esperada
+        if (!payload || typeof payload !== "object") {
+          return;
+        }
 
         if (payload.ota_status) {
           setOtaProgress({
@@ -145,17 +164,21 @@ const OTAUpdateStep = ({ device, otaStatus, onSkip, onComplete }) => {
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in zoom-in duration-500">
       {/* Header */}
       <div className="text-center space-y-3">
-        <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-3">
+        <div
+          className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-3 ${
+            updateCompleted
+              ? "bg-gradient-to-br from-green-500 to-emerald-600"
+              : "bg-gradient-to-br from-blue-500 to-purple-600"
+          }`}
+        >
           {updateCompleted ? (
-            <CheckCircle2 className="h-8 w-8 text-white" />
+            <CheckCircle2 className="h-10 w-10 text-white" />
           ) : (
             <Zap className="h-8 w-8 text-white" />
           )}
         </div>
         <h2 className="text-3xl font-bold">
-          {updateCompleted
-            ? "¡Actualización completada!"
-            : "Actualización de Firmware disponible"}
+          {updateCompleted ? "¡Todo listo!" : "Actualización de Firmware"}
         </h2>
         <p className="text-muted-foreground">
           {updateCompleted
@@ -164,72 +187,77 @@ const OTAUpdateStep = ({ device, otaStatus, onSkip, onComplete }) => {
         </p>
       </div>
 
-      {/* Información de versiones */}
-      <div className="grid grid-cols-2 gap-6 p-5 bg-muted/50 rounded-lg border border-border">
-        <div className="space-y-1 text-center">
-          <p className="text-sm font-medium text-muted-foreground">
-            Versión Actual
-          </p>
-          <p className="text-lg font-semibold">{currentVersion}</p>
-        </div>
-        {updateAvailable && availableFirmware && (
+      {/* Información de versiones - Solo mostrar si NO está completado */}
+      {!updateCompleted && (
+        <div className="grid grid-cols-2 gap-6 p-5 bg-muted/50 rounded-lg border border-border">
           <div className="space-y-1 text-center">
             <p className="text-sm font-medium text-muted-foreground">
-              Nueva Versión
+              Versión Actual
             </p>
-            <div className="flex items-center justify-center gap-2">
-              <p className="text-lg font-semibold text-green-600">
-                {availableFirmware.version}
-              </p>
-              {availableFirmware.isCritical && (
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-              )}
-            </div>
+            <p className="text-lg font-semibold">{currentVersion}</p>
           </div>
-        )}
-      </div>
-
-      {/* Detalles del firmware disponible */}
-      {updateAvailable && availableFirmware && !otaProgress && (
-        <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Download className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-semibold text-green-900 dark:text-green-100">
-                Actualización disponible
-              </span>
-            </div>
-            <span className="text-xs font-medium text-green-700 dark:text-green-300">
-              {availableFirmware.fileSizeMB} MB
-            </span>
-          </div>
-
-          {availableFirmware.isCritical && (
-            <div className="flex items-center gap-2 mb-2 p-2 bg-amber-100 dark:bg-amber-900/30 rounded">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
-                Actualización crítica de seguridad
+          {updateAvailable && availableFirmware && (
+            <div className="space-y-1 text-center">
+              <p className="text-sm font-medium text-muted-foreground">
+                Nueva Versión
               </p>
-            </div>
-          )}
-
-          {availableFirmware.changelog && (
-            <div className="space-y-1">
-              <button
-                onClick={() => setShowDetails(!showDetails)}
-                className="text-xs text-green-700 dark:text-green-300 hover:underline"
-              >
-                {showDetails ? "Ocultar" : "Ver"} notas de la versión
-              </button>
-              {showDetails && (
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1 pl-2 border-l-2 border-green-300 whitespace-pre-line">
-                  {availableFirmware.changelog}
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-lg font-semibold text-green-600">
+                  {availableFirmware.version}
                 </p>
-              )}
+                {availableFirmware.isCritical && (
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                )}
+              </div>
             </div>
           )}
         </div>
       )}
+
+      {/* Detalles del firmware disponible */}
+      {!updateCompleted &&
+        updateAvailable &&
+        availableFirmware &&
+        !otaProgress && (
+          <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Download className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-semibold text-green-900 dark:text-green-100">
+                  Actualización disponible
+                </span>
+              </div>
+              <span className="text-xs font-medium text-green-700 dark:text-green-300">
+                {availableFirmware.fileSizeMB} MB
+              </span>
+            </div>
+
+            {availableFirmware.isCritical && (
+              <div className="flex items-center gap-2 mb-2 p-2 bg-amber-100 dark:bg-amber-900/30 rounded">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                  Actualización crítica de seguridad
+                </p>
+              </div>
+            )}
+
+            {availableFirmware.changelog && (
+              <div className="space-y-1">
+                <button
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="text-xs text-green-700 dark:text-green-300 hover:underline"
+                >
+                  {showDetails ? "Ocultar" : "Ver"} notas de la versión
+                </button>
+                {showDetails && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 pl-2 border-l-2 border-green-300 whitespace-pre-line">
+                    {availableFirmware.changelog}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
       {/* Sin actualizaciones */}
       {!updateAvailable && !otaProgress && (
@@ -305,7 +333,7 @@ const OTAUpdateStep = ({ device, otaStatus, onSkip, onComplete }) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={onSkip}
+                  onClick={handleSkip}
                   className="text-muted-foreground hover:text-foreground text-xs"
                 >
                   Saltar y continuar al dashboard

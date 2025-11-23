@@ -23,6 +23,8 @@ import {
   TrendingUp,
   Filter,
   Play,
+  Menu,
+  ArrowLeftRight,
 } from "lucide-react";
 import { createElement } from "react";
 
@@ -32,72 +34,11 @@ import { createElement } from "react";
  */
 export const initialTour: OnboardingStep[] = [
   {
-    element: '[data-tour="main-content"]',
-    popover: {
-      title: "¡Bienvenido a Confi Admin!",
-      description:
-        "Te daremos un recorrido rápido por las funcionalidades principales de la aplicación. Este panel de administración te permite gestionar todos tus dispositivos IoT de manera centralizada.",
-      side: "bottom",
-      align: "start",
-    },
-    icon: createElement(Home, { size: 20, className: "inline-block" }),
-  },
-  {
-    element: '[data-tour="add-device-btn"]',
-    popover: {
-      title: "Agregar dispositivos",
-      description:
-        "Haz clic aquí para agregar un nuevo dispositivo a tu red. Podrás configurar diferentes tipos de dispositivos según sus capacidades.",
-      side: "left",
-      align: "start",
-    },
-    icon: createElement(Plus, { size: 20, className: "inline-block" }),
-  },
-  {
-    element: '[data-tour="device-grid"]',
-    popover: {
-      title: "Monitorea tus dispositivos",
-      description:
-        "En el dashboard verás todos tus dispositivos en tiempo real. Cada tarjeta muestra el estado, sensores y controles del dispositivo.",
-      side: "top",
-      align: "start",
-    },
-    icon: createElement(BarChart3, { size: 20, className: "inline-block" }),
-  },
-  {
-    element: '[data-tour="notifications"]',
-    popover: {
-      title: "Actualizaciones OTA",
-      description:
-        "Recibe notificaciones cuando haya actualizaciones de firmware disponibles. Podrás actualizar múltiples dispositivos al mismo tiempo de forma inalámbrica.",
-      side: "left",
-      align: "start",
-    },
-    icon: createElement(Download, { size: 20, className: "inline-block" }),
-  },
-  {
-    element: '[data-tour="settings-menu"]',
-    popover: {
-      title: "Configuración",
-      description:
-        "Accede a la configuración desde el menú lateral. Personaliza tu perfil, notificaciones y preferencias del sistema.",
-      side: "right",
-      align: "start",
-    },
-    icon: createElement(Settings, { size: 20, className: "inline-block" }),
-  },
-];
-
-/**
- * Dashboard tour - detailed walkthrough of dashboard features
- */
-export const dashboardTour: OnboardingStep[] = [
-  {
     element: '[data-tour="main-dashboard"]',
     popover: {
-      title: "Panel de Control",
+      title: "Panel de control",
       description:
-        "El dashboard es tu centro de control principal. Aquí puedes ver y controlar todos tus dispositivos desde un solo lugar.",
+        "Tu centro de mando. Desde aquí puedes vigilar y ajustar todo lo que ocurre en tu cultivo.",
       side: "bottom",
       align: "start",
     },
@@ -108,7 +49,7 @@ export const dashboardTour: OnboardingStep[] = [
     popover: {
       title: "Tarjetas de dispositivo",
       description:
-        "Cada tarjeta representa un dispositivo conectado. Muestra su estado (online/offline), sensores en tiempo real y controles.",
+        "Cada uno con su historia. Mira el estado de cada controlador y sus sensores en un vistazo.",
       side: "top",
       align: "start",
     },
@@ -119,7 +60,7 @@ export const dashboardTour: OnboardingStep[] = [
     popover: {
       title: "Controles rápidos",
       description:
-        "Los switches te permiten controlar tus dispositivos directamente. Los cambios se aplican en tiempo real vía MQTT.",
+        "Acción inmediata. Enciende, apaga o ajusta con un solo toque, y todo se refleja al instante.",
       side: "top",
       align: "start",
     },
@@ -130,79 +71,138 @@ export const dashboardTour: OnboardingStep[] = [
     popover: {
       title: "Sensores y métricas",
       description:
-        "Los medidores radiales muestran valores de sensores en tiempo real. Temperatura, humedad, corriente, voltaje y más según el dispositivo.",
+        "La ciencia al alcance de tu mano. Temperatura, humedad, voltaje… todo en tiempo real.",
       side: "top",
       align: "start",
     },
     icon: createElement(Activity, { size: 20, className: "inline-block" }),
   },
   {
-    element: '[data-tour="device-config-btn"]',
-    popover: {
-      title: "Configurar dispositivo",
-      description:
-        'Haz clic en "Configurar" para acceder a opciones avanzadas. Podrás ajustar timers, calibración de sensores y más configuraciones específicas.',
-      side: "top",
-      align: "start",
-    },
-    icon: createElement(Cog, { size: 20, className: "inline-block" }),
-  },
-  {
     element: '[data-tour="add-device-btn"]',
     popover: {
       title: "Agregar más dispositivos",
       description:
-        "Usa este botón para añadir nuevos dispositivos a tu red. Soporta múltiples modelos con diferentes capacidades.",
+        "Haz crecer tu red. Suma nuevos controladores y expande tu ecosistema.",
       side: "left",
       align: "start",
     },
     icon: createElement(Plus, { size: 20, className: "inline-block" }),
   },
+  {
+    element: '[data-tour="mobile-app-download"]',
+    popover: {
+      title: "Descarga la app móvil",
+      description:
+        "Lleva tu cultivo en el bolsillo. Descarga la aplicación móvil para monitorear y controlar desde cualquier lugar.",
+      side: "right",
+      align: "start",
+    },
+    icon: createElement(Download, { size: 20, className: "inline-block" }),
+  },
+  {
+    element: '[data-tour="calendar"]',
+    popover: {
+      title: "Calendario de telemetría",
+      description:
+        "La memoria de tu cultivo. Consulta el historial de operaciones, eventos importantes y tendencias a lo largo del tiempo.",
+      side: "left",
+      align: "start",
+    },
+    icon: createElement(Calendar, { size: 20, className: "inline-block" }),
+  },
+  {
+    element: '[data-tour="notifications"]',
+    popover: {
+      title: "Centro de notificaciones",
+      description:
+        "Mantente informado. Haz clic en la campana para ver alertas importantes, cambios de estado y actualizaciones de tus dispositivos.",
+      side: "left",
+      align: "start",
+    },
+    icon: createElement(Bell, { size: 20, className: "inline-block" }),
+  },
+  {
+    element: '[data-tour="team-switcher"]',
+    popover: {
+      title: "Selector de dispositivo",
+      description:
+        "Cambia entre dispositivos al instante. Este selector te permite alternar rápidamente entre todos tus controladores.",
+      side: "right",
+      align: "start",
+    },
+    icon: createElement(ArrowLeftRight, {
+      size: 20,
+      className: "inline-block",
+    }),
+  },
+  {
+    element: '[data-tour="sidebar-nav"]',
+    popover: {
+      title: "Menú de navegación",
+      description:
+        "Todas las herramientas a tu alcance. Dashboard, Dispositivos, Reglas, Gráficos, Configuración y más secciones para gestionar tu operación.",
+      side: "right",
+      align: "start",
+    },
+    icon: createElement(Menu, { size: 20, className: "inline-block" }),
+  },
+
+  {
+    element: '[data-tour="user-account"]',
+    popover: {
+      title: "Configuración de cuenta",
+      description:
+        "Tu perfil y preferencias. Accede a tu información personal, cambia el tema, gestiona tu plan y cierra sesión desde aquí.",
+      side: "right",
+      align: "start",
+    },
+    icon: createElement(User, { size: 20, className: "inline-block" }),
+  },
 ];
 
 /**
- * OTA Update tour - explains firmware update process
+ * OTA Update tour - shows how to update firmware from DeviceConfig page
  */
 export const otaTour: OnboardingStep[] = [
   {
-    element: '[data-tour="ota-modal"]',
+    element: '[data-tour="device-config-page"]',
     popover: {
-      title: "Actualizaciones OTA",
+      title: "¿Cómo actualizar?",
       description:
-        "Las actualizaciones Over-The-Air (OTA) te permiten actualizar el firmware de tus dispositivos de forma inalámbrica. Sin necesidad de cables o acceso físico al dispositivo.",
+        "Desde esta página de configuración puedes actualizar el firmware de tu dispositivo de forma inalámbrica (OTA - Over The Air).",
+      side: "top",
+      align: "start",
+    },
+    icon: createElement(Settings, { size: 20, className: "inline-block" }),
+  },
+  {
+    element: '[data-tour="firmware-section"]',
+    popover: {
+      title: "Sección de Firmware",
+      description:
+        "Aquí verás tu versión actual de firmware. Si hay una actualización disponible, aparecerá un botón para actualizar.",
       side: "top",
       align: "start",
     },
     icon: createElement(Download, { size: 20, className: "inline-block" }),
   },
   {
-    element: '[data-tour="ota-device-selector"]',
+    element: '[data-tour="ota-update-button"]',
     popover: {
-      title: "Selecciona dispositivos",
+      title: "Actualizar ahora",
       description:
-        "Selecciona los dispositivos que deseas actualizar. Puedes actualizar uno o varios dispositivos al mismo tiempo. Solo se muestran dispositivos que están online.",
-      side: "top",
+        "Haz clic en este botón cuando haya una actualización disponible. El proceso es automático y podrás ver el progreso en tiempo real.",
+      side: "left",
       align: "start",
     },
-    icon: createElement(CheckCircle, { size: 20, className: "inline-block" }),
+    icon: createElement(Zap, { size: 20, className: "inline-block" }),
   },
   {
-    element: '[data-tour="ota-progress"]',
+    element: '[data-tour="device-config-page"]',
     popover: {
-      title: "Monitorea el progreso",
+      title: "Mantente actualizado",
       description:
-        "Durante la actualización verás el progreso de cada dispositivo. El modal permanecerá abierto hasta que todas las actualizaciones se completen.",
-      side: "top",
-      align: "start",
-    },
-    icon: createElement(BarChart3, { size: 20, className: "inline-block" }),
-  },
-  {
-    element: '[data-tour="ota-hide-checkbox"]',
-    popover: {
-      title: "Ocultar notificaciones",
-      description:
-        "Puedes elegir no ver notificaciones de actualizaciones por 7 días. Siempre podrás actualizar manualmente desde el menú de configuración.",
+        "Las actualizaciones mejoran funcionalidad y seguridad. Te notificaremos cuando haya nuevas versiones disponibles.",
       side: "top",
       align: "start",
     },
@@ -289,67 +289,6 @@ export const analyticsTour: OnboardingStep[] = [
 ];
 
 /**
- * Device onboarding tour - shown after claiming/adding a device
- */
-export const deviceTour: OnboardingStep[] = [
-  {
-    element: '[data-tour="device-card"]',
-    popover: {
-      title: "¡Dispositivo agregado!",
-      description:
-        "Este es tu nuevo dispositivo. Aquí podrás ver su estado en tiempo real, sensores y controles disponibles.",
-      side: "top",
-      align: "start",
-    },
-    icon: createElement(PartyPopper, { size: 20, className: "inline-block" }),
-  },
-  {
-    element: '[data-tour="device-status"]',
-    popover: {
-      title: "Estado de conexión",
-      description:
-        "Este indicador muestra si el dispositivo está conectado (online/verde) o desconectado (offline/rojo). El estado se actualiza en tiempo real.",
-      side: "left",
-      align: "start",
-    },
-    icon: createElement(Radio, { size: 20, className: "inline-block" }),
-  },
-  {
-    element: '[data-tour="device-card"]',
-    popover: {
-      title: "Sensores y datos en tiempo real",
-      description:
-        "En esta sección verás las lecturas de los sensores configurados en tu dispositivo (temperatura, humedad, etc.). Los valores se actualizan automáticamente vía MQTT.",
-      side: "bottom",
-      align: "start",
-    },
-    icon: createElement(Thermometer, { size: 20, className: "inline-block" }),
-  },
-  {
-    element: '[data-tour="device-controls"]',
-    popover: {
-      title: "Controles de actuadores",
-      description:
-        "Usa estos switches para controlar los actuadores de tu dispositivo (luces, bombas, ventiladores, etc.). Los cambios se aplican en tiempo real. Puedes omitir este tour cuando quieras.",
-      side: "bottom",
-      align: "start",
-    },
-    icon: createElement(Sliders, { size: 20, className: "inline-block" }),
-  },
-  {
-    element: '[data-tour="device-card"]',
-    popover: {
-      title: "Configuración avanzada",
-      description:
-        "Haz clic en cualquier parte de la tarjeta para acceder a la configuración completa del dispositivo: automatizaciones, horarios, calibración de sensores y más.",
-      side: "top",
-      align: "start",
-    },
-    icon: createElement(Settings, { size: 20, className: "inline-block" }),
-  },
-];
-
-/**
  * Rules tour - automation rules management
  */
 export const rulesTour: OnboardingStep[] = [
@@ -358,7 +297,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "¿Qué son las Reglas?",
       description:
-        "<p>Las <strong>reglas</strong> son automatizaciones basadas en la nube que permiten controlar las variables de los dispositivos <strong>24/7</strong>.</p><p>Estas funcionarán mientras el dispositivo esté conectado a internet.</p>",
+        "<p>Imagina tener un asistente que nunca duerme. Las reglas son automatizaciones que trabajan <strong>24/7</strong> para mantener tu cultivo en equilibrio.</p>",
       side: "bottom",
       align: "start",
     },
@@ -369,7 +308,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Tipos de Reglas",
       description:
-        "<p>Existen <strong>3 tipos de reglas</strong>:</p><ul class='space-y-2 mt-2'><li><strong>Reglas Simples</strong>: Condición y acción directa (Si temperatura > 30°C, entonces encender ventilador)</li><li><strong>Reglas Programadas</strong>: Basadas en horarios específicos o recurrentes</li><li><strong>Reglas Compuestas</strong>: Workflows complejos con múltiples condiciones y acciones</li></ul>",
+        "<p>Tú eliges la estrategia. Desde reglas simples hasta workflows complejos, siempre hay una opción que se adapta a tu forma de trabajar.</p>",
       side: "bottom",
       align: "start",
     },
@@ -380,7 +319,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Crear Nueva Regla",
       description:
-        "<p>Haz clic aquí para crear una nueva automatización.</p><p class='mt-2'>Podrás elegir el tipo de regla según tus necesidades de automatización.</p>",
+        "<p>Un clic y listo. Empieza a diseñar tu propia automatización según lo que necesites.</p>",
       side: "left",
       align: "start",
     },
@@ -391,7 +330,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Reglas Simples",
       description:
-        "<p>Las <strong>reglas simples</strong> siguen el patrón <strong>SI-ENTONCES</strong>:</p><ul class='space-y-1 mt-2'><li>✅ Define una <strong>condición</strong> (sensor, valor, operador)</li><li>✅ Establece una <strong>acción</strong> (encender/apagar actuador)</li><li>✅ Configura <strong>cooldown</strong> para evitar múltiples ejecuciones</li></ul><p class='mt-2 text-sm'>Perfectas para automatizaciones reactivas basadas en sensores.</p>",
+        '<p>Acciones rápidas y efectivas. <strong>"Si pasa esto → entonces haz aquello"</strong>. Perfecto para respuestas inmediatas de tus sensores.</p>',
       side: "bottom",
       align: "start",
     },
@@ -402,7 +341,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Reglas Programadas",
       description:
-        "<p>Las <strong>reglas programadas</strong> ejecutan acciones en momentos específicos:</p><ul class='space-y-1 mt-2'><li>📅 <strong>Horarios específicos</strong>: Ej. Todos los días a las 19:00</li><li>🔁 <strong>Recurrencias</strong>: Lunes, miércoles y viernes</li><li>📆 <strong>Eventos únicos</strong>: Fechas especiales</li></ul><p class='mt-2 text-sm'>Ideales para rutinas predecibles y horarios fijos.</p>",
+        "<p>Rutinas confiables. Programa horarios y recurrencias para que tu cultivo siga un ritmo constante.</p>",
       side: "bottom",
       align: "start",
     },
@@ -413,7 +352,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Reglas Compuestas - Editor Visual",
       description:
-        "<p>Las <strong>reglas compuestas</strong> son workflows complejos creados visualmente:</p><ul class='space-y-1 mt-2'><li><strong>Múltiples condiciones</strong>: Combina varios sensores</li><li><strong>Lógica avanzada</strong>: AND, OR, NOT</li><li><strong>Acciones en cadena</strong>: Secuencias automatizadas</li><li><strong>Editor visual</strong>: Arrastra y conecta nodos</li></ul><p class='mt-3 text-sm text-amber-600 dark:text-amber-400'>A continuación, exploraremos el editor de workflows...</p>",
+        "<p>Aquí empieza la magia. Combina condiciones, acciones y lógica avanzada arrastrando nodos de manera intuitiva.</p>",
       side: "bottom",
       align: "start",
     },
@@ -426,7 +365,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Automatizaciones Complejas",
       description:
-        "<p>Las <strong>automatizaciones complejas</strong> son workflows visuales que permiten:</p><ul class='space-y-1 mt-2'><li>Combinar <strong>múltiples condiciones</strong></li><li>Crear <strong>lógica avanzada</strong> (AND, OR, NOT)</li><li>Encadenar <strong>múltiples acciones</strong></li><li>Agregar <strong>delays y timers</strong></li></ul><p class='mt-2 text-sm'><strong>Tutorial en video</strong>: Mira cómo crear tu primer workflow...</p>",
+        "<p>Construye tu propio flujo. Encadena acciones, agrega timers y crea lógica avanzada sin complicaciones.</p>",
       side: "bottom",
       align: "start",
     },
@@ -437,7 +376,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Paleta de Nodos",
       description:
-        "<p>Arrastra nodos desde la barra lateral al canvas.</p><p class='mt-2'><strong>Categorías disponibles:</strong></p><ul class='space-y-1 mt-1'><li><strong>Triggers</strong>: Sensores, eventos, horarios</li><li><strong>Condiciones</strong>: Comparaciones, lógica</li><li><strong>Utilidades</strong>: Delays, conversiones</li><li><strong>Acciones</strong>: Actuadores, notificaciones</li></ul>",
+        "<p>Tu caja de herramientas. Triggers, condiciones, utilidades y acciones, todo listo para arrastrar y soltar.</p>",
       side: "left",
       align: "start",
     },
@@ -448,7 +387,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Nodos Trigger",
       description:
-        "<p>Los <strong>triggers</strong> inician el flujo de trabajo:</p><ul class='space-y-1 mt-2'><li><strong>Sensor</strong>: Lectura de sensores (temperatura, humedad)</li><li><strong>Timer</strong>: Ejecución programada</li><li><strong>Evento</strong>: Cambios de estado del sistema</li><li><strong>Webhook</strong>: Llamadas API externas</li></ul><p class='mt-2 text-sm'>Todo workflow debe comenzar con al menos un trigger.</p>",
+        "<p>El punto de partida. Cada flujo comienza con un disparador: sensor, timer o evento.</p>",
       side: "left",
       align: "start",
     },
@@ -459,7 +398,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Nodos de Condición",
       description:
-        "<p>Las <strong>condiciones</strong> evalúan datos y controlan el flujo:</p><ul class='space-y-1 mt-2'><li>🔢 <strong>Comparación</strong>: >, <, =, ≠</li><li>🔀 <strong>Switch</strong>: Múltiples caminos según valor</li><li>🧮 <strong>Operadores lógicos</strong>: AND, OR, NOT</li><li>📏 <strong>Rangos</strong>: Entre valores min/max</li></ul><p class='mt-2 text-sm'>Conecta las salidas true/false a diferentes acciones.</p>",
+        "<p>Decisiones inteligentes. Evalúa datos y dirige el flujo según lo que ocurra.</p>",
       side: "left",
       align: "start",
     },
@@ -470,7 +409,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Nodos de Utilidad",
       description:
-        "<p>Las <strong>utilidades</strong> transforman y procesan datos:</p><ul class='space-y-1 mt-2'><li><strong>Delay</strong>: Pausas entre acciones</li><li><strong>Debounce</strong>: Evita múltiples disparos</li><li><strong>Matemáticas</strong>: Operaciones aritméticas</li><li><strong>Formato</strong>: Conversión de datos</li></ul><p class='mt-2 text-sm'>Útiles para crear lógica más sofisticada.</p>",
+        "<p>Pequeños trucos, grandes resultados. Delays, conversiones y operaciones que afinan tu lógica.</p>",
       side: "left",
       align: "start",
     },
@@ -481,7 +420,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Nodos de Acción",
       description:
-        "<p>Las <strong>acciones</strong> ejecutan comandos en tus dispositivos:</p><ul class='space-y-1 mt-2'><li><strong>Actuador</strong>: Controlar relés, motores</li><li><strong>Notificación</strong>: Emails, SMS, push</li><li><strong>Log</strong>: Registrar eventos</li><li><strong>HTTP Request</strong>: Llamar APIs externas</li></ul><p class='mt-2 text-sm'>Todo workflow debe terminar con al menos una acción.</p>",
+        "<p>El toque final. Activa dispositivos, envía notificaciones o registra eventos.</p>",
       side: "left",
       align: "start",
     },
@@ -492,7 +431,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Nombre del Workflow",
       description:
-        "<p>Asigna un <strong>nombre descriptivo</strong> a tu workflow:</p><ul class='space-y-1 mt-2'><li>✅ Ej: 'Ventilación Inteligente'</li><li>✅ Ej: 'Riego Automático con Humedad'</li><li>✅ Ej: 'Control de Temperatura Invernadero'</li></ul><p class='mt-2 text-sm'>Un buen nombre facilita la gestión y mantenimiento.</p>",
+        "<p>Ponle identidad. Un buen nombre te ayudará a reconocer y gestionar tus automatizaciones fácilmente.</p>",
       side: "bottom",
       align: "start",
     },
@@ -503,7 +442,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Simular Workflow",
       description:
-        "<p><strong>Prueba tu workflow</strong> antes de activarlo:</p><ul class='space-y-1 mt-2'><li>Ingresa <strong>valores de prueba</strong></li><li><strong>Visualiza</strong> el flujo de datos</li><li><strong>Verifica</strong> que las condiciones funcionan</li><li><strong>Detecta errores</strong> antes del despliegue</li></ul><p class='mt-2 text-sm text-amber-600 dark:text-amber-400'>Recomendado: Siempre simula antes de guardar.</p>",
+        "<p>Prueba antes de confiar. Simula tu flujo con datos de prueba y asegúrate de que todo funcione.</p>",
       side: "left",
       align: "start",
     },
@@ -514,7 +453,7 @@ export const rulesTour: OnboardingStep[] = [
     popover: {
       title: "Guardar y Activar",
       description:
-        "<p>Cuando estés satisfecho con tu workflow:</p><ul class='space-y-1 mt-2'><li><strong>Guarda</strong> el workflow</li><li>Se desplegará automáticamente en el servidor</li><li>Puedes <strong>editarlo después</strong> desde el motor de reglas</li><li>Monitorea su <strong>ejecución en tiempo real</strong></li></ul><p class='mt-3 text-sm text-amber-600 dark:text-amber-400'>Haz clic en 'Siguiente' para volver al motor de reglas y finalizar el tour...</p>",
+        "<p>Hora de ponerlo en marcha. Guarda tu workflow y míralo trabajar en tiempo real.</p>",
       side: "left",
       align: "start",
     },
@@ -525,9 +464,9 @@ export const rulesTour: OnboardingStep[] = [
   {
     element: '[data-tour="rules-list"]',
     popover: {
-      title: "¡Tour Completado! - Gestión de Reglas",
+      title: "¡Tour Completado!",
       description:
-        "<p>¡Excelente! Ahora conoces todas las herramientas de automatización.</p><p class='mt-2'>Todas tus reglas activas aparecen aquí:</p><ul class='space-y-1 mt-2'><li><strong>Visualiza</strong> el estado de cada regla</li><li><strong>Edita</strong> parámetros sin recrear</li><li><strong>Activa/Desactiva</strong> temporalmente</li><li><strong>Elimina</strong> reglas obsoletas</li></ul><p class='mt-2 text-sm'>El estado se actualiza en tiempo real. ¡Comienza a crear tus automatizaciones! 🎉</p>",
+        "<p>¡Lo lograste! Ahora dominas las reglas de automatización y puedes crear un cultivo inteligente a tu medida. 🎉</p>",
       side: "top",
       align: "start",
     },
@@ -649,7 +588,7 @@ export const chartsTour: OnboardingStep[] = [
     popover: {
       title: "Dashboard de Gráficos",
       description:
-        "Visualiza y analiza los datos históricos de tus dispositivos. Identifica patrones, tendencias y anomalías en tus lecturas de sensores.",
+        "Convierte datos en claridad. Aquí verás la historia de tus sensores y descubrirás patrones ocultos.",
       side: "bottom",
       align: "start",
     },
@@ -658,9 +597,9 @@ export const chartsTour: OnboardingStep[] = [
   {
     element: '[data-tour="chart-variable-selector"]',
     popover: {
-      title: "Seleccionar variables",
+      title: "Seleccionar Variables",
       description:
-        "Elige qué sensores o variables quieres visualizar. Puedes seleccionar múltiples variables para compararlas en el mismo gráfico.",
+        "Elige lo que importa. Compara temperatura, humedad y más en un mismo gráfico.",
       side: "right",
       align: "start",
     },
@@ -669,9 +608,9 @@ export const chartsTour: OnboardingStep[] = [
   {
     element: '[data-tour="time-range-selector"]',
     popover: {
-      title: "Rango de tiempo",
+      title: "Rango de Tiempo",
       description:
-        "Selecciona el período que quieres analizar: última hora, día, semana, mes o un rango personalizado. Los datos se cargan automáticamente.",
+        "Viaja en el tiempo. Analiza desde la última hora hasta meses completos con un simple selector.",
       side: "bottom",
       align: "start",
     },
@@ -680,9 +619,9 @@ export const chartsTour: OnboardingStep[] = [
   {
     element: '[data-tour="chart-type-selector"]',
     popover: {
-      title: "Tipo de gráfico",
+      title: "Tipo de Gráfico",
       description:
-        "Cambia entre diferentes visualizaciones: líneas, barras, áreas. Cada tipo es útil para diferentes análisis de datos.",
+        "Cambia la perspectiva. Líneas, barras o áreas, cada visualización te cuenta una historia distinta.",
       side: "left",
       align: "start",
     },
@@ -691,9 +630,9 @@ export const chartsTour: OnboardingStep[] = [
   {
     element: '[data-tour="export-data-btn"]',
     popover: {
-      title: "Exportar datos",
+      title: "Exportar Datos",
       description:
-        "Exporta tus datos en formato CSV o Excel para análisis externos. Útil para reportes, machine learning o respaldos.",
+        "Llévalos contigo. Descarga tus métricas en CSV o Excel para reportes o análisis externos.",
       side: "left",
       align: "start",
     },
@@ -702,9 +641,9 @@ export const chartsTour: OnboardingStep[] = [
   {
     element: '[data-tour="chart-zoom"]',
     popover: {
-      title: "Zoom interactivo",
+      title: "Zoom Interactivo",
       description:
-        "Haz zoom en áreas específicas del gráfico para análisis detallado. Usa la rueda del mouse o arrastra para seleccionar un área.",
+        "Acércate a los detalles. Haz zoom en secciones específicas para un análisis más profundo.",
       side: "top",
       align: "start",
     },
@@ -718,11 +657,8 @@ export const chartsTour: OnboardingStep[] = [
 export const getTourByType = (type: OnboardingType): OnboardingStep[] => {
   switch (type) {
     case "initial":
-      return initialTour;
     case "dashboard":
-      return dashboardTour;
-    case "device":
-      return deviceTour;
+      return initialTour;
     case "ota":
       return otaTour;
     case "settings":

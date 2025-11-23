@@ -14,7 +14,6 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import { CheckCircle2, Loader2, AlertTriangle, KeyRound } from "lucide-react";
 import { useOnboarding } from "@/contexts/OnboardingContext";
-import { deviceTour } from "@/config/tours";
 
 export default function ClaimDevice() {
   const [searchParams] = useSearchParams();
@@ -82,13 +81,6 @@ export default function ClaimDevice() {
         setSuccess(true);
         setTimeout(() => {
           navigate("/dashboard");
-          // Iniciar tour de dispositivo después de navegar
-          setTimeout(() => {
-            startTour("device", deviceTour, {
-              allowClose: true, // Permitir cerrar con X
-              overlayClickNext: false, // No avanzar con click en overlay
-            });
-          }, 500);
         }, 1500);
       } else {
         setError(response.data.error || "No se pudo reclamar el dispositivo.");

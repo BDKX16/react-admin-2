@@ -33,14 +33,14 @@ import { useLocation } from "react-router-dom";
 import type { OnboardingType } from "@/types/onboarding";
 import {
   initialTour,
-  dashboardTour,
-  deviceTour,
   otaTour,
   settingsTour,
   analyticsTour,
   rulesTour,
   automationEditorTour,
 } from "@/config/tours";
+import { generateDeviceTour } from "@/utils/deviceTourGenerator";
+import useDevices from "@/hooks/useDevices";
 
 interface TourOption {
   id: string;
@@ -54,16 +54,23 @@ interface TourOption {
 export const useTourConfig = () => {
   const { startTour, hasCompletedOnboarding } = useOnboarding();
   const location = useLocation();
+  const { selectedDevice } = useDevices();
 
   // Map tour types to their steps
   const getTourSteps = (tourType: OnboardingType) => {
     switch (tourType) {
       case "initial":
-        return initialTour;
       case "dashboard":
-        return dashboardTour;
-      case "device":
-        return deviceTour;
+        return initialTour;
+      case "device-model":
+        if (selectedDevice?.template) {
+          return generateDeviceTour(
+            selectedDevice.template,
+            selectedDevice.name,
+            selectedDevice.modelId
+          );
+        }
+        return [];
       case "ota":
         return otaTour;
       case "settings":
@@ -95,11 +102,11 @@ export const useTourConfig = () => {
       routes: ["/dashboard", "/"],
     },
     {
-      id: "device",
+      id: "device-model",
       label: "Tour de dispositivo",
       icon: <Smartphone className="h-4 w-4" />,
-      tourType: "device",
-      routes: ["/dashboard", "/"],
+      tourType: "device-model",
+      routes: ["/device"],
     },
     {
       id: "ota",
@@ -217,7 +224,9 @@ export const TourMenuContent: React.FC<{
 };
 
 // Menubar content component for tours (for use in Menubar)
-export const TourMenubarContent: React.FC = () => {
+export const TourMenubarContent: React.FC<{
+  onOpenWelcomeModal?: () => void;
+}> = ({ onOpenWelcomeModal }) => {
   const { handleTourStart, availableTours, hasCompletedOnboarding } =
     useTourConfig();
 
@@ -232,7 +241,13 @@ export const TourMenubarContent: React.FC = () => {
       {!hasCompletedOnboarding("inicio") && (
         <>
           <MenubarItem
-            onClick={() => handleTourStart("initial")}
+            onClick={() => {
+              if (onOpenWelcomeModal) {
+                onOpenWelcomeModal();
+              } else {
+                handleTourStart("initial");
+              }
+            }}
             className="cursor-pointer"
           >
             <Home className="mr-2 h-4 w-4" />
@@ -294,7 +309,7 @@ export const TourTrigger: React.FC = () => {
           <Button
             size="icon"
             className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
-            data-tour="help-button"
+            data-tour="tour-menu-button"
           >
             <HelpCircle className="h-6 w-6" />
           </Button>

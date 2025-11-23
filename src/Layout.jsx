@@ -29,6 +29,7 @@ import AutomationEditor from "./pages/AutomationEditor.jsx";
 import MainDashboard from "./pages/MainDashboard.jsx";
 import OnboardingGuard from "./components/guards/OnboardingGuard.jsx";
 import { OnboardingNavigationSetup } from "./components/onboarding/OnboardingNavigationSetup";
+import { WelcomeModalProvider } from "./contexts/WelcomeModalContext";
 
 const Layout = () => {
   const userState = useSelector((state) => state.user);
@@ -120,58 +121,60 @@ const Layout = () => {
                     path="/*"
                     element={
                       <OnboardingGuard>
-                        <DevicesProvider>
-                          <SidebarProvider>
-                            <AppSidebar>
-                              <Routes>
-                                <Route
-                                  path={`/`}
-                                  element={<MainDashboard />}
-                                ></Route>
-                                <Route
-                                  path={`/dashboard`}
-                                  element={<MainDashboard />}
-                                ></Route>
-                                <Route
-                                  path={`/device`}
-                                  element={<Dashboard />}
-                                ></Route>
-                                <Route
-                                  path={`/charts`}
-                                  element={<ChartDashboard />}
-                                ></Route>
-                                <Route
-                                  path={`/notifications`}
-                                  element={<Notifications />}
-                                ></Route>
-                                <Route
-                                  path={`/rule-engine`}
-                                  element={<RuleEngine />}
-                                ></Route>
-                                <Route
-                                  path={`/automation-editor`}
-                                  element={<AutomationEditor />}
-                                ></Route>
-                                <Route
-                                  path={`/device-config`}
-                                  element={<DeviceConfig />}
-                                ></Route>
-                                <Route
-                                  path={`/profile`}
-                                  element={<UserProfile />}
-                                ></Route>
-                                <Route
-                                  path={`/payment-history`}
-                                  element={<PaymentHistory />}
-                                ></Route>
-                                <Route
-                                  path={`/*`}
-                                  element={<MainDashboard />}
-                                ></Route>
-                              </Routes>
-                            </AppSidebar>
-                          </SidebarProvider>
-                        </DevicesProvider>
+                        <WelcomeModalProvider>
+                          <DevicesProvider>
+                            <SidebarProvider>
+                              <AppSidebar>
+                                <Routes>
+                                  <Route
+                                    path={`/`}
+                                    element={<MainDashboard />}
+                                  ></Route>
+                                  <Route
+                                    path={`/dashboard`}
+                                    element={<MainDashboard />}
+                                  ></Route>
+                                  <Route
+                                    path={`/device`}
+                                    element={<Dashboard />}
+                                  ></Route>
+                                  <Route
+                                    path={`/charts`}
+                                    element={<ChartDashboard />}
+                                  ></Route>
+                                  <Route
+                                    path={`/notifications`}
+                                    element={<Notifications />}
+                                  ></Route>
+                                  <Route
+                                    path={`/rule-engine`}
+                                    element={<RuleEngine />}
+                                  ></Route>
+                                  <Route
+                                    path={`/automation-editor`}
+                                    element={<AutomationEditor />}
+                                  ></Route>
+                                  <Route
+                                    path={`/device-config`}
+                                    element={<DeviceConfig />}
+                                  ></Route>
+                                  <Route
+                                    path={`/profile`}
+                                    element={<UserProfile />}
+                                  ></Route>
+                                  <Route
+                                    path={`/payment-history`}
+                                    element={<PaymentHistory />}
+                                  ></Route>
+                                  <Route
+                                    path={`/*`}
+                                    element={<MainDashboard />}
+                                  ></Route>
+                                </Routes>
+                              </AppSidebar>
+                            </SidebarProvider>
+                          </DevicesProvider>
+                        </WelcomeModalProvider>
                       </OnboardingGuard>
                     }
                   ></Route>

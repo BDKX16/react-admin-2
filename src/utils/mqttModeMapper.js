@@ -69,10 +69,13 @@ export const getAllModes = () => {
 
 /**
  * Convierte un valor MQTT a su modo de actuador correspondiente
- * @param {boolean|number} value - Valor MQTT recibido
- * @returns {string|undefined} - Modo del actuador o undefined si no se encuentra
+ * @param {boolean|number|null} value - Valor MQTT recibido
+ * @returns {string|null} - Modo del actuador, null si el valor es null, o undefined si no se encuentra
  */
 export const mqttValueToMode = (value) => {
+  // Manejar valor null (dispositivo sin inicializar o desconectado)
+  if (value === null || value === undefined) return null;
+
   // Manejar valores booleanos
   if (value === true || value === 1) return "on";
   if (value === false || value === 0) return "off";

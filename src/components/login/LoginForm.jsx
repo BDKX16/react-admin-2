@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import PropTypes from "prop-types";
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import useFetchAndLoad from "../../hooks/useFetchAndLoad";
 import { login, loginWithGoogle } from "../../services/public";
@@ -18,6 +19,7 @@ import { createUserAdapter } from "../../adapters/user";
 import { googleAuthService } from "../../services/googleAuth";
 
 const LoginFormulario = () => {
+  const navigate = useNavigate();
   const { loading, callEndpoint } = useFetchAndLoad();
   const [googleLoading, setGoogleLoading] = useState(false);
   const { setUserData } = useAuth();
@@ -45,7 +47,7 @@ const LoginFormulario = () => {
           // Verificar si necesita onboarding
           if (result.needsOnboarding) {
             console.log("🔄 Usuario necesita onboarding, redirigiendo...");
-            window.location.href = "/onboarding";
+            navigate("/onboarding");
             return;
           }
 
@@ -53,7 +55,7 @@ const LoginFormulario = () => {
           const redirectPath =
             sessionStorage.getItem("redirectAfterLogin") || "/dashboard";
           sessionStorage.removeItem("redirectAfterLogin");
-          window.location.href = redirectPath;
+          navigate(redirectPath);
         } catch (error) {
           console.error("❌ Error procesando login de Google:", error);
           alert("Error al procesar el inicio de sesión");
@@ -101,7 +103,7 @@ const LoginFormulario = () => {
       // Verificar si necesita onboarding
       if (result.needsOnboarding) {
         console.log("🔄 Usuario necesita onboarding, redirigiendo...");
-        window.location.href = "/onboarding";
+        navigate("/onboarding");
         return;
       }
 
@@ -110,7 +112,7 @@ const LoginFormulario = () => {
         sessionStorage.getItem("redirectAfterLogin") || "/dashboard";
       console.log("✅ Login exitoso, redirigiendo a:", redirectPath);
       sessionStorage.removeItem("redirectAfterLogin");
-      window.location.href = redirectPath;
+      navigate(redirectPath);
     }
   };
 
@@ -138,7 +140,7 @@ const LoginFormulario = () => {
       // Verificar si necesita onboarding
       if (result.needsOnboarding) {
         console.log("🔄 Usuario necesita onboarding, redirigiendo...");
-        window.location.href = "/onboarding";
+        navigate("/onboarding");
         return;
       }
 
@@ -146,7 +148,7 @@ const LoginFormulario = () => {
       const redirectPath =
         sessionStorage.getItem("redirectAfterLogin") || "/dashboard";
       sessionStorage.removeItem("redirectAfterLogin");
-      window.location.href = redirectPath;
+      navigate(redirectPath);
     } catch (error) {
       console.error("❌ Error en Google login:", error);
 
@@ -263,7 +265,7 @@ const LoginFormulario = () => {
             Don&apos;t have an account?{" "}
             <button
               type="button"
-              onClick={() => (window.location.href = "/register")}
+              onClick={() => navigate("/register")}
               className="underline hover:text-primary"
             >
               Sign up

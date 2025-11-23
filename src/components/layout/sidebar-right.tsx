@@ -42,6 +42,7 @@ import { getSchedules, addDeviceSchedule } from "@/services/private";
 import useDevices from "@/hooks/useDevices";
 import { TourMenubarContent } from "../onboarding/TourMenu";
 import { BookOpen } from "lucide-react";
+import { useWelcomeModalContext } from "@/contexts/WelcomeModalContext";
 
 // This is sample data.
 const data = {
@@ -68,6 +69,7 @@ export function SidebarRight({
   const { mqttStatus } = useMqtt();
   const { loading, callEndpoint } = useFetchAndLoad();
   const { selectedDevice } = useDevices();
+  const { openWelcomeModal } = useWelcomeModalContext();
   const [calendars, setCalendar] = React.useState(data.calendars);
   const [eventData, setEventData] = React.useState({
     startDate: "",
@@ -166,12 +168,13 @@ export function SidebarRight({
           href="https://play.google.com/store/apps/details?id=com.xavigmp.confiplant"
           target="_blank"
           className="flex gap-2 items-center justify-center h-full text-primary-500"
+          data-tour="mobile-app-download"
         >
           <Download size={20} />
           <p>Instalar aplicacion</p>
         </a>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent data-tour="calendar">
         <DatePicker />
         <SidebarSeparator className="mx-0" />
         <Calendars calendars={calendars} selectedDevice={selectedDevice} />
@@ -241,7 +244,7 @@ export function SidebarRight({
         <SidebarMenu>
           <Menubar className="flex justify-evenly">
             <MenubarMenu>
-              <MenubarTrigger>
+              <MenubarTrigger data-tour="notifications">
                 <Bell size={17} />
               </MenubarTrigger>
               <MenubarContent className="w-[380px]">
@@ -250,10 +253,13 @@ export function SidebarRight({
             </MenubarMenu>
 
             <MenubarMenu>
-              <MenubarTrigger className="cursor-pointer">
+              <MenubarTrigger
+                className="cursor-pointer"
+                data-tour="tour-menu-button"
+              >
                 <BookOpen size={17} />
               </MenubarTrigger>
-              <TourMenubarContent />
+              <TourMenubarContent onOpenWelcomeModal={openWelcomeModal} />
             </MenubarMenu>
 
             <MenubarMenu>

@@ -686,7 +686,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                   onValueChange={(value) => sendValue(value)}
                   disabled={currentValue === null}
                 >
-                  <SelectTrigger id="mode-select">
+                  <SelectTrigger id="mode-select" data-tour="mode-selector">
                     <SelectValue placeholder="Seleccionar modo" />
                   </SelectTrigger>
                   <SelectContent>
