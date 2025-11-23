@@ -1490,8 +1490,8 @@ export default function Chart({ device }) {
                   <Brush
                     dataKey="time"
                     height={40}
-                    stroke="hsl(var(--primary))"
-                    fill="hsl(var(--muted))"
+                    stroke="hsl(var(--primary) / 0.3)"
+                    fill="hsl(var(--background) / 0.4)"
                     startIndex={brushRange.startIndex}
                     endIndex={brushRange.endIndex}
                     onChange={(range) => {
