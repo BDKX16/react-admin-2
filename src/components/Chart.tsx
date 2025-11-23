@@ -136,7 +136,7 @@ const eventConfig = {
   },
   first_boot: {
     label: "Primer Arranque",
-    color: "#06b6d4",
+    color: "hsl(var(--brand-green-bright))",
     description: "Dispositivo iniciado por primera vez",
   },
   setpoint_change: {
@@ -146,7 +146,7 @@ const eventConfig = {
   },
   control_correction: {
     label: "Corrección del Control",
-    color: "#f59e0b",
+    color: "hsl(var(--brand-green-mid))",
     description: "El sistema realizó una corrección automática",
   },
   sensor_spike: {
@@ -156,7 +156,7 @@ const eventConfig = {
   },
   connection_restored: {
     label: "Conexión Restaurada",
-    color: "#16a34a",
+    color: "hsl(var(--brand-green-lightest))",
     description: "Se restableció la conexión con el servidor",
   },
 };
@@ -273,6 +273,8 @@ const CustomTooltipContent = ({ active, payload, label, config }) => {
 
           if (!itemConfig) return null;
           let displayValue = entry.value;
+          let isError = false;
+          let errorMessage = "";
 
           // Para actuadores (excepto luces), convertir valores numéricos a ON/OFF
           if (itemConfig.type === "area") {
@@ -290,8 +292,33 @@ const CustomTooltipContent = ({ active, payload, label, config }) => {
               displayValue = absValue % 5 === 0 ? "ON" : "OFF";
             }
           } else {
-            // Para sensores, mostrar el valor con unidad si existe
-            displayValue = `${entry.value}${itemConfig.unit || ""}`;
+            // Para sensores, verificar si hay código de error
+            const errorCode = entry.payload?.[`${configKey}_error`];
+            if (errorCode !== undefined && errorCode < 0) {
+              isError = true;
+              // Mapear códigos de error a mensajes (igual que en InputCard.jsx)
+              const errorMessages = {
+                "-1": "Timeout",
+                "-2": "Error lectura",
+                "-3": "Desconectado",
+                "-4": "Datos inválidos",
+                "-5": "Error I2C",
+                "-6": "Error calibración",
+                "-7": "Error alimentación",
+                "-8": "Error inicialización",
+                "-9": "Fuera de rango",
+                "-10": "Múltiples desconectados",
+                "-11": "Conflicto WiFi-ADC2",
+                "-12": "Error buffer",
+                "-13": "Error frecuencia",
+              };
+              errorMessage =
+                errorMessages[errorCode.toString()] || `Error (${errorCode})`;
+              displayValue = errorMessage;
+            } else {
+              // Mostrar el valor normal con unidad si existe
+              displayValue = `${entry.value}${itemConfig.unit || ""}`;
+            }
           }
 
           return (
@@ -299,14 +326,18 @@ const CustomTooltipContent = ({ active, payload, label, config }) => {
               <div
                 className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
                 style={{
-                  backgroundColor: itemConfig.color,
+                  backgroundColor: isError ? "#ef4444" : itemConfig.color,
                 }}
               />
               <div className="flex items-center justify-between w-full min-w-[120px]">
                 <span className="text-sm text-muted-foreground">
                   {itemConfig.label}
                 </span>
-                <span className="font-mono text-sm font-bold ml-2">
+                <span
+                  className={`font-mono text-sm font-bold ml-2 ${
+                    isError ? "text-red-500" : ""
+                  }`}
+                >
                   {displayValue}
                 </span>
               </div>
@@ -843,11 +874,11 @@ export default function Chart({ device }) {
             }
             return;
           }
-          // Aplicar transformaciones necesarias para actuadores
+          // Aplicar transformaciones necesarias para actuadores y códigos de error
           const transformedData = chartData.map((dataPoint) => {
             const newDataPoint = { ...dataPoint };
 
-            // Aplicar lógica de escalonado para actuadores (excepto luces)
+            // Aplicar lógica de escalonado para actuadores (excepto luces) y códigos de error para sensores
             let actuatorIndex = 0;
             availableVariables.forEach((widget) => {
               if (
@@ -871,6 +902,18 @@ export default function Chart({ device }) {
                   newDataPoint[widget.variable] =
                     rawValue === 1 ? baseValue - 4 : baseValue;
                   actuatorIndex++;
+                }
+              } else if (
+                !widget.isActuator &&
+                newDataPoint[widget.variable] !== undefined
+              ) {
+                // Para sensores, detectar códigos de error y guardar el original
+                const rawValue = newDataPoint[widget.variable];
+                if (rawValue < 0) {
+                  // Guardar el código de error original
+                  newDataPoint[`${widget.variable}_error`] = rawValue;
+                  // Mostrar en 0 en el gráfico
+                  newDataPoint[widget.variable] = 0;
                 }
               }
             });
@@ -1389,12 +1432,12 @@ export default function Chart({ device }) {
                     />
                   </div>
 
-                  {/* Área de fondo azulado para zona negativa */}
+                  {/* Área de fondo verde para zona negativa (relays) */}
                   <Area
                     dataKey="_backgroundArea"
                     type="monotone"
                     stroke="transparent"
-                    fill="rgba(59, 130, 246, 0.1)"
+                    fill="hsl(var(--brand-primary) / 0.05)"
                     fillOpacity={1}
                     dot={false}
                     connectNulls={false}
@@ -1495,7 +1538,7 @@ export default function Chart({ device }) {
         {(isPro || isPlus) && events.length > 0 && (
           <div
             data-tour="chart-events"
-            className={`mt-4 p-3 rounded-lg bg-muted/50 border border-border ${
+            className={`mt-4 px-4 py-3 rounded-lg bg-muted/50 border border-border ${
               isMobile ? "text-xs" : ""
             }`}
           >
@@ -1520,38 +1563,26 @@ export default function Chart({ device }) {
                       <div
                         key={index}
                         className={`flex ${
-                          isMobile ? "flex-col" : "items-center"
-                        } gap-3 text-xs p-2 bg-card border border-border rounded border-l-4 hover:bg-muted/50 transition-colors`}
-                        style={{ borderLeftColor: eventConf.color }}
+                          isMobile ? "flex-col" : "items-start justify-between"
+                        } gap-3 text-xs p-3 bg-card border border-border rounded hover:bg-muted/50 transition-colors text-left`}
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-start gap-2 flex-1">
                           <div
-                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5"
                             style={{ backgroundColor: eventConf.color }}
                           />
                           <div className="flex-1">
-                            <div className="font-medium text-card-foreground">
+                            <div className="font-medium text-card-foreground mb-1">
                               {eventConf.label}
                             </div>
-                            {!isMobile && (
-                              <div className="text-muted-foreground text-xs">
-                                {eventConf.description}
-                              </div>
-                            )}
+                            <div className="text-muted-foreground text-xs">
+                              {eventConf.description}
+                            </div>
                           </div>
-                          <span
-                            className={`text-muted-foreground text-xs ${
-                              isMobile ? "" : "ml-auto"
-                            }`}
-                          >
-                            {event.time}
-                          </span>
                         </div>
-                        {isMobile && (
-                          <div className="text-muted-foreground text-xs pl-5">
-                            {eventConf.description}
-                          </div>
-                        )}
+                        <span className="text-muted-foreground text-xs whitespace-nowrap flex-shrink-0">
+                          {event.time}
+                        </span>
                       </div>
                     );
                   }
