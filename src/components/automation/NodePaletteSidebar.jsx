@@ -543,7 +543,7 @@ function NodePaletteSidebarContent({
     setOpen(true);
   };
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" data-tour="node-palette">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center justify-between p-2">
           <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-full">
@@ -570,7 +570,7 @@ function NodePaletteSidebarContent({
         <div className="group-data-[collapsible=icon]:hidden">
           <ScrollArea className="flex-1">
             {/* Triggers Group */}
-            <SidebarGroup>
+            <SidebarGroup data-tour="trigger-nodes">
               <SidebarGroupLabel className="text-xs uppercase tracking-wider">
                 Triggers
               </SidebarGroupLabel>
@@ -604,7 +604,7 @@ function NodePaletteSidebarContent({
             <SidebarSeparator />
 
             {/* Conditions Group */}
-            <SidebarGroup>
+            <SidebarGroup data-tour="condition-nodes">
               <SidebarGroupLabel className="text-xs uppercase tracking-wider">
                 Condiciones
               </SidebarGroupLabel>
@@ -632,7 +632,7 @@ function NodePaletteSidebarContent({
             <SidebarSeparator />
 
             {/* Utilities Group */}
-            <SidebarGroup>
+            <SidebarGroup data-tour="utility-nodes">
               <SidebarGroupLabel className="text-xs uppercase tracking-wider">
                 Utilidades
               </SidebarGroupLabel>
@@ -660,7 +660,7 @@ function NodePaletteSidebarContent({
             <SidebarSeparator />
 
             {/* Actions Group */}
-            <SidebarGroup>
+            <SidebarGroup data-tour="action-nodes">
               <SidebarGroupLabel className="text-xs uppercase tracking-wider">
                 Acciones
               </SidebarGroupLabel>

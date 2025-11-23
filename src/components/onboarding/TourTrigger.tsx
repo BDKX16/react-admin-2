@@ -6,10 +6,8 @@ import {
   Home,
   BarChart3,
   Smartphone,
-  Download,
   User,
   TrendingUp,
-  FileText,
   GitBranch,
   Network,
 } from "lucide-react";
@@ -35,7 +33,6 @@ import {
   initialTour,
   dashboardTour,
   deviceTour,
-  otaTour,
   settingsTour,
   analyticsTour,
   rulesTour,
@@ -64,8 +61,6 @@ export const useTourConfig = () => {
         return dashboardTour;
       case "device":
         return deviceTour;
-      case "ota":
-        return otaTour;
       case "settings":
         return settingsTour;
       case "analytics":
@@ -102,13 +97,6 @@ export const useTourConfig = () => {
       routes: ["/dashboard", "/"],
     },
     {
-      id: "ota",
-      label: "Actualizaciones OTA",
-      icon: <Download className="h-4 w-4" />,
-      tourType: "ota",
-      routes: ["/dashboard", "/"],
-    },
-    {
       id: "settings",
       label: "Configuración de perfil",
       icon: <User className="h-4 w-4" />,
@@ -124,14 +112,14 @@ export const useTourConfig = () => {
     },
     {
       id: "rules",
-      label: "Motor de reglas",
+      label: "Motor de Reglas",
       icon: <GitBranch className="h-4 w-4" />,
       tourType: "rules",
       routes: ["/rule-engine"],
     },
     {
       id: "automation-editor",
-      label: "Editor de automatizaciones",
+      label: "Editor de Automatizaciones",
       icon: <Network className="h-4 w-4" />,
       tourType: "automation-editor",
       routes: ["/automation-editor"],
@@ -265,19 +253,6 @@ export const TourMenubarContent: React.FC = () => {
           </span>
         </MenubarItem>
       )}
-
-      <MenubarSeparator />
-      <MenubarItem asChild className="cursor-pointer">
-        <a
-          href="https://www.confi.com.ar/docs"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center"
-        >
-          <FileText className="mr-2 h-4 w-4" />
-          <span>Documentación</span>
-        </a>
-      </MenubarItem>
     </MenubarContent>
   );
 };

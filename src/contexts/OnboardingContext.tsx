@@ -39,6 +39,7 @@ interface OnboardingContextType {
   skipTour: (onboardingId?: OnboardingId) => Promise<void>;
   hasCompletedOnboarding: (onboardingId: OnboardingId) => boolean;
   refreshCompletedOnboardings: () => Promise<void>;
+  setNavigationHandler: (handler: (path: string) => void) => void;
 
   // Driver instance (para control avanzado si es necesario)
   driverInstance: Driver | null;
@@ -77,6 +78,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
 
   // Driver instance ref
   const driverInstanceRef = useRef<Driver | null>(null);
+
+  // Navigation handler ref - permite usar react-router navigate en tours
+  const navigationHandlerRef = useRef<((path: string) => void) | null>(null);
   const hasLoadedOnboardingsRef = useRef(false);
 
   // Load completed onboardings on mount (solo una vez)
@@ -144,6 +148,25 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
       return completedOnboardings.includes(onboardingId);
     },
     [completedOnboardings]
+  );
+
+  // Helper para navegar usando SPA si está disponible, sino usar window.location
+  const navigateToRoute = useCallback((route: string) => {
+    if (navigationHandlerRef.current) {
+      // Usar navegación SPA
+      navigationHandlerRef.current(route);
+    } else {
+      // Fallback a navegación con recarga
+      window.location.href = route;
+    }
+  }, []);
+
+  // Set navigation handler (debe ser llamado desde un componente con acceso a navigate)
+  const setNavigationHandler = useCallback(
+    (handler: (path: string) => void) => {
+      navigationHandlerRef.current = handler;
+    },
+    []
   );
 
   // Start a tour
@@ -225,6 +248,8 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
 
           // Si llegó al último paso (completó el tour)
           const isLastStep = options.state.activeIndex === steps.length - 1;
+          const lastStepData = steps[steps.length - 1];
+
           if (isLastStep && currentOnboardingId && auth?.token) {
             // Complete: marcar como completado
             onboardingService
@@ -236,7 +261,15 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
                     currentOnboardingId,
                   ]);
                 }
+
+                // Si el último paso tiene nextRoute, navegar después de completar
+                if (lastStepData?.nextRoute) {
+                  navigateToRoute(lastStepData.nextRoute);
+                }
               });
+          } else if (isLastStep && lastStepData?.nextRoute) {
+            // Si no hay auth pero hay nextRoute, navegar igual
+            navigateToRoute(lastStepData.nextRoute);
           }
         },
 
@@ -257,7 +290,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
             }
           }
 
-          return {
+          const mappedStep: any = {
             element: step.element,
             popover: {
               title: iconHtml
@@ -268,6 +301,25 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
               align: step.popover?.align || "start",
             },
           };
+
+          // Si el paso tiene nextRoute, personalizar el comportamiento al hacer clic en "Siguiente"
+          if (step.nextRoute) {
+            mappedStep.popover.onNextClick = (
+              element: any,
+              stepObj: any,
+              opts: any
+            ) => {
+              // Navegar usando SPA (sin recargar la página)
+              navigateToRoute(step.nextRoute!);
+
+              // Dar tiempo para que la navegación ocurra antes de avanzar
+              setTimeout(() => {
+                opts.driver.moveNext();
+              }, 100);
+            };
+          }
+
+          return mappedStep;
         }),
       });
 
@@ -277,7 +329,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
       // Start the tour
       driverObj.drive();
     },
-    [auth]
+    [auth, navigateToRoute]
   );
 
   // Complete the current tour manually
@@ -338,6 +390,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
     skipTour,
     hasCompletedOnboarding,
     refreshCompletedOnboardings,
+    setNavigationHandler,
     driverInstance: driverInstanceRef.current,
   };
 

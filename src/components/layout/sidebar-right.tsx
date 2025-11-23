@@ -258,10 +258,16 @@ export function SidebarRight({
 
             <MenubarMenu>
               <MenubarTrigger>
-                {mqttStatus === "online" && "Online"}
+                {mqttStatus === "online" && (
+                  <p className="truncate max-w-[65px]">Online</p>
+                )}
 
-                {mqttStatus === "disconnected" && "Desconectado"}
-                {mqttStatus === "connecting" && "Conectando..."}
+                {mqttStatus === "disconnected" && (
+                  <p className="text-xs truncate max-w-[65px]">Desconectado</p>
+                )}
+                {mqttStatus === "connecting" && (
+                  <p className="text-xs truncate max-w-[65px]">Conectando</p>
+                )}
               </MenubarTrigger>
             </MenubarMenu>
             <MenubarMenu>

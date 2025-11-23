@@ -49,13 +49,18 @@ export const MqttProvider = ({ children }) => {
   //mensajes a enviar mqtt
   const [status, setStatus] = useState("iniciando");
 
+  // Flag para evitar ejecuciones duplicadas del useEffect
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
     try {
       async function getCredentials() {
         await getMqttCredentials();
       }
 
-      if (!connectingMqtt && auth.token) {
+      // Solo ejecutar si hay token, no está conectando, y no se ha inicializado previamente
+      if (!connectingMqtt && auth.token && !hasInitializedRef.current) {
+        hasInitializedRef.current = true;
         getCredentials();
       }
     } catch (error) {
@@ -411,12 +416,20 @@ export const MqttProvider = ({ children }) => {
     }
   };
 
+  // Función para limpiar mensajes específicos del array recived
+  const clearMessagesByVariable = (dId, variable) => {
+    setRecived((prev) =>
+      prev.filter((msg) => !(msg.dId === dId && msg.variable === variable))
+    );
+  };
+
   const mqttContextValue = {
     mqttClient: mqttClientRef.current,
     mqttStatus: status,
     setSend,
     recived,
     notifications,
+    clearMessagesByVariable,
   };
 
   return (

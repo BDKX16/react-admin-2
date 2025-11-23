@@ -16,7 +16,7 @@ export type OnboardingType =
 // Extendemos DriveStep para incluir metadata adicional
 export interface OnboardingStep extends DriveStep {
   // Driver.js ya incluye: element, popover { title, description, side, align }
-  icon?: string; // Emoji o icono para el título
+  icon?: string | React.ReactElement; // Emoji, icono string o React element (Lucide icon)
   nextRoute?: string; // Ruta para navegar después de este paso
   prevRoute?: string; // Ruta para navegar al retroceder
 }

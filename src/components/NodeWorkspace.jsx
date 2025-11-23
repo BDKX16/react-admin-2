@@ -1381,7 +1381,7 @@ function NodeWorkspaceContent({ userId }) {
   return (
     <div className="flex h-full w-full bg-background">
       {/* Main Flow Canvas */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative" data-tour="editor-canvas">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -1440,6 +1440,7 @@ function NodeWorkspaceContent({ userId }) {
               className="gap-2"
               onClick={handleSaveWorkflow}
               disabled={isSaving}
+              data-tour="save-workflow-btn"
             >
               {isSaving ? (
                 <>
@@ -1459,6 +1460,7 @@ function NodeWorkspaceContent({ userId }) {
               className="gap-2"
               onClick={handleExecuteClick}
               disabled={isSimulating}
+              data-tour="simulate-workflow-btn"
             >
               {isSimulating ? (
                 <>
@@ -1483,6 +1485,7 @@ function NodeWorkspaceContent({ userId }) {
                   onChange={(e) => setWorkflowName(e.target.value)}
                   className="text-lg font-semibold bg-transparent border-none outline-none focus:underline min-w-0"
                   placeholder="Nombre del workflow"
+                  data-tour="workflow-name"
                 />
                 {workflowId && (
                   <Badge variant="secondary" className="text-xs">

@@ -26,6 +26,8 @@ const AutomationEditor = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const loadedRef = useRef(false);
 
+  // El tour de automation-editor es solo manual (disponible en TourMenu)
+
   useEffect(() => {
     // Si ya se ha cargado, no hacer nada
     if (loadedRef.current) return;

@@ -28,6 +28,7 @@ import DeviceConfig from "./pages/DeviceConfig.jsx";
 import AutomationEditor from "./pages/AutomationEditor.jsx";
 import MainDashboard from "./pages/MainDashboard.jsx";
 import OnboardingGuard from "./components/guards/OnboardingGuard.jsx";
+import { OnboardingNavigationSetup } from "./components/onboarding/OnboardingNavigationSetup";
 
 const Layout = () => {
   const userState = useSelector((state) => state.user);
@@ -38,6 +39,7 @@ const Layout = () => {
         v7_startTransition: true,
       }}
     >
+      <OnboardingNavigationSetup />
       <Routes>
         <Route
           path="/login"
@@ -52,13 +54,6 @@ const Layout = () => {
         <Route
           path="/confirmaremail"
           element={<VerifyEmail />}
-          caseSensitive={false}
-        ></Route>
-        <Route
-          path="/onboarding"
-          element={
-            userState?.token ? <OnboardingWizard /> : <Navigate to="/login" />
-          }
           caseSensitive={false}
         ></Route>
         <Route
@@ -115,59 +110,73 @@ const Layout = () => {
           path="/*"
           element={
             userState?.token ? (
-              <OnboardingGuard>
-                <MqttProvider>
-                  <DevicesProvider>
-                    <SidebarProvider>
-                      <AppSidebar>
-                        <Routes>
-                          <Route path={`/`} element={<MainDashboard />}></Route>
-                          <Route
-                            path={`/dashboard`}
-                            element={<MainDashboard />}
-                          ></Route>
-                          <Route
-                            path={`/device`}
-                            element={<Dashboard />}
-                          ></Route>
-                          <Route
-                            path={`/charts`}
-                            element={<ChartDashboard />}
-                          ></Route>
-                          <Route
-                            path={`/notifications`}
-                            element={<Notifications />}
-                          ></Route>
-                          <Route
-                            path={`/rule-engine`}
-                            element={<RuleEngine />}
-                          ></Route>
-                          <Route
-                            path={`/automation-editor`}
-                            element={<AutomationEditor />}
-                          ></Route>
-                          <Route
-                            path={`/device-config`}
-                            element={<DeviceConfig />}
-                          ></Route>
-                          <Route
-                            path={`/profile`}
-                            element={<UserProfile />}
-                          ></Route>
-                          <Route
-                            path={`/payment-history`}
-                            element={<PaymentHistory />}
-                          ></Route>
-                          <Route
-                            path={`/*`}
-                            element={<MainDashboard />}
-                          ></Route>
-                        </Routes>
-                      </AppSidebar>
-                    </SidebarProvider>
-                  </DevicesProvider>
-                </MqttProvider>
-              </OnboardingGuard>
+              <MqttProvider>
+                <Routes>
+                  <Route
+                    path="/onboarding"
+                    element={<OnboardingWizard />}
+                  ></Route>
+                  <Route
+                    path="/*"
+                    element={
+                      <OnboardingGuard>
+                        <DevicesProvider>
+                          <SidebarProvider>
+                            <AppSidebar>
+                              <Routes>
+                                <Route
+                                  path={`/`}
+                                  element={<MainDashboard />}
+                                ></Route>
+                                <Route
+                                  path={`/dashboard`}
+                                  element={<MainDashboard />}
+                                ></Route>
+                                <Route
+                                  path={`/device`}
+                                  element={<Dashboard />}
+                                ></Route>
+                                <Route
+                                  path={`/charts`}
+                                  element={<ChartDashboard />}
+                                ></Route>
+                                <Route
+                                  path={`/notifications`}
+                                  element={<Notifications />}
+                                ></Route>
+                                <Route
+                                  path={`/rule-engine`}
+                                  element={<RuleEngine />}
+                                ></Route>
+                                <Route
+                                  path={`/automation-editor`}
+                                  element={<AutomationEditor />}
+                                ></Route>
+                                <Route
+                                  path={`/device-config`}
+                                  element={<DeviceConfig />}
+                                ></Route>
+                                <Route
+                                  path={`/profile`}
+                                  element={<UserProfile />}
+                                ></Route>
+                                <Route
+                                  path={`/payment-history`}
+                                  element={<PaymentHistory />}
+                                ></Route>
+                                <Route
+                                  path={`/*`}
+                                  element={<MainDashboard />}
+                                ></Route>
+                              </Routes>
+                            </AppSidebar>
+                          </SidebarProvider>
+                        </DevicesProvider>
+                      </OnboardingGuard>
+                    }
+                  ></Route>
+                </Routes>
+              </MqttProvider>
             ) : (
               <Navigate to="/login" />
             )

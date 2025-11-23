@@ -73,6 +73,8 @@ import useFetchAndLoad from "../hooks/useFetchAndLoad";
 import { Slider } from "@/components/ui/slider";
 import useDevices from "../hooks/useDevices";
 import useSubscription from "../hooks/useSubscription";
+import { useOnboarding } from "../contexts/OnboardingContext";
+import { rulesTour } from "../config/tours";
 import UpdateRuleDialog from "@/components/UpdateRuleDialog";
 import {
   MobileAutomationTypeSelector,
@@ -95,9 +97,20 @@ const RuleEngine = () => {
   const { loading, callEndpoint } = useFetchAndLoad();
   const { selectedDevice } = useDevices();
   const { planData, isPro, isPlus } = useSubscription();
+  const { hasCompletedOnboarding, startTour } = useOnboarding();
   const [rules, setRules] = useState([]);
   const [workflows, setWorkflows] = useState([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  // Auto-start rules tour if not completed
+  useEffect(() => {
+    if (!hasCompletedOnboarding("rules") && selectedDevice) {
+      const timer = setTimeout(() => {
+        startTour("rules", rulesTour);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasCompletedOnboarding, startTour, selectedDevice]);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -526,7 +539,7 @@ const RuleEngine = () => {
   }
 
   return (
-    <div className="flex flex-col items-center p-4">
+    <div data-tour="rules-page" className="flex flex-col items-center p-4">
       <h1 className="text-2xl font-bold mb-2 text-left">Control Automático</h1>
       <div className="w-full max-w-7xl">
         {/* Modal/Drawer para seleccionar tipo de automatización */}
@@ -558,7 +571,10 @@ const RuleEngine = () => {
 
               {!automationType && (
                 <>
-                  <div className="flex flex-col gap-4 p-4">
+                  <div
+                    data-tour="automation-type-selector"
+                    className="flex flex-col gap-4 p-4"
+                  >
                     <Button
                       variant="outline"
                       className="flex gap-2 justify-start h-auto py-4"
@@ -1080,7 +1096,10 @@ const RuleEngine = () => {
               </DialogHeader>
 
               {!automationType && (
-                <div className="flex flex-col gap-4 mt-4">
+                <div
+                  data-tour="automation-type-selector"
+                  className="flex flex-col gap-4 mt-4"
+                >
                   <Button
                     variant="outline"
                     className="flex gap-2 justify-start"
@@ -1089,6 +1108,7 @@ const RuleEngine = () => {
                     <Zap className="w-4 h-4" /> Simple (condición y acción)
                   </Button>
                   <Button
+                    data-tour="composite-rule-option"
                     variant="outline"
                     className="flex gap-2 justify-start"
                     onClick={() => {
@@ -1112,7 +1132,10 @@ const RuleEngine = () => {
               {/* Simple automation form */}
               {automationType === "simple" && (
                 <>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mt-4">
+                  <div
+                    data-tour="simple-rule-modal"
+                    className="grid grid-cols-1 gap-4 md:grid-cols-3 mt-4"
+                  >
                     <div className="flex flex-col gap-2">
                       <Select
                         onValueChange={handleChange("variable")}
@@ -1294,7 +1317,10 @@ const RuleEngine = () => {
               {/* Scheduled automation form */}
               {automationType === "scheduled" && (
                 <>
-                  <div className="grid grid-cols-1 gap-4 mt-4">
+                  <div
+                    data-tour="scheduled-rule-modal"
+                    className="grid grid-cols-1 gap-4 mt-4"
+                  >
                     {/* Selector de fecha y hora única */}
                     {!scheduleData.isRecurring && (
                       <div className="flex flex-col gap-2">
@@ -1557,6 +1583,7 @@ const RuleEngine = () => {
                 total
               </Badge>
               <Button
+                data-tour="create-rule-btn"
                 onClick={() => setAutomationModalOpen(true)}
                 variant="default"
                 className="flex gap-2"
@@ -1568,7 +1595,7 @@ const RuleEngine = () => {
           </CardHeader>
           <CardContent>
             {/* Vista de tabla para desktop */}
-            <div className="hidden md:block">
+            <div data-tour="rules-list" className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -1730,7 +1757,10 @@ const RuleEngine = () => {
             </div>
 
             {/* Vista de grid cards para mobile */}
-            <div className="md:hidden grid grid-cols-1 gap-4">
+            <div
+              data-tour="rules-list"
+              className="md:hidden grid grid-cols-1 gap-4"
+            >
               {/* Renderizar workflows en cards */}
               {workflows?.map((workflow) => (
                 <Card
