@@ -1,3 +1,4 @@
+import React from "react";
 import { useLocation, Link } from "react-router-dom";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { SidebarRight } from "@/components/layout/sidebar-right";
@@ -67,22 +68,22 @@ export function AppSidebar({ children }) {
               <Breadcrumb>
                 <BreadcrumbList>
                   {breadcrumbs.map((crumb, index) => (
-                    <BreadcrumbItem key={crumb.href}>
-                      {index === breadcrumbs.length - 1 ? (
-                        <BreadcrumbPage className="line-clamp-1">
-                          {crumb.title}
-                        </BreadcrumbPage>
-                      ) : (
-                        <>
+                    <React.Fragment key={crumb.href}>
+                      <BreadcrumbItem>
+                        {index === breadcrumbs.length - 1 ? (
+                          <BreadcrumbPage className="line-clamp-1">
+                            {crumb.title}
+                          </BreadcrumbPage>
+                        ) : (
                           <BreadcrumbLink asChild>
                             <Link to={crumb.href} className="line-clamp-1">
                               {crumb.title}
                             </Link>
                           </BreadcrumbLink>
-                          <BreadcrumbSeparator />
-                        </>
-                      )}
-                    </BreadcrumbItem>
+                        )}
+                      </BreadcrumbItem>
+                      {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
+                    </React.Fragment>
                   ))}
                 </BreadcrumbList>
               </Breadcrumb>

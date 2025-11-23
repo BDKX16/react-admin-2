@@ -29,7 +29,7 @@ import {
   MenubarSeparator,
 } from "@/components/ui/menubar";
 import { useOnboarding } from "@/contexts/OnboardingContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { OnboardingType } from "@/types/onboarding";
 import {
   initialTour,
@@ -54,6 +54,7 @@ interface TourOption {
 export const useTourConfig = () => {
   const { startTour, hasCompletedOnboarding } = useOnboarding();
   const location = useLocation();
+  const navigate = useNavigate();
   const { selectedDevice } = useDevices();
 
   // Map tour types to their steps
@@ -93,13 +94,7 @@ export const useTourConfig = () => {
       label: "Bienvenida y primeros pasos",
       icon: <Home className="h-4 w-4" />,
       tourType: "initial",
-    },
-    {
-      id: "dashboard",
-      label: "Tour del Dashboard",
-      icon: <BarChart3 className="h-4 w-4" />,
-      tourType: "dashboard",
-      routes: ["/dashboard", "/"],
+      routes: ["/dashboard"],
     },
     {
       id: "device-model",
@@ -110,28 +105,21 @@ export const useTourConfig = () => {
     },
     {
       id: "ota",
-      label: "Actualizaciones OTA",
+      label: "¿Cómo actualizo?",
       icon: <Download className="h-4 w-4" />,
       tourType: "ota",
-      routes: ["/dashboard", "/"],
-    },
-    {
-      id: "settings",
-      label: "Configuración de perfil",
-      icon: <User className="h-4 w-4" />,
-      tourType: "settings",
-      routes: ["/settings", "/profile"],
+      routes: ["/device-config"],
     },
     {
       id: "analytics",
-      label: "Analíticas y gráficos",
+      label: "Gráficos",
       icon: <TrendingUp className="h-4 w-4" />,
       tourType: "analytics",
-      routes: ["/analytics", "/charts"],
+      routes: ["/charts"],
     },
     {
       id: "rules",
-      label: "Motor de reglas",
+      label: "Automatizaciones",
       icon: <GitBranch className="h-4 w-4" />,
       tourType: "rules",
       routes: ["/rule-engine"],
@@ -145,13 +133,40 @@ export const useTourConfig = () => {
     },
   ];
 
-  // Filter tours based on current route
-  const availableTours = tours.filter((tour) => {
-    if (!tour.routes) return true;
-    return tour.routes.some((route) => location.pathname.includes(route));
-  });
+  // All tours are now available regardless of route
+  const availableTours = tours;
 
   const handleTourStart = (tourType: OnboardingType, onClose?: () => void) => {
+    const tour = tours.find((t) => t.tourType === tourType);
+
+    // Check if tour requires a specific route
+    if (tour?.routes && tour.routes.length > 0) {
+      const currentPath = location.pathname;
+      const isOnCorrectRoute = tour.routes.some(
+        (route) => currentPath === route || currentPath.startsWith(route)
+      );
+
+      // If not on correct route, navigate first, then start tour after delay
+      if (!isOnCorrectRoute) {
+        const targetRoute = tour.routes[0];
+        navigate(targetRoute);
+
+        // Wait for navigation and component mount before starting tour
+        setTimeout(() => {
+          const steps = getTourSteps(tourType);
+          if (steps.length > 0) {
+            startTour(tourType, steps, {
+              allowClose: true,
+            });
+          }
+        }, 500);
+
+        onClose?.();
+        return;
+      }
+    }
+
+    // If on correct route or no specific route required, start immediately
     const steps = getTourSteps(tourType);
     if (steps.length > 0) {
       startTour(tourType, steps, {
@@ -166,6 +181,7 @@ export const useTourConfig = () => {
     availableTours,
     handleTourStart,
     hasCompletedOnboarding,
+    location,
   };
 };
 
@@ -173,7 +189,8 @@ export const useTourConfig = () => {
 export const TourMenuContent: React.FC<{
   onTourStart: (tourType: OnboardingType) => void;
 }> = ({ onTourStart }) => {
-  const { tours, availableTours, hasCompletedOnboarding } = useTourConfig();
+  const { tours, availableTours, hasCompletedOnboarding, location } =
+    useTourConfig();
 
   return (
     <>
@@ -201,24 +218,28 @@ export const TourMenuContent: React.FC<{
         </>
       )}
 
-      {availableTours.length > 0 ? (
-        availableTours.map((tour) => (
+      {availableTours.map((tour) => {
+        // Check if tour requires navigation
+        const needsNavigation =
+          tour.routes &&
+          !tour.routes.some(
+            (route) =>
+              location.pathname === route || location.pathname.startsWith(route)
+          );
+
+        return (
           <DropdownMenuItem
             key={tour.id}
             onClick={() => onTourStart(tour.tourType)}
             className="cursor-pointer"
           >
             <span className="mr-2">{tour.icon}</span>
-            <span>{tour.label}</span>
+            <div className="flex flex-col">
+              <span>{tour.label}</span>
+            </div>
           </DropdownMenuItem>
-        ))
-      ) : (
-        <DropdownMenuItem disabled>
-          <span className="text-muted-foreground text-sm">
-            No hay tours disponibles en esta página
-          </span>
-        </DropdownMenuItem>
-      )}
+        );
+      })}
     </>
   );
 };
@@ -227,7 +248,7 @@ export const TourMenuContent: React.FC<{
 export const TourMenubarContent: React.FC<{
   onOpenWelcomeModal?: () => void;
 }> = ({ onOpenWelcomeModal }) => {
-  const { handleTourStart, availableTours, hasCompletedOnboarding } =
+  const { handleTourStart, availableTours, hasCompletedOnboarding, location } =
     useTourConfig();
 
   return (
@@ -262,24 +283,28 @@ export const TourMenubarContent: React.FC<{
         </>
       )}
 
-      {availableTours.length > 0 ? (
-        availableTours.map((tour) => (
+      {availableTours.map((tour) => {
+        // Check if tour requires navigation
+        const needsNavigation =
+          tour.routes &&
+          !tour.routes.some(
+            (route) =>
+              location.pathname === route || location.pathname.startsWith(route)
+          );
+
+        return (
           <MenubarItem
             key={tour.id}
             onClick={() => handleTourStart(tour.tourType)}
             className="cursor-pointer"
           >
             <span className="mr-2">{tour.icon}</span>
-            <span>{tour.label}</span>
+            <div className="flex flex-col">
+              <span>{tour.label}</span>
+            </div>
           </MenubarItem>
-        ))
-      ) : (
-        <MenubarItem disabled>
-          <span className="text-muted-foreground text-sm">
-            No hay tours disponibles en esta página
-          </span>
-        </MenubarItem>
-      )}
+        );
+      })}
 
       <MenubarSeparator />
       <MenubarItem asChild className="cursor-pointer">

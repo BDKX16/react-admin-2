@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/nav-main";
-import { NavProjects } from "@/components/layout/nav-projects";
+import { NavButtons } from "@/components/layout/nav-projects";
 import { NavUser } from "@/components/layout/nav-user";
 import { TeamSwitcher } from "@/components/layout/team-switcher";
 import {
@@ -39,7 +39,7 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: LayoutDashboard,
       isActive: true,
       items: [
@@ -60,7 +60,8 @@ const data = {
 
     {
       title: "Automatizaciones",
-      url: "#",
+      url: "/rule-engine",
+      isActive: true,
       icon: BookOpen,
       items: [
         {
@@ -79,10 +80,6 @@ const data = {
           title: "Notificaciones",
           url: "/notifications",
         },
-        {
-          title: "Configuración",
-          url: "/device-config",
-        },
       ],
     },
     // {
@@ -96,26 +93,6 @@ const data = {
     //     },
     //     {
     //       title: "Agregar dispositivo",
-    //       url: "#",
-    //     },
-    //   ],
-    // },
-    // {
-    //   title: "Configuracion",
-    //   url: "#",
-    //   icon: Settings2,
-    //   items: [
-    //     {
-    //       title: "Calibrar sensores",
-    //       url: "#",
-    //     },
-
-    //     {
-    //       title: "Notificaciones",
-    //       url: "#",
-    //     },
-    //     {
-    //       title: "Contraseña dispositivo",
     //       url: "#",
     //     },
     //   ],
@@ -139,24 +116,20 @@ const data = {
       title: "Automatizaciones",
       url: "#",
       icon: BookOpen,
+      isActive: true,
       items: [],
     },
   ],
-  projects: [
+  quickActions: [
+    // {
+    //   name: "Calendario",
+    //   url: "#",
+    //   icon: Calendar,
+    // },
     {
-      name: "Calendario",
-      url: "#",
-      icon: Calendar,
-    },
-    {
-      name: "Eventos",
-      url: "#",
-      icon: ChartNoAxesGanttIcon,
-    },
-    {
-      name: "Estadisticas",
-      url: "#",
-      icon: ChartNoAxesCombined,
+      name: "Configuración",
+      url: "/device-config",
+      icon: Settings2,
     },
   ],
 };
@@ -209,7 +182,7 @@ export function SidebarLeft({
         <NavMain
           items={devicesArr.length === 0 ? data.navMainNoDevices : data.navMain}
         />
-        {/* <NavProjects projects={data.projects} /> */}
+        <NavButtons items={data.quickActions} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
