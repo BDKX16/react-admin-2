@@ -45,6 +45,12 @@ export function OTABulkUpdateModal({ open, onClose, devicesData = [] }) {
     }
   }, [open, devicesData]);
 
+  // Crear mapeo de dId a nombre de dispositivo
+  const deviceNameMap = devices.reduce((acc, device) => {
+    acc[device.dId] = device.name;
+    return acc;
+  }, {});
+
   // Monitorear progreso OTA via MQTT
   useEffect(() => {
     if (!recived || recived.length === 0) return;
@@ -64,10 +70,11 @@ export function OTABulkUpdateModal({ open, onClose, devicesData = [] }) {
             },
           }));
 
-          // Notificaciones
+          // Notificaciones con nombre del dispositivo
+          const deviceName = deviceNameMap[msg.dId] || msg.dId;
           if (ota_status === "completed") {
             enqueueSnackbar(
-              `✅ Dispositivo ${msg.dId} actualizado correctamente`,
+              `Dispositivo ${deviceName} actualizado correctamente`,
               {
                 variant: "success",
               }
@@ -96,7 +103,7 @@ export function OTABulkUpdateModal({ open, onClose, devicesData = [] }) {
               return prev;
             });
           } else if (ota_status === "failed") {
-            enqueueSnackbar(`❌ Error actualizando dispositivo ${msg.dId}`, {
+            enqueueSnackbar(`❌ Error actualizando dispositivo ${deviceName}`, {
               variant: "error",
             });
 
@@ -154,13 +161,6 @@ export function OTABulkUpdateModal({ open, onClose, devicesData = [] }) {
         const successful = data.successful || [];
         const failed = data.failed || [];
 
-        if (successful.length > 0) {
-          enqueueSnackbar(
-            `🚀 Actualización iniciada para ${successful.length} dispositivo(s)`,
-            { variant: "success" }
-          );
-        }
-
         if (failed.length > 0) {
           failed.forEach((f) => {
             enqueueSnackbar(`❌ ${f.dId}: ${f.reason}`, { variant: "error" });
@@ -177,9 +177,9 @@ export function OTABulkUpdateModal({ open, onClose, devicesData = [] }) {
     } catch (error) {
       console.error("Error triggering updates:", error);
       enqueueSnackbar("Error al iniciar actualización", { variant: "error" });
-    } finally {
       setUpdating(false);
     }
+    // No se ejecuta setUpdating(false) aquí, se espera a que termine via MQTT
   };
 
   const getProgressForDevice = (dId) => {
@@ -385,12 +385,16 @@ export function OTABulkUpdateModal({ open, onClose, devicesData = [] }) {
             >
               {updating ? "Cerrar" : "Cancelar"}
             </Button>
-            {!updating && selectedDevices.length > 0 && (
+            {selectedDevices.length > 0 && (
               <Button
                 onClick={handleBulkUpdate}
-                disabled={selectedDevices.length === 0}
+                disabled={updating || selectedDevices.length === 0}
               >
-                <Download className="h-4 w-4 mr-2" />
+                {updating ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
                 Actualizar {selectedDevices.length} dispositivo(s)
               </Button>
             )}
