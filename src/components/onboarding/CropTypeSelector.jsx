@@ -43,15 +43,19 @@ const CropTypeSelector = ({ value, onChange }) => {
                 className={`
                   relative p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1
                   shadow-md overflow-hidden border-trace-card rounded-none border-2 border-transparent h-full
-                  ${isSelected ? "bg-green-500/10 shadow-xl" : ""}
+                  ${isSelected ? "bg-green-500/10 shadow-xl selected-card" : ""}
                 `}
               >
-                {/* Bordes animados en hover */}
-                <span className="border-bottom"></span>
-                <span className="border-left"></span>
-                <span className="border-right"></span>
-                <span className="border-top-left"></span>
-                <span className="border-top-right"></span>
+                {/* Bordes animados en hover - solo si no está seleccionado */}
+                {!isSelected && (
+                  <>
+                    <span className="border-bottom"></span>
+                    <span className="border-left"></span>
+                    <span className="border-right"></span>
+                    <span className="border-top-left"></span>
+                    <span className="border-top-right"></span>
+                  </>
+                )}
                 <style>{`
                   .border-trace-card {
                     position: relative;
@@ -77,7 +81,7 @@ const CropTypeSelector = ({ value, onChange }) => {
                   }
                   .group:hover .border-bottom {
                     opacity: 1;
-                    animation: expand-horizontal 0.2s ease-out forwards;
+                    animation: expand-horizontal 0.25s ease-out forwards;
                   }
                   
                   /* Bordes laterales - suben en paralelo */
@@ -96,7 +100,7 @@ const CropTypeSelector = ({ value, onChange }) => {
                   .group:hover .border-left,
                   .group:hover .border-right {
                     opacity: 1;
-                    animation: expand-vertical 0.4s ease-out 0.2s forwards;
+                    animation: expand-vertical 0.25s ease-out 0.25s forwards;
                   }
                   
                   /* Bordes superiores - se cierran desde los costados */
@@ -115,7 +119,7 @@ const CropTypeSelector = ({ value, onChange }) => {
                   .group:hover .border-top-left,
                   .group:hover .border-top-right {
                     opacity: 1;
-                    animation: expand-horizontal-half 0.2s ease-out 0.6s forwards;
+                    animation: expand-horizontal-half 0.25s ease-out 0.5s forwards;
                   }
                   
                   @keyframes expand-horizontal {
