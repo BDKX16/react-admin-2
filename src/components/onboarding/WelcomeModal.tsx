@@ -111,11 +111,15 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
         </DialogHeader>
 
         {/* Video de bienvenida */}
-        <div className="w-full aspect-video bg-muted rounded-lg overflow-hidden my-4">
+        <div
+          className="w-full bg-muted rounded-lg overflow-hidden my-4"
+          style={{ aspectRatio: "1100/720" }}
+        >
           <video
             className="w-full h-full object-cover"
-            controls
             poster="/assets/welcome-video-poster.jpg"
+            controls
+            playsInline
           >
             <source src="/assets/welcome-tour.mp4" type="video/mp4" />
             Tu navegador no soporta el elemento de video.

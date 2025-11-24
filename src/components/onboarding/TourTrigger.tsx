@@ -112,8 +112,8 @@ export const useTourConfig = () => {
     },
     {
       id: "analytics",
-      label: "Analíticas y gráficos",
-      icon: <TrendingUp className="h-4 w-4" />,
+      label: "Gráficos",
+      icon: <BarChart3 className="h-4 w-4" />,
       tourType: "analytics",
       routes: ["/analytics", "/charts"],
     },

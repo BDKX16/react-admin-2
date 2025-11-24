@@ -5,7 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import {
+  ArrowRight,
+  Loader2,
+  Sparkles,
+  CheckCircle2,
+  Leaf,
+  BarChart3,
+  Zap,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import CropTypeSelector from "../components/onboarding/CropTypeSelector";
 import DeviceSetupDashboard from "../components/onboarding/DeviceSetupDashboard";
@@ -285,24 +293,30 @@ const OnboardingWizard = () => {
               </form>
 
               <div className="mt-8 grid md:grid-cols-3 gap-4 text-left">
-                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-                  <div className="text-2xl mb-2">🌿</div>
-                  <h3 className="font-semibold text-sm mb-1">Control total</h3>
-                  <p className="text-xs text-muted-foreground">
+                <div className="relative p-4 pt-14 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 overflow-hidden group transition-all duration-300 hover:shadow-lg hover:scale-105">
+                  <Leaf className="absolute -top-4 -right-4 h-24 w-24 text-green-200 dark:text-green-800 opacity-30 transition-all duration-300 group-hover:scale-110 group-hover:rotate-[10deg]" />
+                  <h3 className="font-semibold text-sm mb-1 relative z-10">
+                    Control total
+                  </h3>
+                  <p className="text-xs text-muted-foreground relative z-10">
                     Monitorea y controla desde cualquier lugar
                   </p>
                 </div>
-                <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-                  <div className="text-2xl mb-2">📊</div>
-                  <h3 className="font-semibold text-sm mb-1">Analíticas</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Visualiza datos en tiempo real
+                <div className="relative p-4 pt-14 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 overflow-hidden group transition-all duration-300 hover:shadow-lg hover:scale-105">
+                  <BarChart3 className="absolute -top-4 -right-4 h-24 w-24 text-blue-200 dark:text-blue-800 opacity-30 transition-all duration-300 group-hover:scale-110 group-hover:rotate-[10deg]" />
+                  <h3 className="font-semibold text-sm mb-1 relative z-10">
+                    Gráficos
+                  </h3>
+                  <p className="text-xs text-muted-foreground relative z-10">
+                    Analiza graficos con maxima presicion
                   </p>
                 </div>
-                <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800">
-                  <div className="text-2xl mb-2">⚡</div>
-                  <h3 className="font-semibold text-sm mb-1">Automatización</h3>
-                  <p className="text-xs text-muted-foreground">
+                <div className="relative p-4 pt-14 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 overflow-hidden group transition-all duration-300 hover:shadow-lg hover:scale-105">
+                  <Zap className="absolute -top-4 -right-4 h-24 w-24 text-purple-200 dark:text-purple-800 opacity-30 transition-all duration-300 group-hover:scale-110 group-hover:rotate-[10deg]" />
+                  <h3 className="font-semibold text-sm mb-1 relative z-10">
+                    Automatización
+                  </h3>
+                  <p className="text-xs text-muted-foreground relative z-10">
                     Crea reglas personalizadas
                   </p>
                 </div>

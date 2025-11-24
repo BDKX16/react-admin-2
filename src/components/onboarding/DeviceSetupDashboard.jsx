@@ -45,7 +45,7 @@ const DeviceSetupDashboard = ({
   useEffect(() => {
     if (!hasReceivedData) {
       const interval = setInterval(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % 5); // 5 imágenes
+        setCurrentImageIndex((prev) => (prev + 1) % 4); // 4 imágenes
       }, 4000); // 4 segundos
 
       return () => clearInterval(interval);
@@ -388,10 +388,13 @@ const DeviceSetupDashboard = ({
                   Conecta tu dispositivo
                 </h3>
                 <ol className="list-decimal list-inside space-y-3 text-sm">
-                  <li>Conecta tu dispositivo a una fuente de alimentación</li>
-                  <li>Asegúrate de que esté conectado a tu red WiFi</li>
-                  <li>Espera a que el dispositivo envíe datos</li>
-                  <li>Verifica que todos los sensores estén conectados</li>
+                  <li>Enchufa tu dispositivo</li>
+                  <li>Conectate a la red WiFi que emite tu Confi</li>
+                  <li>
+                    Ingresa a Manage Router en la configuracion de red o a
+                    192.168.4.1
+                  </li>
+                  <li>Busca tu red WiFi de 2.4 GHz e ingresa la contraseña</li>
                 </ol>
 
                 <div className="flex items-center gap-2 text-muted-foreground pt-2">
@@ -402,18 +405,26 @@ const DeviceSetupDashboard = ({
                 </div>
               </div>
 
-              {/* Columna derecha: Slider de imágenes */}
-              <div className="relative w-full h-64 md:h-full min-h-[300px] bg-muted rounded-lg overflow-hidden">
-                {[1, 2, 3, 4, 5].map((num, index) => (
+              {/* Columna derecha: Slider de imágenes WiFi */}
+              <div
+                className="relative bg-muted rounded-lg overflow-hidden"
+                style={{ width: "400px", height: "300px" }}
+              >
+                {[
+                  "wifi-step1-connect",
+                  "wifi-step2-network",
+                  "wifi-step3-network",
+                  "wifi-step4-network",
+                ].map((step, index) => (
                   <div
-                    key={num}
+                    key={step}
                     className={`absolute inset-0 transition-opacity duration-500 ${
                       index === currentImageIndex ? "opacity-100" : "opacity-0"
                     }`}
                   >
                     <img
-                      src={`/assets/onboard-coneccion${num}.webp`}
-                      alt={`Paso de conexión ${num}`}
+                      src={`/assets/${step}.webp`}
+                      alt={`Paso de configuración WiFi ${index + 1}`}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.target.style.display = "none";
@@ -424,7 +435,7 @@ const DeviceSetupDashboard = ({
 
                 {/* Indicadores de posición */}
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-                  {[0, 1, 2, 3, 4].map((index) => (
+                  {[0, 1, 2, 3].map((index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
