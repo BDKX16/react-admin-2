@@ -31,9 +31,9 @@ const ProportionalForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
   const { loading, callEndpoint } = useFetchAndLoad();
   const [config, setConfig] = useState({
-    pid_kp: 2.0,
-    pid_setpoint: 25.0,
-    sensor_input: 0,
+    pid_kp: widget.pConfig?.pid_kp || 2.0,
+    pid_setpoint: widget.pConfig?.pid_setpoint || 25.0,
+    sensor_input: widget.pConfig?.sensor_input || 0,
   });
 
   const [errors, setErrors] = useState({});

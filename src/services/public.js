@@ -107,7 +107,7 @@ export const setSingleTimer = (timer, dId) => {
   };
 };
 
-export const setSingleCicle = (cicle, dId) => {
+export const setSingleCicle = (ciclo, dId) => {
   const controller = loadAbort();
 
   const headers = getAxiosHeaders();
@@ -116,7 +116,7 @@ export const setSingleCicle = (cicle, dId) => {
   }
   return {
     call: axios
-      .put(`${import.meta.env.VITE_BASE_URL}/cicle`, { cicle, dId }, headers, {
+      .put(`${import.meta.env.VITE_BASE_URL}/ciclo`, { ciclo, dId }, headers, {
         signal: controller.signal,
       })
       .catch((error) => {
@@ -127,7 +127,7 @@ export const setSingleCicle = (cicle, dId) => {
   };
 };
 
-export const setSinglePID = (pidConfig, dId) => {
+export const setSinglePID = (pid, dId) => {
   const controller = loadAbort();
 
   const headers = getAxiosHeaders();
@@ -136,32 +136,7 @@ export const setSinglePID = (pidConfig, dId) => {
   }
   return {
     call: axios
-      .put(
-        `${import.meta.env.VITE_BASE_URL}/pid`,
-        { pidConfig, dId },
-        headers,
-        {
-          signal: controller.signal,
-        }
-      )
-      .catch((error) => {
-        notifyError(error);
-        return { error: true };
-      }),
-    controller,
-  };
-};
-
-export const setSinglePI = (piConfig, dId) => {
-  const controller = loadAbort();
-
-  const headers = getAxiosHeaders();
-  if (!headers) {
-    return;
-  }
-  return {
-    call: axios
-      .put(`${import.meta.env.VITE_BASE_URL}/pi`, { piConfig, dId }, headers, {
+      .put(`${import.meta.env.VITE_BASE_URL}/pid`, { pid, dId }, headers, {
         signal: controller.signal,
       })
       .catch((error) => {
@@ -172,7 +147,27 @@ export const setSinglePI = (piConfig, dId) => {
   };
 };
 
-export const setSingleProportional = (pConfig, dId) => {
+export const setSinglePI = (pi, dId) => {
+  const controller = loadAbort();
+
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(`${import.meta.env.VITE_BASE_URL}/pi`, { pi, dId }, headers, {
+        signal: controller.signal,
+      })
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const setSingleProportional = (p, dId) => {
   const controller = loadAbort();
 
   const headers = getAxiosHeaders();
@@ -183,7 +178,7 @@ export const setSingleProportional = (pConfig, dId) => {
     call: axios
       .put(
         `${import.meta.env.VITE_BASE_URL}/proportional`,
-        { pConfig, dId },
+        { p, dId },
         headers,
         {
           signal: controller.signal,

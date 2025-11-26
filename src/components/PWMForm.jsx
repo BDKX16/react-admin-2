@@ -19,8 +19,8 @@ const PWMForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
   const { loading, callEndpoint } = useFetchAndLoad();
   const [config, setConfig] = useState({
-    pwm_frequency: 1000,
-    pwm_duty_cycle: 50,
+    pwm_frequency: widget.pwmConfig?.pwm_frequency || 1000,
+    pwm_duty_cycle: widget.pwmConfig?.pwm_duty_cycle || 50,
   });
 
   const [errors, setErrors] = useState({});

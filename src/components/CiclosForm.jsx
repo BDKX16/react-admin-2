@@ -21,45 +21,62 @@ const CiclosForm = ({ ciclo, dId }) => {
   const [tiempoEncendidoUnit, setTiempoEncendidoUnit] = useState("seconds");
   const [tiempoApagadoValue, setTiempoApagadoValue] = useState("");
   const [tiempoApagadoUnit, setTiempoApagadoUnit] = useState("seconds");
+  const [showWarning, setShowWarning] = useState(false);
 
-  // Función para convertir tiempo a milisegundos
-  const timeToMilliseconds = (value, unit) => {
+  // Valor mínimo para proteger el relay (5 segundos)
+  const TIEMPO_MINIMO_RELAY = 5;
+
+  // Función para obtener el valor mínimo según la unidad
+  const getMinValueForUnit = (unit) => {
+    switch (unit) {
+      case "seconds":
+        return TIEMPO_MINIMO_RELAY; // 5 segundos
+      case "minutes":
+        return 1; // 1 minuto = 60 segundos (> 5 segundos)
+      case "hours":
+        return 1; // 1 hora (> 5 segundos)
+      default:
+        return 1;
+    }
+  };
+
+  // Función para convertir tiempo a segundos
+  const timeToSeconds = (value, unit) => {
     const numValue = parseInt(value) || 0;
     switch (unit) {
       case "seconds":
-        return numValue * 1000;
+        return numValue;
       case "minutes":
-        return numValue * 60 * 1000;
+        return numValue * 60;
       case "hours":
-        return numValue * 60 * 60 * 1000;
+        return numValue * 3600;
       default:
         return 0;
     }
   };
 
-  // Función para convertir milisegundos a tiempo legible
-  const millisecondsToTime = (ms) => {
-    if (ms >= 3600000) {
+  // Función para convertir segundos a tiempo legible
+  const secondsToTime = (seconds) => {
+    if (seconds >= 3600) {
       // >= 1 hora
-      return { value: Math.floor(ms / 3600000), unit: "hours" };
-    } else if (ms >= 60000) {
+      return { value: Math.floor(seconds / 3600), unit: "hours" };
+    } else if (seconds >= 60) {
       // >= 1 minuto
-      return { value: Math.floor(ms / 60000), unit: "minutes" };
+      return { value: Math.floor(seconds / 60), unit: "minutes" };
     } else {
-      return { value: Math.floor(ms / 1000), unit: "seconds" };
+      return { value: seconds, unit: "seconds" };
     }
   };
 
   useEffect(() => {
     if (ciclo && ciclo.tiempoEncendido && ciclo.tiempoTotal) {
-      // Convertir datos del dispositivo (tiempo total + tiempo encendido)
-      // a formato amigable (tiempo encendido + tiempo apagado)
-      const tiempoEncendidoMs = ciclo.tiempoEncendido;
-      const tiempoTotalMs = ciclo.tiempoTotal;
-      const tiempoApagadoMs = tiempoTotalMs - tiempoEncendidoMs;
+      // El backend y dispositivo usan segundos
+      const tiempoEncendidoSeg = ciclo.tiempoEncendido;
+      const tiempoTotalSeg = ciclo.tiempoTotal;
+      const tiempoApagadoSeg = tiempoTotalSeg - tiempoEncendidoSeg;
 
-      const encendido = millisecondsToTime(tiempoEncendidoMs);
-      const apagado = millisecondsToTime(tiempoApagadoMs);
+      const encendido = secondsToTime(tiempoEncendidoSeg);
+      const apagado = secondsToTime(tiempoApagadoSeg);
 
       setTiempoEncendidoValue(encendido.value.toString());
       setTiempoEncendidoUnit(encendido.unit);
@@ -72,57 +89,49 @@ const CiclosForm = ({ ciclo, dId }) => {
   const hasChanges = () => {
     if (!ciclo) return false;
 
-    const currentEncendidoMs = timeToMilliseconds(
+    const currentEncendidoSeg = timeToSeconds(
       tiempoEncendidoValue,
       tiempoEncendidoUnit
     );
-    const currentApagadoMs = timeToMilliseconds(
+    const currentApagadoSeg = timeToSeconds(
       tiempoApagadoValue,
       tiempoApagadoUnit
     );
-    const currentTotalMs = currentEncendidoMs + currentApagadoMs;
+    const currentTotalSeg = currentEncendidoSeg + currentApagadoSeg;
 
     return (
-      currentEncendidoMs !== ciclo.tiempoEncendido ||
-      currentTotalMs !== ciclo.tiempoTotal
+      currentEncendidoSeg !== ciclo.tiempoEncendido ||
+      currentTotalSeg !== ciclo.tiempoTotal
     );
   };
 
   const handleSubmit = async () => {
-    // Convertir UI amigable a formato del dispositivo
-    const tiempoEncendidoMs = timeToMilliseconds(
+    // Convertir UI a segundos (formato del backend y dispositivo)
+    const tiempoEncendidoSeg = timeToSeconds(
       tiempoEncendidoValue,
       tiempoEncendidoUnit
     );
-    const tiempoApagadoMs = timeToMilliseconds(
+    const tiempoApagadoSeg = timeToSeconds(
       tiempoApagadoValue,
       tiempoApagadoUnit
     );
-    const tiempoTotalMs = tiempoEncendidoMs + tiempoApagadoMs;
+    const tiempoTotalSeg = tiempoEncendidoSeg + tiempoApagadoSeg;
 
-    // Validaciones
-    if (tiempoEncendidoMs <= 0) {
-      alert("El tiempo encendido debe ser mayor a 0");
-      return;
-    }
-    if (tiempoApagadoMs <= 0) {
-      alert("El tiempo apagado debe ser mayor a 0");
+    // Validaciones básicas (los mínimos ya están controlados por el input)
+    if (tiempoEncendidoSeg <= 0 || tiempoApagadoSeg <= 0) {
+      alert("Por favor ingrese valores válidos para los tiempos");
       return;
     }
 
-    const toSend = {
-      encendido: tiempoEncendidoMs, // Tiempo encendido en ms
-      apagado: tiempoTotalMs, // Tiempo total en ms (lo que el dispositivo llama "apagado")
+    const cicloConfig = {
+      tiempoEncendido: tiempoEncendidoSeg,
+      tiempoTotal: tiempoTotalSeg,
       variable: ciclo.variable,
     };
 
-    console.log("Enviando al dispositivo:", {
-      tiempoEncendido: tiempoEncendidoMs,
-      tiempoTotal: tiempoTotalMs,
-      variable: ciclo.variable,
-    });
+    console.log("Enviando configuración de ciclo (en segundos):", cicloConfig);
 
-    await callEndpoint(setSingleCicle(toSend, dId));
+    await callEndpoint(setSingleCicle(cicloConfig, dId));
   };
 
   if (!ciclo) return null;
@@ -134,6 +143,15 @@ const CiclosForm = ({ ciclo, dId }) => {
         <p className="text-sm text-muted-foreground">
           Configure los tiempos de encendido y apagado del dispositivo
         </p>
+        {showWarning && (
+          <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md p-3 mt-2">
+            <p className="text-xs text-amber-800 dark:text-amber-200">
+              ⚠️ <strong>Importante:</strong> Los tiempos mínimos son de 5
+              segundos para proteger el relay magnético de 10A contra desgaste
+              prematuro.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -144,15 +162,41 @@ const CiclosForm = ({ ciclo, dId }) => {
             <Input
               id="tiempo-encendido"
               type="number"
-              min="1"
-              placeholder="0"
+              min={getMinValueForUnit(tiempoEncendidoUnit)}
+              placeholder={getMinValueForUnit(tiempoEncendidoUnit).toString()}
               value={tiempoEncendidoValue}
-              onChange={(e) => setTiempoEncendidoValue(e.target.value)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 0;
+                const minVal = getMinValueForUnit(tiempoEncendidoUnit);
+                if (val >= minVal || e.target.value === "") {
+                  setTiempoEncendidoValue(e.target.value);
+                }
+                // Mostrar warning si el valor en segundos es <= 5
+                const segundosActuales = timeToSeconds(
+                  e.target.value,
+                  tiempoEncendidoUnit
+                );
+                setShowWarning(
+                  segundosActuales > 0 &&
+                    segundosActuales <= TIEMPO_MINIMO_RELAY
+                );
+              }}
               className="flex-1"
             />
             <Select
               value={tiempoEncendidoUnit}
-              onValueChange={setTiempoEncendidoUnit}
+              onValueChange={(newUnit) => {
+                const currentSeconds = timeToSeconds(
+                  tiempoEncendidoValue,
+                  tiempoEncendidoUnit
+                );
+                const minVal = getMinValueForUnit(newUnit);
+                setTiempoEncendidoUnit(newUnit);
+                // Ajustar el valor si es menor al mínimo de la nueva unidad
+                if (currentSeconds < TIEMPO_MINIMO_RELAY) {
+                  setTiempoEncendidoValue(minVal.toString());
+                }
+              }}
             >
               <SelectTrigger className="w-32">
                 <SelectValue />
@@ -173,15 +217,41 @@ const CiclosForm = ({ ciclo, dId }) => {
             <Input
               id="tiempo-apagado"
               type="number"
-              min="1"
-              placeholder="0"
+              min={getMinValueForUnit(tiempoApagadoUnit)}
+              placeholder={getMinValueForUnit(tiempoApagadoUnit).toString()}
               value={tiempoApagadoValue}
-              onChange={(e) => setTiempoApagadoValue(e.target.value)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 0;
+                const minVal = getMinValueForUnit(tiempoApagadoUnit);
+                if (val >= minVal || e.target.value === "") {
+                  setTiempoApagadoValue(e.target.value);
+                }
+                // Mostrar warning si el valor en segundos es <= 5
+                const segundosActuales = timeToSeconds(
+                  e.target.value,
+                  tiempoApagadoUnit
+                );
+                setShowWarning(
+                  segundosActuales > 0 &&
+                    segundosActuales <= TIEMPO_MINIMO_RELAY
+                );
+              }}
               className="flex-1"
             />
             <Select
               value={tiempoApagadoUnit}
-              onValueChange={setTiempoApagadoUnit}
+              onValueChange={(newUnit) => {
+                const currentSeconds = timeToSeconds(
+                  tiempoApagadoValue,
+                  tiempoApagadoUnit
+                );
+                const minVal = getMinValueForUnit(newUnit);
+                setTiempoApagadoUnit(newUnit);
+                // Ajustar el valor si es menor al mínimo de la nueva unidad
+                if (currentSeconds < TIEMPO_MINIMO_RELAY) {
+                  setTiempoApagadoValue(minVal.toString());
+                }
+              }}
             >
               <SelectTrigger className="w-32">
                 <SelectValue />

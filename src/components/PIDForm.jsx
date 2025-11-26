@@ -31,11 +31,11 @@ const PIDForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
   const { loading, callEndpoint } = useFetchAndLoad();
   const [config, setConfig] = useState({
-    pid_kp: 1.0,
-    pid_ki: 0.1,
-    pid_kd: 0.05,
-    pid_setpoint: 25.0,
-    sensor_input: 0,
+    pid_kp: widget.pidConfig?.pid_kp || 1.0,
+    pid_ki: widget.pidConfig?.pid_ki || 0.1,
+    pid_kd: widget.pidConfig?.pid_kd || 0.05,
+    pid_setpoint: widget.pidConfig?.pid_setpoint || 25.0,
+    sensor_input: widget.pidConfig?.sensor_input || 0,
   });
 
   const [errors, setErrors] = useState({});

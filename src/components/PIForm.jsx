@@ -31,10 +31,10 @@ const PIForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
   const { loading, callEndpoint } = useFetchAndLoad();
   const [config, setConfig] = useState({
-    pid_kp: 1.5,
-    pid_ki: 0.2,
-    pid_setpoint: 25.0,
-    sensor_input: 0,
+    pid_kp: widget.piConfig?.pid_kp || 1.5,
+    pid_ki: widget.piConfig?.pid_ki || 0.2,
+    pid_setpoint: widget.piConfig?.pid_setpoint || 25.0,
+    sensor_input: widget.piConfig?.sensor_input || 0,
   });
 
   const [errors, setErrors] = useState({});

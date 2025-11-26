@@ -46,15 +46,12 @@ import PWMForm from "./PWMForm";
 import PIDForm from "./PIDForm";
 import PIForm from "./PIForm";
 import ProportionalForm from "./ProportionalForm";
-import useFetchAndLoad from "@/hooks/useFetchAndLoad";
-import { setInitialMode } from "../services/public";
 
 export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
   const [currentValue, setCurrentValue] = React.useState(null);
 
   const { recived, setSend } = useMqtt();
   const { isPro } = useSubscription();
-  const { callEndpoint } = useFetchAndLoad();
 
   // Reset value when device changes
   React.useEffect(() => {
@@ -436,7 +433,6 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
   };
 
   const sendValue = async (originalValue) => {
-    console.log(originalValue);
     if (originalValue === null) {
       return;
     }
@@ -458,8 +454,6 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
 
     // Usar el mqttModeMapper para convertir el modo al valor MQTT correcto
     const value = modeToMqttValue(originalValue);
-    console.log(value);
-    //return;
     const toSend = {
       topic: userId + "/" + dId + "/" + widget.variable + "/actdata",
       msg: {
@@ -468,16 +462,6 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
     };
 
     setSend({ msg: toSend.msg, topic: toSend.topic });
-
-    // Persist initial mode to database
-    const initialConfig = {
-      variable: widget.variable,
-      variableFullName: widget.variableFullName,
-      value: value,
-    };
-
-    await callEndpoint(setInitialMode(initialConfig, dId));
-    // Nota: No reseteamos el valor a null para evitar que mapValue reciba null
   };
 
   return (
@@ -564,15 +548,22 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                 {/* Formulario del modo actual */}
                 {mappedValue === "timers" && (
                   <div className="border-t pt-4">
-                    <TimersForm userId={userId} timers={timer} dId={dId} />
+                    <TimersForm
+                      userId={userId}
+                      timers={widget.timerConfig || timer}
+                      dId={dId}
+                    />
                   </div>
                 )}
-                {(mappedValue === "ciclos" || mappedValue === "cicles") &&
-                  ciclo && (
-                    <div className="border-t pt-4">
-                      <CiclosForm userId={userId} ciclo={ciclo} dId={dId} />
-                    </div>
-                  )}
+                {(mappedValue === "ciclos" || mappedValue === "cicles") && (
+                  <div className="border-t pt-4">
+                    <CiclosForm
+                      userId={userId}
+                      ciclo={widget.cicloConfig || ciclo}
+                      dId={dId}
+                    />
+                  </div>
+                )}
                 {mappedValue === "pwm" && (
                   <div className="border-t pt-4">
                     <PWMForm userId={userId} dId={dId} widget={widget} />
@@ -693,7 +684,11 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                     <TabsContent value="off"></TabsContent>
                     <TabsContent value="timers" className="w-full">
                       <div className="hidden md:block w-full">
-                        <TimersForm userId={userId} timers={timer} dId={dId} />
+                        <TimersForm
+                          userId={userId}
+                          timers={widget.timerConfig || timer}
+                          dId={dId}
+                        />
                       </div>
                       <div className="block md:hidden">
                         <Drawer>
@@ -708,7 +703,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                             </DrawerHeader>
                             <TimersForm
                               userId={userId}
-                              timers={timer}
+                              timers={widget.timerConfig || timer}
                               dId={dId}
                             />
                             <DrawerFooter>
@@ -722,9 +717,11 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                     </TabsContent>
                     <TabsContent value="ciclos" className="w-full">
                       <div className="hidden md:block w-full">
-                        {ciclo && (
-                          <CiclosForm userId={userId} ciclo={ciclo} dId={dId} />
-                        )}
+                        <CiclosForm
+                          userId={userId}
+                          ciclo={widget.cicloConfig || ciclo}
+                          dId={dId}
+                        />
                       </div>
                       <div className="block md:hidden">
                         <Drawer>
@@ -735,13 +732,11 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                             <DrawerHeader>
                               <DrawerTitle>Editar ciclo</DrawerTitle>
                             </DrawerHeader>
-                            {ciclo && (
-                              <CiclosForm
-                                userId={userId}
-                                ciclo={ciclo}
-                                dId={dId}
-                              />
-                            )}
+                            <CiclosForm
+                              userId={userId}
+                              ciclo={widget.cicloConfig || ciclo}
+                              dId={dId}
+                            />
                             <DrawerFooter>
                               <DrawerClose asChild>
                                 <Button variant="outline">Cerrar</Button>
@@ -935,7 +930,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                           <div className="px-4">
                             <TimersForm
                               userId={userId}
-                              timers={timer}
+                              timers={widget.timerConfig || timer}
                               dId={dId}
                             />
                           </div>
@@ -964,7 +959,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                           <div className="px-4">
                             <CiclosForm
                               userId={userId}
-                              ciclo={ciclo}
+                              ciclo={widget.cicloConfig || ciclo}
                               dId={dId}
                             />
                           </div>

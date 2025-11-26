@@ -165,26 +165,13 @@ const eventConfig = {
 const CustomTooltipContent = ({ active, payload, label, config }) => {
   if (!active || !payload?.length) return null;
 
-  // Debug: verificar qué está llegando
-  console.log("Tooltip data:", {
-    active,
-    label,
-    payloadLength: payload?.length,
-  });
+
 
   // Verificar si hay evento en este punto
   const eventData = payload[0]?.payload;
   const hasEvent = eventData?.eventType;
   const eventConf = hasEvent ? eventConfig[eventData.eventType] : null;
 
-  // Debug: mostrar datos del evento
-  if (hasEvent) {
-    console.log("Event data in tooltip:", {
-      eventType: eventData.eventType,
-      hasEventDetails: !!eventData.eventDetails,
-      eventDetails: eventData.eventDetails,
-    });
-  }
 
   return (
     <div className="rounded-lg border bg-background p-2 shadow-md">
@@ -926,18 +913,14 @@ export default function Chart({ device }) {
           if (isPro) {
             // Procesar eventos del backend si están disponibles
             if (response && response.data && response.data.events) {
-              console.log("Raw events from backend:", response.data.events);
 
               const backendEvents = response.data.events.filter((event) => {
                 const eventType = event.payload?.event_type;
                 const hasConfig = !!eventConfig[eventType];
-                console.log(
-                  `Event type: ${eventType}, has config: ${hasConfig}`
-                );
+               
                 return hasConfig;
               });
 
-              console.log("Filtered backend events:", backendEvents);
               // Convertir eventos a puntos scatter
               const eventPoints = backendEvents.map((event) => {
                 const maxValue = Math.max(
@@ -958,20 +941,13 @@ export default function Chart({ device }) {
                   50 // Valor por defecto
                 );
 
-                console.log("Max value calculated:", maxValue);
 
                 // Buscar el widget/actuador correspondiente a la variable del evento
                 const relatedWidget = device.template.widgets.find(
                   (widget) => widget.variable === event.variable
                 );
 
-                console.log(
-                  "Event variable:",
-                  event.variable,
-                  "Related widget:",
-                  relatedWidget
-                );
-
+             
                 // Calcular posición Y del evento
                 let eventYPosition;
                 const sensorValue = event.payload?.sensor_value;
@@ -979,9 +955,7 @@ export default function Chart({ device }) {
                 if (sensorValue && sensorValue > 0) {
                   // Si hay sensor_value mayor a 0, posicionar a esa altura
                   eventYPosition = sensorValue;
-                  console.log(
-                    `Event positioned at sensor value: ${sensorValue}`
-                  );
+                  
                 } else {
                   // Posición por defecto cerca del máximo
                   eventYPosition = Math.max(50, maxValue * 0.9);
@@ -1020,17 +994,10 @@ export default function Chart({ device }) {
                   },
                 };
 
-                console.log("Created event point:", eventPoint);
                 return eventPoint;
               });
 
-              console.log("Final event points:", eventPoints);
-
-              // Debug: mostrar tiempos de datos transformados
-              console.log(
-                "Sample transformed data times:",
-                transformedData.slice(0, 5).map((d) => d.time)
-              );
+          
 
               // Función para encontrar el punto de datos más cercano al evento
               const findClosestDataPoint = (eventTime, dataPoints) => {
@@ -1075,12 +1042,7 @@ export default function Chart({ device }) {
                   transformedData
                 );
                 if (closestIndex !== null) {
-                  console.log("MATCHED EVENT:", {
-                    dataTime: transformedData[closestIndex].time,
-                    eventTime: event.time,
-                    eventType: event.eventType,
-                    closestIndex,
-                  });
+                 
 
                   dataWithEvents[closestIndex] = {
                     ...dataWithEvents[closestIndex],
@@ -1093,10 +1055,7 @@ export default function Chart({ device }) {
                 }
               });
 
-              console.log(
-                "Data with events sample:",
-                dataWithEvents.filter((d) => d.eventType).slice(0, 3)
-              );
+           
 
               // Actualizar datos principales con eventos mezclados
               setData(dataWithEvents);
