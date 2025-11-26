@@ -11,9 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useMqtt from "@/hooks/useMqtt";
+import useFetchAndLoad from "@/hooks/useFetchAndLoad";
+import { setSingleCicle } from "../services/public";
 
 const CiclosForm = ({ userId, ciclo, dId }) => {
   const { setSend } = useMqtt();
+  const { loading, callEndpoint } = useFetchAndLoad();
 
   // Estados para la UI amigable (tiempo encendido + tiempo apagado)
   const [tiempoEncendidoValue, setTiempoEncendidoValue] = useState("");
@@ -56,13 +59,16 @@ const CiclosForm = ({ userId, ciclo, dId }) => {
 
   // Función para convertir segundos a tiempo legible
   const secondsToTime = (seconds) => {
-    if (seconds >= 3600) {
-      // >= 1 hora
-      return { value: Math.floor(seconds / 3600), unit: "hours" };
-    } else if (seconds >= 60) {
-      // >= 1 minuto
-      return { value: Math.floor(seconds / 60), unit: "minutes" };
-    } else {
+    // Intentar convertir a horas si es divisible exactamente por 3600
+    if (seconds >= 3600 && seconds % 3600 === 0) {
+      return { value: seconds / 3600, unit: "hours" };
+    }
+    // Intentar convertir a minutos si es divisible exactamente por 60
+    else if (seconds >= 60 && seconds % 60 === 0) {
+      return { value: seconds / 60, unit: "minutes" };
+    }
+    // Si no es divisible exactamente, mantener en segundos
+    else {
       return { value: seconds, unit: "seconds" };
     }
   };
@@ -104,7 +110,7 @@ const CiclosForm = ({ userId, ciclo, dId }) => {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Convertir UI a segundos (formato del backend y dispositivo)
     const tiempoEncendidoSeg = timeToSeconds(
       tiempoEncendidoValue,
@@ -133,6 +139,15 @@ const CiclosForm = ({ userId, ciclo, dId }) => {
     };
 
     setSend({ msg: toSend.msg, topic: toSend.topic });
+
+    // Persist to database
+    const cicloConfig = {
+      tiempoEncendido: tiempoEncendidoSeg,
+      tiempoTotal: tiempoTotalSeg,
+      variable: ciclo.variable,
+    };
+
+    await callEndpoint(setSingleCicle(cicloConfig, dId));
   };
 
   if (!ciclo) return null;
@@ -163,15 +178,10 @@ const CiclosForm = ({ userId, ciclo, dId }) => {
             <Input
               id="tiempo-encendido"
               type="number"
-              min={getMinValueForUnit(tiempoEncendidoUnit)}
               placeholder={getMinValueForUnit(tiempoEncendidoUnit).toString()}
               value={tiempoEncendidoValue}
               onChange={(e) => {
-                const val = parseInt(e.target.value) || 0;
-                const minVal = getMinValueForUnit(tiempoEncendidoUnit);
-                if (val >= minVal || e.target.value === "") {
-                  setTiempoEncendidoValue(e.target.value);
-                }
+                setTiempoEncendidoValue(e.target.value);
                 // Mostrar warning si el valor en segundos es <= 5
                 const segundosActuales = timeToSeconds(
                   e.target.value,
@@ -181,6 +191,22 @@ const CiclosForm = ({ userId, ciclo, dId }) => {
                   segundosActuales > 0 &&
                     segundosActuales <= TIEMPO_MINIMO_RELAY
                 );
+              }}
+              onBlur={(e) => {
+                const segundosActuales = timeToSeconds(
+                  e.target.value,
+                  tiempoEncendidoUnit
+                );
+                if (
+                  segundosActuales > 0 &&
+                  segundosActuales < TIEMPO_MINIMO_RELAY
+                ) {
+                  // Corregir al mínimo (5 segundos)
+                  const { value, unit } = secondsToTime(TIEMPO_MINIMO_RELAY);
+                  setTiempoEncendidoValue(value.toString());
+                  setTiempoEncendidoUnit(unit);
+                  setShowWarning(true); // Mantener el warning visible
+                }
               }}
               className="flex-1"
             />
@@ -218,15 +244,10 @@ const CiclosForm = ({ userId, ciclo, dId }) => {
             <Input
               id="tiempo-apagado"
               type="number"
-              min={getMinValueForUnit(tiempoApagadoUnit)}
               placeholder={getMinValueForUnit(tiempoApagadoUnit).toString()}
               value={tiempoApagadoValue}
               onChange={(e) => {
-                const val = parseInt(e.target.value) || 0;
-                const minVal = getMinValueForUnit(tiempoApagadoUnit);
-                if (val >= minVal || e.target.value === "") {
-                  setTiempoApagadoValue(e.target.value);
-                }
+                setTiempoApagadoValue(e.target.value);
                 // Mostrar warning si el valor en segundos es <= 5
                 const segundosActuales = timeToSeconds(
                   e.target.value,
@@ -236,6 +257,22 @@ const CiclosForm = ({ userId, ciclo, dId }) => {
                   segundosActuales > 0 &&
                     segundosActuales <= TIEMPO_MINIMO_RELAY
                 );
+              }}
+              onBlur={(e) => {
+                const segundosActuales = timeToSeconds(
+                  e.target.value,
+                  tiempoApagadoUnit
+                );
+                if (
+                  segundosActuales > 0 &&
+                  segundosActuales < TIEMPO_MINIMO_RELAY
+                ) {
+                  // Corregir al mínimo (5 segundos)
+                  const { value, unit } = secondsToTime(TIEMPO_MINIMO_RELAY);
+                  setTiempoApagadoValue(value.toString());
+                  setTiempoApagadoUnit(unit);
+                  setShowWarning(true); // Mantener el warning visible
+                }
               }}
               className="flex-1"
             />
@@ -274,21 +311,32 @@ const CiclosForm = ({ userId, ciclo, dId }) => {
           <br />• Encendido: {tiempoEncendidoValue || 0} {tiempoEncendidoUnit}
           <br />• Apagado: {tiempoApagadoValue || 0} {tiempoApagadoUnit}
           <br />• Ciclo total:{" "}
-          {(parseInt(tiempoEncendidoValue) || 0) +
-            (parseInt(tiempoApagadoValue) || 0)}{" "}
-          {tiempoEncendidoUnit === tiempoApagadoUnit
-            ? tiempoEncendidoUnit
-            : "unidades mixtas"}
+          {(() => {
+            const totalSegundos =
+              timeToSeconds(tiempoEncendidoValue, tiempoEncendidoUnit) +
+              timeToSeconds(tiempoApagadoValue, tiempoApagadoUnit);
+
+            const horas = Math.floor(totalSegundos / 3600);
+            const minutos = Math.floor((totalSegundos % 3600) / 60);
+            const segundos = totalSegundos % 60;
+
+            const partes = [];
+            if (horas > 0) partes.push(`${horas} ${horas === 1 ? "hora" : "horas"}`);
+            if (minutos > 0) partes.push(`${minutos} ${minutos === 1 ? "minuto" : "minutos"}`);
+            if (segundos > 0) partes.push(`${segundos} ${segundos === 1 ? "segundo" : "segundos"}`);
+
+            return partes.length > 0 ? partes.join(" ") : "0 segundos";
+          })()}
         </div>
       </div>
 
       <div className="flex justify-end">
         <Button
           onClick={handleSubmit}
-          disabled={!hasChanges()}
+          disabled={!hasChanges() || loading}
           className="min-w-32"
         >
-          Guardar Ciclo
+          {loading ? "Guardando..." : "Guardar Ciclo"}
         </Button>
       </div>
     </div>

@@ -10,9 +10,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import useMqtt from "@/hooks/useMqtt";
+import useFetchAndLoad from "@/hooks/useFetchAndLoad";
+import { setSingleTimer } from "../services/public";
 
 const TimersForm = ({ userId, timers, dId }) => {
   const { setSend } = useMqtt();
+  const { loading, callEndpoint } = useFetchAndLoad();
   const [horaEncendido, setHoraEncendido] = useState(null);
   const [horaApagado, setHoraApagado] = useState(null);
 
@@ -31,8 +34,9 @@ const TimersForm = ({ userId, timers, dId }) => {
     const apagadoHour = Math.floor(timers.apagado / (1000 * 60 * 60));
 
     if (
-      encendidoHour.toString() != horaEncendido ||
-      apagadoHour.toString() != horaApagado
+      (encendidoHour.toString() != horaEncendido ||
+        apagadoHour.toString() != horaApagado) &&
+      !loading
     ) {
       return false;
     } else {
@@ -40,7 +44,7 @@ const TimersForm = ({ userId, timers, dId }) => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const encendidoMillis = parseInt(horaEncendido) * 60 * 60 * 1000;
     const apagadoMillis = parseInt(horaApagado) * 60 * 60 * 1000;
 
@@ -55,6 +59,15 @@ const TimersForm = ({ userId, timers, dId }) => {
     };
 
     setSend({ msg: toSend.msg, topic: toSend.topic });
+
+    // Persist to database
+    const timer = {
+      encendido: encendidoMillis,
+      apagado: apagadoMillis,
+      variable: timers.variable,
+    };
+
+    await callEndpoint(setSingleTimer(timer, dId));
   };
 
   if (!horaEncendido || !horaApagado) return null;
@@ -178,7 +191,7 @@ const TimersForm = ({ userId, timers, dId }) => {
           onClick={handleSubmit}
           className="min-w-32"
         >
-          Guardar
+          {loading ? "Guardando..." : "Guardar"}
         </Button>
       </div>
     </div>
