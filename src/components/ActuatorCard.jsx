@@ -1,6 +1,16 @@
 import * as React from "react";
 import PropTypes from "prop-types";
-import { Sparkles } from "lucide-react";
+import {
+  Sparkles,
+  Power,
+  Clock,
+  Repeat,
+  Zap,
+  Cpu,
+  Settings,
+  Gauge,
+  Droplet,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -248,6 +258,33 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
     }
   };
 
+  // Función para obtener el icono de cada modo
+  const getModeIcon = (mode) => {
+    switch (mode) {
+      case "on":
+      case "off":
+        return <Power className="w-3 h-3" />;
+      case "timers":
+        return <Clock className="w-3 h-3" />;
+      case "ciclos":
+      case "cicles":
+        return <Repeat className="w-3 h-3" />;
+      case "pwm":
+        return <Zap className="w-3 h-3" />;
+      case "pid":
+        return <Cpu className="w-3 h-3" />;
+      case "pi":
+        return <Settings className="w-3 h-3" />;
+      case "proportional":
+      case "p":
+        return <Gauge className="w-3 h-3" />;
+      case "pump":
+        return <Droplet className="w-3 h-3" />;
+      default:
+        return <Settings className="w-3 h-3" />;
+    }
+  };
+
   // Función para generar los TabsTrigger dinámicamente
   const renderTabTrigger = (mode) => {
     const modeInfo = getModeInfo(mode);
@@ -444,56 +481,464 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
   };
 
   return (
-    <Card className="text-left flex md:flex-col p-6 gap-4">
-      <CardHeader className="p-0 pb-3 pl-1">
-        <CardTitle className="text-lg md:text-xl lg:text-2xl xl:text-3xl ">
+    <Card className="text-left p-3 md:p-6">
+      {/* Mobile: Compact 1-column layout */}
+      <div className="md:hidden">
+        {/* Name at top */}
+        <div className="text-xs font-bold text-muted-foreground">
           {mapName(widget.variableFullName)}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className=" flex-1 p-0 ">
-        <div className="w-full sm:items-center flex flex-row justify-end md:justify-start">
-          <div className="flex flex-col space-y-1.5 w-full">
-            {/* Desktop: Tabs */}
-            <div className="hidden md:block">
-              <TooltipProvider>
-                <Tabs
-                  className="w-full flex flex-col items-end justify-end md:items-start"
-                  value={mappedValue}
-                  onValueChange={(e) => {
-                    sendValue(e);
-                  }}
-                >
-                  <TabsList
-                    className={`grid w-full gap-1`}
-                    style={{
-                      gridTemplateColumns: `repeat(${Math.min(
-                        availableModes.length,
-                        8
-                      )}, minmax(0, 1fr))`,
+        </div>
+
+        {/* Subtitle for PID/PI/P modes showing setpoint */}
+        {["pid", "pi", "p", "proportional"].includes(mappedValue) &&
+          widget.setpoint && (
+            <div className="text-[10px] text-muted-foreground mb-2">
+              Setpoint: {widget.setpoint}°
+            </div>
+          )}
+
+        {!(
+          ["pid", "pi", "p", "proportional"].includes(mappedValue) &&
+          widget.setpoint
+        ) && <div className="mb-2"></div>}
+
+        {/* Grid with mode badge and quick action - 1 column */}
+        <div className="flex flex-col gap-2">
+          {/* Mode badge - clickable to open Select with form */}
+          <Drawer>
+            <DrawerTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start gap-2 h-9"
+                disabled={currentValue === null}
+              >
+                {getModeIcon(mappedValue)}
+                <span className="text-xs truncate">
+                  {mappedValue === "on"
+                    ? "On"
+                    : mappedValue === "off"
+                    ? "Off"
+                    : mappedValue === "timers"
+                    ? "Timer"
+                    : mappedValue === "ciclos" || mappedValue === "cicles"
+                    ? "Ciclo"
+                    : mappedValue === "pwm"
+                    ? "PWM"
+                    : mappedValue === "pid"
+                    ? "PID"
+                    : mappedValue === "pi"
+                    ? "PI"
+                    : mappedValue === "proportional" || mappedValue === "p"
+                    ? "Propor."
+                    : mappedValue === "pump"
+                    ? "Pump"
+                    : "Modo"}
+                </span>
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Modo de Control</DrawerTitle>
+              </DrawerHeader>
+              <div className="px-4 pb-4 space-y-4">
+                {/* Select para cambiar modo */}
+                <div className="space-y-2">
+                  <Label>Seleccionar Modo</Label>
+                  <Select
+                    value={mappedValue || ""}
+                    onValueChange={(value) => {
+                      sendValue(value);
+                    }}
+                    disabled={currentValue === null}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar modo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableModes.map((mode) => renderSelectItem(mode))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Formulario del modo actual */}
+                {mappedValue === "timers" && (
+                  <div className="border-t pt-4">
+                    <TimersForm userId={userId} timers={timer} dId={dId} />
+                  </div>
+                )}
+                {(mappedValue === "ciclos" || mappedValue === "cicles") &&
+                  ciclo && (
+                    <div className="border-t pt-4">
+                      <CiclosForm userId={userId} ciclo={ciclo} dId={dId} />
+                    </div>
+                  )}
+                {mappedValue === "pwm" && (
+                  <div className="border-t pt-4">
+                    <PWMForm userId={userId} dId={dId} widget={widget} />
+                  </div>
+                )}
+                {mappedValue === "pid" && (
+                  <div className="border-t pt-4">
+                    <PIDForm userId={userId} dId={dId} widget={widget} />
+                  </div>
+                )}
+                {mappedValue === "pi" && (
+                  <div className="border-t pt-4">
+                    <PIForm userId={userId} dId={dId} widget={widget} />
+                  </div>
+                )}
+                {(mappedValue === "proportional" || mappedValue === "p") && (
+                  <div className="border-t pt-4">
+                    <ProportionalForm
+                      userId={userId}
+                      dId={dId}
+                      widget={widget}
+                    />
+                  </div>
+                )}
+              </div>
+              <DrawerFooter>
+                <DrawerClose asChild>
+                  <Button variant="outline">Cerrar</Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
+
+          {/* Quick action button - send true/false directly */}
+          <Button
+            size="sm"
+            variant={
+              currentValue === true || currentValue === 1
+                ? "default"
+                : "secondary"
+            }
+            className="w-full h-9"
+            disabled={currentValue === null}
+            onClick={() => {
+              // Alternar entre true/false según el estado actual
+              const newValue =
+                currentValue === true || currentValue === 1 ? false : true;
+              const toSend = {
+                topic: userId + "/" + dId + "/" + widget.variable + "/actdata",
+                msg: { value: newValue },
+              };
+              setSend({ msg: toSend.msg, topic: toSend.topic });
+            }}
+          >
+            <Power className="w-4 h-4 mr-1" />
+            <span className="text-xs">
+              {currentValue === true || currentValue === 1
+                ? "Apagar"
+                : "Encender"}
+            </span>
+          </Button>
+        </div>
+
+        {/* Pro indicator for mobile */}
+        {widget.mode &&
+          widget.mode.some((mode) =>
+            ["pwm", "pid", "pi", "proportional", "p", "pump"].includes(mode)
+          ) && (
+            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+              {isProPlan ? (
+                <div className="flex items-center justify-center gap-1 text-[10px] text-green-600 dark:text-green-400">
+                  <span className="text-green-500">✓</span>
+                  <span>Pro activado</span>
+                  <Sparkles className="w-2 h-2 text-blue-500" />
+                </div>
+              ) : (
+                <div className="text-center text-[10px] text-muted-foreground">
+                  <Sparkles className="w-2 h-2 inline text-blue-500" />{" "}
+                  Funciones Pro disponibles
+                </div>
+              )}
+            </div>
+          )}
+      </div>
+
+      {/* Desktop: Original layout */}
+      <div className="hidden md:block">
+        <CardHeader className="p-0 pb-3 pl-1">
+          <CardTitle className="text-lg md:text-xl lg:text-2xl xl:text-3xl ">
+            {mapName(widget.variableFullName)}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className=" flex-1 p-0 ">
+          <div className="w-full sm:items-center flex flex-row justify-end md:justify-start">
+            <div className="flex flex-col space-y-1.5 w-full">
+              {/* Desktop: Tabs */}
+              <div className="hidden md:block">
+                <TooltipProvider>
+                  <Tabs
+                    className="w-full flex flex-col items-end justify-end md:items-start"
+                    value={mappedValue}
+                    onValueChange={(e) => {
+                      sendValue(e);
                     }}
                   >
-                    {availableModes.map((mode) => renderTabTrigger(mode))}
-                  </TabsList>
-                  <TabsContent value="on"></TabsContent>
-                  <TabsContent value="off"></TabsContent>
-                  <TabsContent value="timers" className="w-full">
-                    <div className="hidden md:block w-full">
-                      <TimersForm userId={userId} timers={timer} dId={dId} />
-                    </div>
-                    <div className="block md:hidden">
+                    <TabsList
+                      className={`grid w-full gap-1`}
+                      style={{
+                        gridTemplateColumns: `repeat(${Math.min(
+                          availableModes.length,
+                          8
+                        )}, minmax(0, 1fr))`,
+                      }}
+                    >
+                      {availableModes.map((mode) => renderTabTrigger(mode))}
+                    </TabsList>
+                    <TabsContent value="on"></TabsContent>
+                    <TabsContent value="off"></TabsContent>
+                    <TabsContent value="timers" className="w-full">
+                      <div className="hidden md:block w-full">
+                        <TimersForm userId={userId} timers={timer} dId={dId} />
+                      </div>
+                      <div className="block md:hidden">
+                        <Drawer>
+                          <DrawerTrigger asChild>
+                            <Button variant="outline">
+                              Editar temporizador
+                            </Button>
+                          </DrawerTrigger>
+                          <DrawerContent>
+                            <DrawerHeader>
+                              <DrawerTitle>Editar temporizador</DrawerTitle>
+                            </DrawerHeader>
+                            <TimersForm
+                              userId={userId}
+                              timers={timer}
+                              dId={dId}
+                            />
+                            <DrawerFooter>
+                              <DrawerClose asChild>
+                                <Button variant="outline">Cerrar</Button>
+                              </DrawerClose>
+                            </DrawerFooter>
+                          </DrawerContent>
+                        </Drawer>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="ciclos" className="w-full">
+                      <div className="hidden md:block w-full">
+                        {ciclo && (
+                          <CiclosForm userId={userId} ciclo={ciclo} dId={dId} />
+                        )}
+                      </div>
+                      <div className="block md:hidden">
+                        <Drawer>
+                          <DrawerTrigger asChild>
+                            <Button variant="outline">Editar ciclo</Button>
+                          </DrawerTrigger>
+                          <DrawerContent>
+                            <DrawerHeader>
+                              <DrawerTitle>Editar ciclo</DrawerTitle>
+                            </DrawerHeader>
+                            {ciclo && (
+                              <CiclosForm
+                                userId={userId}
+                                ciclo={ciclo}
+                                dId={dId}
+                              />
+                            )}
+                            <DrawerFooter>
+                              <DrawerClose asChild>
+                                <Button variant="outline">Cerrar</Button>
+                              </DrawerClose>
+                            </DrawerFooter>
+                          </DrawerContent>
+                        </Drawer>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="pwm" className="w-full">
+                      <div className="hidden md:block w-full">
+                        <PWMForm userId={userId} dId={dId} widget={widget} />
+                      </div>
+                      <div className="block md:hidden">
+                        <Drawer>
+                          <DrawerTrigger asChild>
+                            <Button variant="outline">Configurar PWM</Button>
+                          </DrawerTrigger>
+                          <DrawerContent>
+                            <DrawerHeader>
+                              <DrawerTitle>Configurar PWM</DrawerTitle>
+                            </DrawerHeader>
+                            <PWMForm
+                              userId={userId}
+                              dId={dId}
+                              widget={widget}
+                            />
+                            <DrawerFooter>
+                              <DrawerClose asChild>
+                                <Button variant="outline">Cerrar</Button>
+                              </DrawerClose>
+                            </DrawerFooter>
+                          </DrawerContent>
+                        </Drawer>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="pid" className="w-full">
+                      <div className="hidden md:block w-full">
+                        <PIDForm userId={userId} dId={dId} widget={widget} />
+                      </div>
+                      <div className="block md:hidden">
+                        <Drawer>
+                          <DrawerTrigger asChild>
+                            <Button variant="outline">Configurar PID</Button>
+                          </DrawerTrigger>
+                          <DrawerContent>
+                            <DrawerHeader>
+                              <DrawerTitle>Configurar PID</DrawerTitle>
+                            </DrawerHeader>
+                            <PIDForm
+                              userId={userId}
+                              dId={dId}
+                              widget={widget}
+                            />
+                            <DrawerFooter>
+                              <DrawerClose asChild>
+                                <Button variant="outline">Cerrar</Button>
+                              </DrawerClose>
+                            </DrawerFooter>
+                          </DrawerContent>
+                        </Drawer>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="pi" className="w-full">
+                      <div className="hidden md:block w-full">
+                        <PIForm userId={userId} dId={dId} widget={widget} />
+                      </div>
+                      <div className="block md:hidden">
+                        <Drawer>
+                          <DrawerTrigger asChild>
+                            <Button variant="outline">Configurar PI</Button>
+                          </DrawerTrigger>
+                          <DrawerContent>
+                            <DrawerHeader>
+                              <DrawerTitle>Configurar PI</DrawerTitle>
+                            </DrawerHeader>
+                            <PIForm userId={userId} dId={dId} widget={widget} />
+                            <DrawerFooter>
+                              <DrawerClose asChild>
+                                <Button variant="outline">Cerrar</Button>
+                              </DrawerClose>
+                            </DrawerFooter>
+                          </DrawerContent>
+                        </Drawer>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="proportional" className="w-full">
+                      <div className="hidden md:block w-full">
+                        <ProportionalForm
+                          userId={userId}
+                          dId={dId}
+                          widget={widget}
+                        />
+                      </div>
+                      <div className="block md:hidden">
+                        <Drawer>
+                          <DrawerTrigger asChild>
+                            <Button variant="outline">
+                              Configurar Proporcional
+                            </Button>
+                          </DrawerTrigger>
+                          <DrawerContent>
+                            <DrawerHeader>
+                              <DrawerTitle>
+                                Configurar Control Proporcional
+                              </DrawerTitle>
+                            </DrawerHeader>
+                            <ProportionalForm
+                              userId={userId}
+                              dId={dId}
+                              widget={widget}
+                            />
+                            <DrawerFooter>
+                              <DrawerClose asChild>
+                                <Button variant="outline">Cerrar</Button>
+                              </DrawerClose>
+                            </DrawerFooter>
+                          </DrawerContent>
+                        </Drawer>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="p" className="w-full">
+                      <div className="hidden md:block w-full">
+                        <ProportionalForm
+                          userId={userId}
+                          dId={dId}
+                          widget={widget}
+                        />
+                      </div>
+                      <div className="block md:hidden">
+                        <Drawer>
+                          <DrawerTrigger asChild>
+                            <Button variant="outline">
+                              Configurar Proporcional
+                            </Button>
+                          </DrawerTrigger>
+                          <DrawerContent>
+                            <DrawerHeader>
+                              <DrawerTitle>
+                                Configurar Control Proporcional
+                              </DrawerTitle>
+                            </DrawerHeader>
+                            <ProportionalForm
+                              userId={userId}
+                              dId={dId}
+                              widget={widget}
+                            />
+                            <DrawerFooter>
+                              <DrawerClose asChild>
+                                <Button variant="outline">Cerrar</Button>
+                              </DrawerClose>
+                            </DrawerFooter>
+                          </DrawerContent>
+                        </Drawer>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </TooltipProvider>
+              </div>
+
+              {/* Mobile: Select */}
+              <div className="block md:hidden">
+                <div className="space-y-3">
+                  <Label htmlFor="mode-select">Modo de Control</Label>
+                  <Select
+                    value={mappedValue || ""}
+                    onValueChange={(value) => sendValue(value)}
+                    disabled={currentValue === null}
+                  >
+                    <SelectTrigger id="mode-select">
+                      <SelectValue placeholder="Seleccionar modo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableModes.map((mode) => renderSelectItem(mode))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Mobile Content based on selected value */}
+                  {mappedValue === "timers" && (
+                    <div className="mt-4 space-y-3">
                       <Drawer>
                         <DrawerTrigger asChild>
-                          <Button variant="outline">Editar temporizador</Button>
+                          <Button variant="outline" className="w-full">
+                            Configurar Temporizador
+                          </Button>
                         </DrawerTrigger>
                         <DrawerContent>
                           <DrawerHeader>
                             <DrawerTitle>Editar temporizador</DrawerTitle>
                           </DrawerHeader>
-                          <TimersForm
-                            userId={userId}
-                            timers={timer}
-                            dId={dId}
-                          />
+                          <div className="px-4">
+                            <TimersForm
+                              userId={userId}
+                              timers={timer}
+                              dId={dId}
+                            />
+                          </div>
                           <DrawerFooter>
                             <DrawerClose asChild>
                               <Button variant="outline">Cerrar</Button>
@@ -502,29 +947,27 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         </DrawerContent>
                       </Drawer>
                     </div>
-                  </TabsContent>
-                  <TabsContent value="ciclos" className="w-full">
-                    <div className="hidden md:block w-full">
-                      {ciclo && (
-                        <CiclosForm userId={userId} ciclo={ciclo} dId={dId} />
-                      )}
-                    </div>
-                    <div className="block md:hidden">
+                  )}
+
+                  {(mappedValue === "ciclos" || mappedValue === "cicles") && (
+                    <div className="mt-4 space-y-3">
                       <Drawer>
                         <DrawerTrigger asChild>
-                          <Button variant="outline">Editar ciclo</Button>
+                          <Button variant="outline" className="w-full">
+                            Configurar Ciclos
+                          </Button>
                         </DrawerTrigger>
                         <DrawerContent>
                           <DrawerHeader>
                             <DrawerTitle>Editar ciclo</DrawerTitle>
                           </DrawerHeader>
-                          {ciclo && (
+                          <div className="px-4">
                             <CiclosForm
                               userId={userId}
                               ciclo={ciclo}
                               dId={dId}
                             />
-                          )}
+                          </div>
                           <DrawerFooter>
                             <DrawerClose asChild>
                               <Button variant="outline">Cerrar</Button>
@@ -533,21 +976,27 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         </DrawerContent>
                       </Drawer>
                     </div>
-                  </TabsContent>
-                  <TabsContent value="pwm" className="w-full">
-                    <div className="hidden md:block w-full">
-                      <PWMForm userId={userId} dId={dId} widget={widget} />
-                    </div>
-                    <div className="block md:hidden">
+                  )}
+
+                  {mappedValue === "pwm" && (
+                    <div className="mt-4 space-y-3">
                       <Drawer>
                         <DrawerTrigger asChild>
-                          <Button variant="outline">Configurar PWM</Button>
+                          <Button variant="outline" className="w-full">
+                            Configurar PWM
+                          </Button>
                         </DrawerTrigger>
                         <DrawerContent>
                           <DrawerHeader>
                             <DrawerTitle>Configurar PWM</DrawerTitle>
                           </DrawerHeader>
-                          <PWMForm userId={userId} dId={dId} widget={widget} />
+                          <div className="px-4">
+                            <PWMForm
+                              userId={userId}
+                              dId={dId}
+                              widget={widget}
+                            />
+                          </div>
                           <DrawerFooter>
                             <DrawerClose asChild>
                               <Button variant="outline">Cerrar</Button>
@@ -556,21 +1005,27 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         </DrawerContent>
                       </Drawer>
                     </div>
-                  </TabsContent>
-                  <TabsContent value="pid" className="w-full">
-                    <div className="hidden md:block w-full">
-                      <PIDForm userId={userId} dId={dId} widget={widget} />
-                    </div>
-                    <div className="block md:hidden">
+                  )}
+
+                  {mappedValue === "pid" && (
+                    <div className="mt-4 space-y-3">
                       <Drawer>
                         <DrawerTrigger asChild>
-                          <Button variant="outline">Configurar PID</Button>
+                          <Button variant="outline" className="w-full">
+                            Configurar PID
+                          </Button>
                         </DrawerTrigger>
                         <DrawerContent>
                           <DrawerHeader>
                             <DrawerTitle>Configurar PID</DrawerTitle>
                           </DrawerHeader>
-                          <PIDForm userId={userId} dId={dId} widget={widget} />
+                          <div className="px-4">
+                            <PIDForm
+                              userId={userId}
+                              dId={dId}
+                              widget={widget}
+                            />
+                          </div>
                           <DrawerFooter>
                             <DrawerClose asChild>
                               <Button variant="outline">Cerrar</Button>
@@ -579,21 +1034,23 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         </DrawerContent>
                       </Drawer>
                     </div>
-                  </TabsContent>
-                  <TabsContent value="pi" className="w-full">
-                    <div className="hidden md:block w-full">
-                      <PIForm userId={userId} dId={dId} widget={widget} />
-                    </div>
-                    <div className="block md:hidden">
+                  )}
+
+                  {mappedValue === "pi" && (
+                    <div className="mt-4 space-y-3">
                       <Drawer>
                         <DrawerTrigger asChild>
-                          <Button variant="outline">Configurar PI</Button>
+                          <Button variant="outline" className="w-full">
+                            Configurar PI
+                          </Button>
                         </DrawerTrigger>
                         <DrawerContent>
                           <DrawerHeader>
                             <DrawerTitle>Configurar PI</DrawerTitle>
                           </DrawerHeader>
-                          <PIForm userId={userId} dId={dId} widget={widget} />
+                          <div className="px-4">
+                            <PIForm userId={userId} dId={dId} widget={widget} />
+                          </div>
                           <DrawerFooter>
                             <DrawerClose asChild>
                               <Button variant="outline">Cerrar</Button>
@@ -602,19 +1059,13 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         </DrawerContent>
                       </Drawer>
                     </div>
-                  </TabsContent>
-                  <TabsContent value="proportional" className="w-full">
-                    <div className="hidden md:block w-full">
-                      <ProportionalForm
-                        userId={userId}
-                        dId={dId}
-                        widget={widget}
-                      />
-                    </div>
-                    <div className="block md:hidden">
+                  )}
+
+                  {mappedValue === "proportional" && (
+                    <div className="mt-4 space-y-3">
                       <Drawer>
                         <DrawerTrigger asChild>
-                          <Button variant="outline">
+                          <Button variant="outline" className="w-full">
                             Configurar Proporcional
                           </Button>
                         </DrawerTrigger>
@@ -637,19 +1088,13 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         </DrawerContent>
                       </Drawer>
                     </div>
-                  </TabsContent>
-                  <TabsContent value="p" className="w-full">
-                    <div className="hidden md:block w-full">
-                      <ProportionalForm
-                        userId={userId}
-                        dId={dId}
-                        widget={widget}
-                      />
-                    </div>
-                    <div className="block md:hidden">
+                  )}
+
+                  {mappedValue === "p" && (
+                    <div className="mt-4 space-y-3">
                       <Drawer>
                         <DrawerTrigger asChild>
-                          <Button variant="outline">
+                          <Button variant="outline" className="w-full">
                             Configurar Proporcional
                           </Button>
                         </DrawerTrigger>
@@ -672,246 +1117,39 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                         </DrawerContent>
                       </Drawer>
                     </div>
-                  </TabsContent>
-                </Tabs>
-              </TooltipProvider>
-            </div>
-
-            {/* Mobile: Select */}
-            <div className="block md:hidden">
-              <div className="space-y-3">
-                <Label htmlFor="mode-select">Modo de Control</Label>
-                <Select
-                  value={mappedValue || ""}
-                  onValueChange={(value) => sendValue(value)}
-                  disabled={currentValue === null}
-                >
-                  <SelectTrigger id="mode-select">
-                    <SelectValue placeholder="Seleccionar modo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableModes.map((mode) => renderSelectItem(mode))}
-                  </SelectContent>
-                </Select>
-
-                {/* Mobile Content based on selected value */}
-                {mappedValue === "timers" && (
-                  <div className="mt-4 space-y-3">
-                    <Drawer>
-                      <DrawerTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                          Configurar Temporizador
-                        </Button>
-                      </DrawerTrigger>
-                      <DrawerContent>
-                        <DrawerHeader>
-                          <DrawerTitle>Editar temporizador</DrawerTitle>
-                        </DrawerHeader>
-                        <div className="px-4">
-                          <TimersForm
-                            userId={userId}
-                            timers={timer}
-                            dId={dId}
-                          />
-                        </div>
-                        <DrawerFooter>
-                          <DrawerClose asChild>
-                            <Button variant="outline">Cerrar</Button>
-                          </DrawerClose>
-                        </DrawerFooter>
-                      </DrawerContent>
-                    </Drawer>
-                  </div>
-                )}
-
-                {(mappedValue === "ciclos" || mappedValue === "cicles") && (
-                  <div className="mt-4 space-y-3">
-                    <Drawer>
-                      <DrawerTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                          Configurar Ciclos
-                        </Button>
-                      </DrawerTrigger>
-                      <DrawerContent>
-                        <DrawerHeader>
-                          <DrawerTitle>Editar ciclo</DrawerTitle>
-                        </DrawerHeader>
-                        <div className="px-4">
-                          <CiclosForm userId={userId} ciclo={ciclo} dId={dId} />
-                        </div>
-                        <DrawerFooter>
-                          <DrawerClose asChild>
-                            <Button variant="outline">Cerrar</Button>
-                          </DrawerClose>
-                        </DrawerFooter>
-                      </DrawerContent>
-                    </Drawer>
-                  </div>
-                )}
-
-                {mappedValue === "pwm" && (
-                  <div className="mt-4 space-y-3">
-                    <Drawer>
-                      <DrawerTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                          Configurar PWM
-                        </Button>
-                      </DrawerTrigger>
-                      <DrawerContent>
-                        <DrawerHeader>
-                          <DrawerTitle>Configurar PWM</DrawerTitle>
-                        </DrawerHeader>
-                        <div className="px-4">
-                          <PWMForm userId={userId} dId={dId} widget={widget} />
-                        </div>
-                        <DrawerFooter>
-                          <DrawerClose asChild>
-                            <Button variant="outline">Cerrar</Button>
-                          </DrawerClose>
-                        </DrawerFooter>
-                      </DrawerContent>
-                    </Drawer>
-                  </div>
-                )}
-
-                {mappedValue === "pid" && (
-                  <div className="mt-4 space-y-3">
-                    <Drawer>
-                      <DrawerTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                          Configurar PID
-                        </Button>
-                      </DrawerTrigger>
-                      <DrawerContent>
-                        <DrawerHeader>
-                          <DrawerTitle>Configurar PID</DrawerTitle>
-                        </DrawerHeader>
-                        <div className="px-4">
-                          <PIDForm userId={userId} dId={dId} widget={widget} />
-                        </div>
-                        <DrawerFooter>
-                          <DrawerClose asChild>
-                            <Button variant="outline">Cerrar</Button>
-                          </DrawerClose>
-                        </DrawerFooter>
-                      </DrawerContent>
-                    </Drawer>
-                  </div>
-                )}
-
-                {mappedValue === "pi" && (
-                  <div className="mt-4 space-y-3">
-                    <Drawer>
-                      <DrawerTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                          Configurar PI
-                        </Button>
-                      </DrawerTrigger>
-                      <DrawerContent>
-                        <DrawerHeader>
-                          <DrawerTitle>Configurar PI</DrawerTitle>
-                        </DrawerHeader>
-                        <div className="px-4">
-                          <PIForm userId={userId} dId={dId} widget={widget} />
-                        </div>
-                        <DrawerFooter>
-                          <DrawerClose asChild>
-                            <Button variant="outline">Cerrar</Button>
-                          </DrawerClose>
-                        </DrawerFooter>
-                      </DrawerContent>
-                    </Drawer>
-                  </div>
-                )}
-
-                {mappedValue === "proportional" && (
-                  <div className="mt-4 space-y-3">
-                    <Drawer>
-                      <DrawerTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                          Configurar Proporcional
-                        </Button>
-                      </DrawerTrigger>
-                      <DrawerContent>
-                        <DrawerHeader>
-                          <DrawerTitle>
-                            Configurar Control Proporcional
-                          </DrawerTitle>
-                        </DrawerHeader>
-                        <ProportionalForm
-                          userId={userId}
-                          dId={dId}
-                          widget={widget}
-                        />
-                        <DrawerFooter>
-                          <DrawerClose asChild>
-                            <Button variant="outline">Cerrar</Button>
-                          </DrawerClose>
-                        </DrawerFooter>
-                      </DrawerContent>
-                    </Drawer>
-                  </div>
-                )}
-
-                {mappedValue === "p" && (
-                  <div className="mt-4 space-y-3">
-                    <Drawer>
-                      <DrawerTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                          Configurar Proporcional
-                        </Button>
-                      </DrawerTrigger>
-                      <DrawerContent>
-                        <DrawerHeader>
-                          <DrawerTitle>
-                            Configurar Control Proporcional
-                          </DrawerTitle>
-                        </DrawerHeader>
-                        <ProportionalForm
-                          userId={userId}
-                          dId={dId}
-                          widget={widget}
-                        />
-                        <DrawerFooter>
-                          <DrawerClose asChild>
-                            <Button variant="outline">Cerrar</Button>
-                          </DrawerClose>
-                        </DrawerFooter>
-                      </DrawerContent>
-                    </Drawer>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Indicador de funciones Pro disponibles */}
-        {widget.mode &&
-          widget.mode.some((mode) =>
-            ["pwm", "pid", "pi", "proportional", "p", "pump"].includes(mode)
-          ) && (
-            <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-              {isProPlan ? (
-                <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
-                  <span className="text-green-500">✓</span>
-                  <span>Funciones Pro activadas</span>
-                  <Sparkles className="w-3 h-3 text-blue-500" />
-                </div>
-              ) : (
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400 mb-1">
+          {/* Indicador de funciones Pro disponibles */}
+          {widget.mode &&
+            widget.mode.some((mode) =>
+              ["pwm", "pid", "pi", "proportional", "p", "pump"].includes(mode)
+            ) && (
+              <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                {isProPlan ? (
+                  <div className="flex items-center justify-center gap-2 text-xs text-green-600 dark:text-green-400">
+                    <span className="text-green-500">✓</span>
+                    <span>Funciones Pro activadas</span>
                     <Sparkles className="w-3 h-3 text-blue-500" />
-                    <span>Funciones Pro disponibles</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Actualiza a Pro para acceder a controles avanzados
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-      </CardContent>
+                ) : (
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-2 text-xs text-blue-600 dark:text-blue-400 mb-1">
+                      <Sparkles className="w-3 h-3 text-blue-500" />
+                      <span>Funciones Pro disponibles</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Actualiza a Pro para acceder a controles avanzados
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+        </CardContent>
+      </div>
     </Card>
   );
 };

@@ -106,12 +106,16 @@ export default function MiniChart({ color, variable, dId, sensorName }) {
     }
   };
   if (loading) {
-    return <Skeleton className="h-[90px]" />;
+    return <Skeleton className="h-[60px] sm:h-[90px] w-full" />;
   }
   return (
-    <ChartContainer className="h-[90px]" id={variable} config={chartConfig}>
-      <AreaChart accessibilityLayer data={chartData}>
-        <CartesianGrid vertical={false} />
+    <ChartContainer
+      className="h-[60px] sm:h-[90px] w-full"
+      id={variable}
+      config={chartConfig}
+    >
+      <AreaChart accessibilityLayer data={chartData} aspect={3}>
+        <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
         <XAxis
           hide={true}
           dataKey="time"
@@ -140,6 +144,7 @@ export default function MiniChart({ color, variable, dId, sensorName }) {
           fill={`url(#fillDesktop-${variable})`}
           fillOpacity={0.4}
           stroke={selectColor()}
+          strokeWidth={1.5}
           stackId="a"
         />
       </AreaChart>

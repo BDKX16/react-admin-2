@@ -182,7 +182,9 @@ function RadialGauge({
           ) : (
             <div>
               <p className="text-lg font-bold" style={{ color }}>
-                {value}
+                {typeof value === "number" && !Number.isInteger(value)
+                  ? value.toFixed(1)
+                  : value}
               </p>
               <p className="text-xs text-muted-foreground">{unit}</p>
             </div>
@@ -524,6 +526,18 @@ export default function DeviceOverviewGrid({
   );
 }
 
+// Funciones auxiliares para cálculos
+const calculateVPD = (temp: number, humidity: number): number => {
+  const svp = 0.61078 * Math.exp((17.27 * temp) / (temp + 237.3));
+  const avp = svp * (humidity / 100);
+  return Number((svp - avp).toFixed(2));
+};
+
+const calculateDewPoint = (temp: number, humidity: number): number => {
+  const alpha = (17.27 * temp) / (237.7 + temp) + Math.log(humidity / 100);
+  return Number(((237.7 * alpha) / (17.27 - alpha)).toFixed(1));
+};
+
 // Component interno que maneja el estado MQTT de cada dispositivo
 function DeviceCardWithMqtt({ device }: { device: Device }) {
   const { recived } = useMqtt();
@@ -576,13 +590,93 @@ function DeviceCardWithMqtt({ device }: { device: Device }) {
           setLastMessageTime(Date.now());
 
           // Actualizar sensores
-          setSensors((prevSensors) =>
-            prevSensors.map((sensor) =>
+          setSensors((prevSensors) => {
+            const updatedSensors = prevSensors.map((sensor) =>
               sensor.variable === item.variable
                 ? { ...sensor, value: item.value?.toString() || "0" }
                 : sensor
-            )
-          );
+            );
+
+            // Si es un dispositivo ConfiPlant, calcular VPD y Dew Point
+            if (
+              device.template?.model !== "tecmat" &&
+              device.template?.widgets
+            ) {
+              // Buscar las variables de temperatura y humedad desde los widgets
+              const tempWidget = device.template.widgets.find(
+                (w: any) => w.name === "Temperatura"
+              );
+              const humWidget = device.template.widgets.find(
+                (w: any) => w.name === "Humedad Ambiente"
+              );
+
+              if (tempWidget && humWidget) {
+                const tempSensor = updatedSensors.find(
+                  (s) => s.variable === tempWidget.variable
+                );
+                const humSensor = updatedSensors.find(
+                  (s) => s.variable === humWidget.variable
+                );
+
+                if (tempSensor && humSensor) {
+                  const temp = parseFloat(tempSensor.value);
+                  const hum = parseFloat(humSensor.value);
+
+                  if (!isNaN(temp) && !isNaN(hum) && temp > 0 && hum > 0) {
+                    const vpd = calculateVPD(temp, hum);
+                    const dewPoint = calculateDewPoint(temp, hum);
+
+                    // Verificar si ya existen los sensores calculados
+                    const hasVpd = updatedSensors.some(
+                      (s) => s.variable === "vpd"
+                    );
+                    const hasDewPoint = updatedSensors.some(
+                      (s) => s.variable === "dewpoint"
+                    );
+
+                    // Actualizar o agregar ambos sensores calculados
+                    let sensorsWithCalculations = [...updatedSensors];
+
+                    if (hasVpd) {
+                      sensorsWithCalculations = sensorsWithCalculations.map(
+                        (s) =>
+                          s.variable === "vpd"
+                            ? { ...s, value: vpd.toString() }
+                            : s
+                      );
+                    } else {
+                      sensorsWithCalculations.push({
+                        name: "VPD",
+                        value: vpd.toString(),
+                        unit: "kPa",
+                        variable: "vpd",
+                      });
+                    }
+
+                    if (hasDewPoint) {
+                      sensorsWithCalculations = sensorsWithCalculations.map(
+                        (s) =>
+                          s.variable === "dewpoint"
+                            ? { ...s, value: dewPoint.toString() }
+                            : s
+                      );
+                    } else {
+                      sensorsWithCalculations.push({
+                        name: "Punto de Rocío",
+                        value: dewPoint.toString(),
+                        unit: "°C",
+                        variable: "dewpoint",
+                      });
+                    }
+
+                    return sensorsWithCalculations;
+                  }
+                }
+              }
+            }
+
+            return updatedSensors;
+          });
 
           // Actualizar controles con mapeo de modos MQTT
           setControls((prevControls) =>

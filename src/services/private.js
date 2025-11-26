@@ -520,14 +520,9 @@ export const updateSaverRule = (ruleId, ruleData) => {
   }
   return {
     call: axios
-      .put(
-        import.meta.env.VITE_BASE_URL + `/saver-rule/${ruleId}`,
-        ruleData,
-        headers,
-        {
-          signal: controller.signal,
-        }
-      )
+      .put(import.meta.env.VITE_BASE_URL + `/saver-rule`, ruleData, headers, {
+        signal: controller.signal,
+      })
       .catch((error) => {
         notifyError(error);
         return { error: true };

@@ -26,6 +26,7 @@ import {
   deleteDevice,
   updateDeviceConfig,
   getDeviceOTAStatus,
+  updateSaverRule,
 } from "../services/private";
 import useDevices from "../hooks/useDevices";
 import { LocationConfigModal } from "../components/automation/LocationConfigModal";
@@ -70,6 +71,7 @@ const DeviceConfig = () => {
   useEffect(() => {
     if (selectedDevice) {
       setDeviceName(selectedDevice.name);
+      setSaveToDatabase(selectedDevice.saverRule?.status || false);
       setConfigs(
         selectedDevice.template.widgets
           .filter((w) => w.widgetType === "Switch")
@@ -150,6 +152,52 @@ const DeviceConfig = () => {
       }
     } catch (error) {
       console.error("Error guardando ubicación:", error);
+    }
+  };
+
+  const handleSaverRuleToggle = async (checked) => {
+    if (!selectedDevice?.saverRule) {
+      enqueueSnackbar(
+        "No se pudo actualizar: regla de guardado no encontrada",
+        {
+          variant: "error",
+        }
+      );
+      return;
+    }
+
+    try {
+      setSaveToDatabase(checked);
+
+      const ruleData = {
+        rule: {
+          emqxRuleId: selectedDevice.saverRule.emqxRuleId,
+          status: checked,
+        },
+      };
+
+      const response = await callEndpoint(updateSaverRule(null, ruleData));
+
+      if (response.error) {
+        // Revertir el cambio si hubo error
+        setSaveToDatabase(!checked);
+        enqueueSnackbar("Error al actualizar el guardado de datos", {
+          variant: "error",
+        });
+      } else {
+        enqueueSnackbar(
+          checked
+            ? "Guardado de datos activado"
+            : "Guardado de datos desactivado",
+          { variant: "success" }
+        );
+      }
+    } catch (error) {
+      console.error("Error updating saver rule:", error);
+      setSaveToDatabase(!checked);
+      enqueueSnackbar("Error al actualizar el guardado de datos", {
+        variant: "error",
+      });
     }
   };
 
@@ -292,7 +340,7 @@ const DeviceConfig = () => {
           <Label className="mr-4">Guardar datos de sensores:</Label>
           <Switch
             checked={saveToDatabase}
-            onCheckedChange={setSaveToDatabase}
+            onCheckedChange={handleSaverRuleToggle}
           />
         </div>
         <Label className="text-gray-500">

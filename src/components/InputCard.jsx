@@ -1,5 +1,19 @@
 import * as React from "react";
-import { Settings } from "lucide-react";
+import {
+  Settings,
+  Clock,
+  AlertCircle,
+  Unplug,
+  AlertTriangle,
+  Radio,
+  Wrench,
+  Zap,
+  XCircle,
+  TrendingUp,
+  Wifi,
+  HardDrive,
+  Timer,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -118,29 +132,31 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
   };
 
   const errorHandeOnValue = (value, unidad) => {
-    // Códigos de error del sensor
+    // Códigos de error del sensor con iconos
     const errorCodes = {
       0: null, // SENSOR_OK - Funcionando correctamente
-      [-1]: "⏱️ Timeout",
-      [-2]: "❌ Error lectura",
-      [-3]: "🔌 Desconectado",
-      [-4]: "⚠️ Datos inválidos",
-      [-5]: "📡 Error I2C",
-      [-6]: "🔧 Error calibración",
-      [-7]: "⚡ Error alimentación",
-      [-8]: "🚨 Error inicialización",
-      [-9]: "📊 Fuera de rango",
-      [-10]: "🔌 Múltiples desconectados",
-      [-11]: "📻 Conflicto WiFi-ADC2",
-      [-12]: "💾 Error buffer",
-      [-13]: "⏲️ Error frecuencia",
+      [-1]: { icon: Clock, text: "Timeout" },
+      [-2]: { icon: AlertCircle, text: "Error lectura" },
+      [-3]: { icon: Unplug, text: "Desconectado" },
+      [-4]: { icon: AlertTriangle, text: "Datos inválidos" },
+      [-5]: { icon: Radio, text: "Error I2C" },
+      [-6]: { icon: Wrench, text: "Error calibración" },
+      [-7]: { icon: Zap, text: "Error alimentación" },
+      [-8]: { icon: XCircle, text: "Error inicialización" },
+      [-9]: { icon: TrendingUp, text: "Fuera de rango" },
+      [-10]: { icon: Unplug, text: "Múltiples desconectados" },
+      [-11]: { icon: Wifi, text: "Conflicto WiFi-ADC2" },
+      [-12]: { icon: HardDrive, text: "Error buffer" },
+      [-13]: { icon: Timer, text: "Error frecuencia" },
     };
 
     // Si hay un código de error, mostrarlo
     if (value < 0 && errorCodes[value]) {
+      const ErrorIcon = errorCodes[value].icon;
       return (
-        <span className="text-red-600 text-xl font-semibold">
-          {errorCodes[value]}
+        <span className="flex items-center gap-1 text-red-600 text-xs font-medium">
+          <ErrorIcon className="h-3 w-3" />
+          {errorCodes[value].text}
         </span>
       );
     }
@@ -150,8 +166,14 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
       return " - " + unidad;
     }
 
-    // Valor normal
-    return value + " " + unidad;
+    // Valor normal - formatear si es número con decimales
+    let formattedValue = value;
+    if (typeof value === "number" && !Number.isInteger(value)) {
+      // Si tiene decimales, redondear a 1 dígito
+      formattedValue = value.toFixed(1);
+    }
+
+    return formattedValue + " " + unidad;
   };
 
   // Verificar si el sensor está funcionando correctamente (sin errores)
@@ -165,7 +187,7 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
 
   return (
     <Card
-      className="text-left flex md:flex-col p-6 relative"
+      className="text-left flex md:flex-col p-6 relative border-0 sm:border"
       data-tour={dataTour}
     >
       {/* Botón de calibración en la esquina superior derecha */}
@@ -186,26 +208,22 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
         </Button>
       )}
 
-      <CardHeader className="p-0 pb-3 pl-1 min-w-[130px]">
-        <CardDescription className="text-wrap truncate">
+      <CardHeader className="p-0 pb-2 pl-1 min-w-[110px] sm:min-w-[130px] flex flex-col justify-center">
+        <CardDescription className="text-wrap truncate text-[10px] sm:text-xs">
           {mapName(widget.variableFullName)}
         </CardDescription>
-        <CardTitle className="text-3xl">
+        <CardTitle className="text-2xl sm:text-3xl">
           {errorHandeOnValue(valueRef.current, widget.unidad)}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className=" flex-1 p-0">
-        <div className="w-full sm:items-center ">
-          <div className="flex flex-col space-y-1.5 ">
-            <MiniChart
-              color={widget.color}
-              variable={widget.variable}
-              dId={dId}
-              sensorName={widget.name}
-            />
-          </div>
-        </div>
+      <CardContent className="flex-1 p-0">
+        <MiniChart
+          color={widget.color}
+          variable={widget.variable}
+          dId={dId}
+          sensorName={widget.name}
+        />
       </CardContent>
 
       {/* Modal de calibración */}
