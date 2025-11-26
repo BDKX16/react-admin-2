@@ -8,13 +8,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { setSingleCicle } from "../services/public";
-import useFetchAndLoad from "@/hooks/useFetchAndLoad";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import useMqtt from "@/hooks/useMqtt";
 
-const CiclosForm = ({ ciclo, dId }) => {
-  const { loading, callEndpoint } = useFetchAndLoad();
+const CiclosForm = ({ userId, ciclo, dId }) => {
+  const { setSend } = useMqtt();
 
   // Estados para la UI amigable (tiempo encendido + tiempo apagado)
   const [tiempoEncendidoValue, setTiempoEncendidoValue] = useState("");
@@ -105,7 +104,7 @@ const CiclosForm = ({ ciclo, dId }) => {
     );
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     // Convertir UI a segundos (formato del backend y dispositivo)
     const tiempoEncendidoSeg = timeToSeconds(
       tiempoEncendidoValue,
@@ -123,15 +122,17 @@ const CiclosForm = ({ ciclo, dId }) => {
       return;
     }
 
-    const cicloConfig = {
-      tiempoEncendido: tiempoEncendidoSeg,
-      tiempoTotal: tiempoTotalSeg,
-      variable: ciclo.variable,
+    // Send MQTT message with ciclo values
+    const toSend = {
+      topic: `${userId}/${dId}/${ciclo.variable}/actdata`,
+      msg: {
+        value: 5, // Modo Ciclos
+        tiempoEncendido: tiempoEncendidoSeg,
+        tiempoTotal: tiempoTotalSeg,
+      },
     };
 
-    console.log("Enviando configuración de ciclo (en segundos):", cicloConfig);
-
-    await callEndpoint(setSingleCicle(cicloConfig, dId));
+    setSend({ msg: toSend.msg, topic: toSend.topic });
   };
 
   if (!ciclo) return null;
@@ -284,10 +285,10 @@ const CiclosForm = ({ ciclo, dId }) => {
       <div className="flex justify-end">
         <Button
           onClick={handleSubmit}
-          disabled={!hasChanges() || loading}
+          disabled={!hasChanges()}
           className="min-w-32"
         >
-          {loading ? "Guardando..." : "Guardar Ciclo"}
+          Guardar Ciclo
         </Button>
       </div>
     </div>
@@ -295,6 +296,7 @@ const CiclosForm = ({ ciclo, dId }) => {
 };
 
 CiclosForm.propTypes = {
+  userId: PropTypes.string.isRequired,
   ciclo: PropTypes.shape({
     tiempoEncendido: PropTypes.number,
     tiempoTotal: PropTypes.number,

@@ -8,16 +8,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { setSingleTimer } from "../services/public";
-import useFetchAndLoad from "@/hooks/useFetchAndLoad";
-import useMqtt from "@/hooks/useMqtt";
 import { Label } from "@/components/ui/label";
+import useMqtt from "@/hooks/useMqtt";
 
 const TimersForm = ({ userId, timers, dId }) => {
-  const { loading, callEndpoint } = useFetchAndLoad();
+  const { setSend } = useMqtt();
   const [horaEncendido, setHoraEncendido] = useState(null);
   const [horaApagado, setHoraApagado] = useState(null);
-  const { setSend } = useMqtt();
 
   useEffect(() => {
     if (timers) {
@@ -34,9 +31,8 @@ const TimersForm = ({ userId, timers, dId }) => {
     const apagadoHour = Math.floor(timers.apagado / (1000 * 60 * 60));
 
     if (
-      (encendidoHour.toString() != horaEncendido ||
-        apagadoHour.toString() != horaApagado) &&
-      !loading
+      encendidoHour.toString() != horaEncendido ||
+      apagadoHour.toString() != horaApagado
     ) {
       return false;
     } else {
@@ -44,27 +40,21 @@ const TimersForm = ({ userId, timers, dId }) => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     const encendidoMillis = parseInt(horaEncendido) * 60 * 60 * 1000;
     const apagadoMillis = parseInt(horaApagado) * 60 * 60 * 1000;
 
-    const timer = {
-      encendido: encendidoMillis,
-      apagado: apagadoMillis,
-      variable: timers.variable,
+    // Send MQTT message with timer values
+    const toSend = {
+      topic: userId + "/" + dId + "/" + timers.variable + "/actdata",
+      msg: {
+        value: 4, // Modo Timer
+        encendido: encendidoMillis,
+        apagado: apagadoMillis,
+      },
     };
 
-    const res = await callEndpoint(setSingleTimer(timer, dId));
-    if (res?.data.status === "success") {
-      const toSend = {
-        topic: userId + "/" + dId + "/" + timer.variable + "/actdata",
-        msg: {
-          value: 4,
-        },
-      };
-
-      setSend({ msg: toSend.msg, topic: toSend.topic });
-    }
+    setSend({ msg: toSend.msg, topic: toSend.topic });
   };
 
   if (!horaEncendido || !horaApagado) return null;
@@ -188,7 +178,7 @@ const TimersForm = ({ userId, timers, dId }) => {
           onClick={handleSubmit}
           className="min-w-32"
         >
-          {loading ? "Guardando..." : "Guardar"}
+          Guardar
         </Button>
       </div>
     </div>
