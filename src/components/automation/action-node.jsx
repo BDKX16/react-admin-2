@@ -80,7 +80,11 @@ export function ActionNode({ data }) {
 ActionNode.propTypes = {
   data: PropTypes.shape({
     label: PropTypes.string,
-    icon: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+    icon: PropTypes.oneOfType([
+      PropTypes.func,
+      PropTypes.object,
+      PropTypes.string,
+    ]),
     iconName: PropTypes.string,
     action: PropTypes.string,
     isExecuting: PropTypes.bool,

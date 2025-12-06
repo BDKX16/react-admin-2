@@ -290,6 +290,28 @@ export const createRule = (alarmRule) => {
   };
 };
 
+export const updateScheduledRule = (workflowId, newRule) => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .put(
+        import.meta.env.VITE_BASE_URL + "/alarm-rule/scheduled/" + workflowId,
+        { newRule },
+        headers,
+        { signal: controller.signal }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 export const updateRule = (rule) => {
   const controller = loadAbort();
   const headers = getAxiosHeaders();

@@ -321,9 +321,14 @@ const CiclosForm = ({ userId, ciclo, dId }) => {
             const segundos = totalSegundos % 60;
 
             const partes = [];
-            if (horas > 0) partes.push(`${horas} ${horas === 1 ? "hora" : "horas"}`);
-            if (minutos > 0) partes.push(`${minutos} ${minutos === 1 ? "minuto" : "minutos"}`);
-            if (segundos > 0) partes.push(`${segundos} ${segundos === 1 ? "segundo" : "segundos"}`);
+            if (horas > 0)
+              partes.push(`${horas} ${horas === 1 ? "hora" : "horas"}`);
+            if (minutos > 0)
+              partes.push(`${minutos} ${minutos === 1 ? "minuto" : "minutos"}`);
+            if (segundos > 0)
+              partes.push(
+                `${segundos} ${segundos === 1 ? "segundo" : "segundos"}`
+              );
 
             return partes.length > 0 ? partes.join(" ") : "0 segundos";
           })()}

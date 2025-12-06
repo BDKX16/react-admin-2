@@ -192,6 +192,25 @@ export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
     if (node) {
       let initialFormData = node.data || {};
 
+      // Para triggers de sensor, parsear la condición guardada para extraer comparison y value
+      if (
+        node.type === "trigger" &&
+        initialFormData.condition &&
+        initialFormData.sensorType !== "schedule" &&
+        initialFormData.sensorType !== "actuatorState"
+      ) {
+        const condition = initialFormData.condition;
+        // Parsear condiciones como ">= 50", "< 30", "= 25", etc.
+        const comparisonMatch = condition.match(/^(>=|<=|!=|>|<|=)\s*(.+)$/);
+        if (comparisonMatch) {
+          initialFormData = {
+            ...initialFormData,
+            comparison: comparisonMatch[1],
+            value: comparisonMatch[2].trim(),
+          };
+        }
+      }
+
       // Detectar y establecer la variable para nodos condition
       if (node.type === "condition" && edges && nodes) {
         const incomingEdge = edges.find((edge) => edge.target === node.id);
@@ -376,6 +395,9 @@ export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
         updatedFormData.label = `Esperar ${duration} ${
           unitLabels[unit] || "segundos"
         }`;
+        // Guardar delayDuration y delayUnit para que el backend los use
+        updatedFormData.delayDuration = duration;
+        updatedFormData.delayUnit = unit;
       }
 
       // Actualizar datos para join nodes
@@ -611,17 +633,21 @@ export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
                 /* Trigger de sensor */
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="comparison">Comparación</Label>
+                    <Label htmlFor="comparison">Comparación (opcional)</Label>
                     <Select
-                      value={formData.comparison || ""}
+                      value={formData.comparison || "none"}
                       onValueChange={(value) =>
-                        setFormData({ ...formData, comparison: value })
+                        setFormData({
+                          ...formData,
+                          comparison: value === "none" ? "" : value,
+                        })
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecciona comparación" />
+                        <SelectValue placeholder="Sin comparación (siempre ejecuta)" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">Sin comparación</SelectItem>
                         <SelectItem value=">">&gt; Mayor que</SelectItem>
                         <SelectItem value="<">&lt; Menor que</SelectItem>
                         <SelectItem value="=">= Igual a</SelectItem>
@@ -630,19 +656,54 @@ export function NodeEditModal({ node, open, onClose, onSave, nodes, edges }) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="value">
-                      Valor {formData.unidad && `(${formData.unidad})`}
-                    </Label>
-                    <Input
-                      id="value"
-                      type="number"
-                      placeholder="Ingresa el valor"
-                      value={formData.value || ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, value: e.target.value })
-                      }
-                    />
+                  {formData.comparison && (
+                    <div className="space-y-2">
+                      <Label htmlFor="value">
+                        Valor {formData.unidad && `(${formData.unidad})`}
+                      </Label>
+                      <Input
+                        id="value"
+                        type="number"
+                        placeholder="Ingresa el valor"
+                        value={formData.value || ""}
+                        onChange={(e) =>
+                          setFormData({ ...formData, value: e.target.value })
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {/* Rate Limit - Tiempo mínimo entre ejecuciones */}
+                  <div className="border-t pt-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="rateLimitMinutes">
+                        Tiempo mínimo entre ejecuciones
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Evita que la automatización se ejecute más de una vez en
+                        este período
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="rateLimitMinutes"
+                          type="number"
+                          min="1"
+                          max="60"
+                          placeholder="5"
+                          className="w-24"
+                          value={formData.rateLimitMinutes || "5"}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              rateLimitMinutes: e.target.value,
+                            })
+                          }
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          minutos
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

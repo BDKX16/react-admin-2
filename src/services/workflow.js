@@ -36,7 +36,6 @@ export const saveWorkflow = async (workflowData) => {
   try {
     // Preparar datos para enviar al backend
     const payload = {
-      id: workflowData.id,
       name: workflowData.name,
       description: workflowData.description,
       nodes: workflowData.nodes,
@@ -46,11 +45,23 @@ export const saveWorkflow = async (workflowData) => {
       deviceId: workflowData.deviceId, // Agregar deviceId
     };
 
-    const response = await axios.post(
-      `${API_BASE_URL}/node/rules/workflow`,
-      payload,
-      getAxiosHeaders()
-    );
+    let response;
+
+    // Si hay ID, hacer PUT (actualizar), sino POST (crear)
+    if (workflowData.id) {
+      response = await axios.put(
+        `${API_BASE_URL}/node/workflow/${workflowData.id}`,
+        payload,
+        getAxiosHeaders()
+      );
+    } else {
+      response = await axios.post(
+        `${API_BASE_URL}/node/rules/workflow`,
+        payload,
+        getAxiosHeaders()
+      );
+    }
+
     return response.data;
   } catch (error) {
     console.error("Error guardando workflow:", error);

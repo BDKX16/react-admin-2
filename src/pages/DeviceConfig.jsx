@@ -79,7 +79,7 @@ const DeviceConfig = () => {
             return {
               variable: w.variable,
               variableFullName: w.variableFullName,
-              initial: w.initialValue === undefined ? 3 : w.initialValue,
+              value: w.initialValue === undefined ? 3 : w.initialValue,
             };
           })
       );
@@ -130,7 +130,7 @@ const DeviceConfig = () => {
     const newConfigs = [...configs];
     newConfigs[index] = {
       ...newConfigs[index],
-      [key]: key === "initial" ? parseInt(value) : value,
+      [key]: key === "value" ? parseInt(value) : value,
     };
     setConfigs(newConfigs);
   };
@@ -368,10 +368,8 @@ const DeviceConfig = () => {
             dejarlo en blanco y aparecera la opcion por defecto.
           </Label>
           <Select
-            value={config.initial.toString()}
-            onValueChange={(value) =>
-              handleConfigChange(index, "initial", value)
-            }
+            value={config.value.toString()}
+            onValueChange={(value) => handleConfigChange(index, "value", value)}
           >
             <SelectTrigger className="w-[240px]">
               <SelectValue placeholder="Select an option" />

@@ -90,7 +90,11 @@ export function TriggerNode({ data }) {
 TriggerNode.propTypes = {
   data: PropTypes.shape({
     label: PropTypes.string,
-    icon: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+    icon: PropTypes.oneOfType([
+      PropTypes.func,
+      PropTypes.object,
+      PropTypes.string,
+    ]),
     iconName: PropTypes.string,
     value: PropTypes.string,
     isExecuting: PropTypes.bool,

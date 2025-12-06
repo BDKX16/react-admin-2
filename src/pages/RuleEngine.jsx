@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardHeader,
@@ -83,6 +84,7 @@ import {
 
 import {
   createRule,
+  updateScheduledRule,
   deleteRule,
   deleteCompositeRule,
 } from "../services/public";
@@ -117,6 +119,7 @@ const RuleEngine = () => {
   // Estados para los modales y drawers
   const [automationModalOpen, setAutomationModalOpen] = useState(false);
   const [automationType, setAutomationType] = useState(null); // 'simple', 'composite', 'scheduled'
+  const [editingScheduleWorkflow, setEditingScheduleWorkflow] = useState(null); // Workflow schedule en edición
 
   // Detectar si es mobile
   useEffect(() => {
@@ -299,8 +302,8 @@ const RuleEngine = () => {
   };
 
   const handleCreateScheduled = async () => {
-    // Verificar límite de reglas antes de validar campos
-    if (!canCreateRules) {
+    // Verificar límite de reglas antes de validar campos (solo si NO está editando)
+    if (!canCreateRules && !editingScheduleWorkflow) {
       return;
     }
 
@@ -340,7 +343,7 @@ const RuleEngine = () => {
 
     let scheduledRule = {
       dId: selectedDevice.dId,
-      status: true,
+      status: editingScheduleWorkflow?.enabled ?? true,
       type: "scheduled",
       action: scheduleData.action,
       actionVariable: scheduleData.actuator,
@@ -367,9 +370,22 @@ const RuleEngine = () => {
       };
     }
 
-    const res = await callEndpoint(createRule({ newRule: scheduledRule }));
+    let res;
+
+    if (editingScheduleWorkflow) {
+      // Actualizar regla existente
+      res = await callEndpoint(
+        updateScheduledRule(editingScheduleWorkflow._id, scheduledRule)
+      );
+    } else {
+      // Crear nueva regla
+      res = await callEndpoint(createRule({ newRule: scheduledRule }));
+    }
 
     if (!res.error) {
+      // Recargar workflows para mostrar el nuevo/actualizado
+      loadWorkflows();
+
       // Limpiar formulario después de crear exitosamente
       setScheduleData({
         datetime: "",
@@ -388,6 +404,7 @@ const RuleEngine = () => {
         action: false,
         actuator: false,
       });
+      setEditingScheduleWorkflow(null);
       setAutomationType(null);
       setAutomationModalOpen(false);
     }
@@ -415,9 +432,87 @@ const RuleEngine = () => {
     }
   };
 
+  // Helper para detectar si un workflow es de tipo schedule
+  const isScheduleWorkflow = (workflow) => {
+    // Primero verificar si hay una AlarmRule asociada de tipo schedule
+    const associatedRule = rules?.find(
+      (rule) =>
+        rule.workflowId === workflow._id ||
+        rule.emqxRuleId === workflow.execution?.nodeRedFlowId
+    );
+    if (associatedRule?.ruleType === "schedule") return true;
+
+    // Fallback: detectar por metadata del workflow
+    if (workflow.metadata?.scheduleType) return true;
+
+    return false;
+  };
+
   // Funciones para manejo de workflows
-  const handleEditWorkflow = (workflowId) => {
-    navigate(`/automation-editor?id=${workflowId}`);
+  const handleEditWorkflow = (workflow) => {
+    // Si es un schedule, abrir modal de edición
+    if (isScheduleWorkflow(workflow)) {
+      handleEditScheduleWorkflow(workflow);
+    } else {
+      navigate(`/automation-editor?id=${workflow._id}`);
+    }
+  };
+
+  // Editar workflow de tipo schedule
+  const handleEditScheduleWorkflow = (workflow) => {
+    // Buscar la alarm rule asociada al workflow (tiene los datos del schedule)
+    const associatedAlarmRule = rules?.find(
+      (rule) =>
+        rule.workflowId === workflow._id ||
+        rule.emqxRuleId === workflow.execution?.nodeRedFlowId
+    );
+
+    if (
+      !associatedAlarmRule?.schedule ||
+      associatedAlarmRule.ruleType !== "schedule"
+    ) {
+      console.error(
+        "[Edit Schedule] No se encontró AlarmRule asociada al workflow"
+      );
+      return;
+    }
+
+    const schedule = associatedAlarmRule.schedule;
+
+    // Mapear números de día a nombres
+    const dayNumberToName = {
+      0: "sunday",
+      1: "monday",
+      2: "tuesday",
+      3: "wednesday",
+      4: "thursday",
+      5: "friday",
+      6: "saturday",
+    };
+
+    const newScheduleData = {
+      datetime:
+        schedule.type === "once" && schedule.datetime
+          ? new Date(schedule.datetime)
+          : undefined,
+      isRecurring: schedule.type === "recurring",
+      selectedDays: schedule.days?.map((d) => dayNumberToName[d]) || [],
+      hour:
+        schedule.hour !== undefined
+          ? String(schedule.hour).padStart(2, "0")
+          : "",
+      minute:
+        schedule.minute !== undefined
+          ? String(schedule.minute).padStart(2, "0")
+          : "",
+      action: associatedAlarmRule.action,
+      actuator: associatedAlarmRule.actionVariable || "",
+    };
+
+    setScheduleData(newScheduleData);
+    setEditingScheduleWorkflow(workflow);
+    setAutomationType("scheduled");
+    setAutomationModalOpen(true);
   };
 
   const handleDeleteWorkflow = (workflow) => {
@@ -540,7 +635,14 @@ const RuleEngine = () => {
 
   return (
     <div data-tour="rules-page" className="flex flex-col items-center p-4">
-      <h1 className="text-2xl font-bold mb-2 text-left">Control Automático</h1>
+      <div className="w-full max-w-7xl mb-4">
+        <h1 className="text-2xl font-bold text-left">Control Automático</h1>
+        <p className="text-muted-foreground text-left text-sm mt-1">
+          Pulí los detalles para controlar tu operación de la manera más
+          eficiente. Creá horarios para programar tareas por hora y día/s, o
+          automatizaciones avanzadas con múltiples condiciones.
+        </p>
+      </div>
       <div className="w-full max-w-7xl">
         {/* Modal/Drawer para seleccionar tipo de automatización */}
         {isMobile ? (
@@ -1074,7 +1176,20 @@ const RuleEngine = () => {
             open={automationModalOpen}
             onOpenChange={(open) => {
               setAutomationModalOpen(open);
-              if (!open) setAutomationType(null);
+              if (!open) {
+                setAutomationType(null);
+                setEditingScheduleWorkflow(null);
+                // Limpiar datos del formulario schedule
+                setScheduleData({
+                  datetime: undefined,
+                  isRecurring: false,
+                  selectedDays: [],
+                  hour: "",
+                  minute: "",
+                  action: "",
+                  actuator: "",
+                });
+              }
             }}
           >
             <DialogContent>
@@ -1083,7 +1198,9 @@ const RuleEngine = () => {
                   {!automationType && "Selecciona el tipo de automatización"}
                   {automationType === "simple" && "Crear automatización simple"}
                   {automationType === "scheduled" &&
-                    "Crear automatización programada"}
+                    (editingScheduleWorkflow
+                      ? "Editar automatización programada"
+                      : "Crear automatización programada")}
                 </DialogTitle>
                 <DialogDescription>
                   {!automationType &&
@@ -1091,7 +1208,9 @@ const RuleEngine = () => {
                   {automationType === "simple" &&
                     "Define una condición y una acción para tu dispositivo."}
                   {automationType === "scheduled" &&
-                    "Programa una acción para que se ejecute en una fecha y hora específica, o de forma recurrente."}
+                    (editingScheduleWorkflow
+                      ? "Modifica la configuración de tu automatización programada."
+                      : "Programa una acción para que se ejecute en una fecha y hora específica, o de forma recurrente.")}
                 </DialogDescription>
               </DialogHeader>
 
@@ -1548,19 +1667,24 @@ const RuleEngine = () => {
                   <DialogFooter className="justify-end mt-4">
                     <Button
                       onClick={handleCreateScheduled}
-                      disabled={!canCreateRules}
+                      disabled={!canCreateRules && !editingScheduleWorkflow}
                       className={
-                        !canCreateRules ? "opacity-50 cursor-not-allowed" : ""
+                        !canCreateRules && !editingScheduleWorkflow
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
                       }
                     >
-                      {hasReachedLimit
+                      {hasReachedLimit && !editingScheduleWorkflow
                         ? "Límite alcanzado"
+                        : editingScheduleWorkflow
+                        ? "Guardar cambios"
                         : "Crear automatización programada"}
                     </Button>
                     <Button
                       variant="ghost"
                       onClick={() => {
                         setAutomationType(null);
+                        setEditingScheduleWorkflow(null);
                         setAutomationModalOpen(false);
                       }}
                     >
@@ -1609,70 +1733,100 @@ const RuleEngine = () => {
                 </TableHeader>
                 <TableBody>
                   {/* Renderizar workflows */}
-                  {workflows?.map((workflow) => (
-                    <TableRow key={`workflow-${workflow._id}`}>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center gap-1 w-fit"
-                        >
-                          <GitBranch className="w-3 h-3" />
-                          Workflow
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Network className="w-4 h-4 text-blue-500" />
-                          {workflow.name}
-                          <Badge variant="outline" className="text-xs">
-                            {workflow.visual?.nodes?.length || 0} nodos
+                  {workflows?.map((workflow) => {
+                    const isSchedule = isScheduleWorkflow(workflow);
+                    return (
+                      <TableRow key={`workflow-${workflow._id}`}>
+                        <TableCell>
+                          <Badge
+                            variant={isSchedule ? "outline" : "secondary"}
+                            className={`flex items-center gap-1 w-fit ${
+                              isSchedule
+                                ? "border-orange-400 text-orange-600"
+                                : ""
+                            }`}
+                          >
+                            {isSchedule ? (
+                              <Clock className="w-3 h-3" />
+                            ) : (
+                              <GitBranch className="w-3 h-3" />
+                            )}
+                            {isSchedule ? "Programada" : "Workflow"}
                           </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {workflow.description || "Workflow visual"}
-                      </TableCell>
-                      <TableCell>-</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={workflow.enabled ? "default" : "secondary"}
-                          className={workflow.enabled ? "bg-green-500" : ""}
-                        >
-                          {workflow.enabled ? "Activo" : "Inactivo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditWorkflow(workflow._id)}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {isSchedule ? (
+                              <Clock className="w-4 h-4 text-orange-500" />
+                            ) : (
+                              <Network className="w-4 h-4 text-blue-500" />
+                            )}
+                            {workflow.name}
+                            {!isSchedule && (
+                              <Badge variant="outline" className="text-xs">
+                                {workflow.visual?.nodes?.length || 0} nodos
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {workflow.description ||
+                            (isSchedule
+                              ? "Automatización programada"
+                              : "Workflow visual")}
+                        </TableCell>
+                        <TableCell>
+                          {isSchedule && workflow.metadata?.actionVariable
+                            ? selectedDevice?.template?.widgets?.find(
+                                (w) =>
+                                  w.variable ===
+                                  workflow.metadata.actionVariable
+                              )?.variableFullName ||
+                              workflow.metadata.actionVariable
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={workflow.enabled ? "default" : "secondary"}
+                            className={workflow.enabled ? "bg-green-500" : ""}
                           >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Editar
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleToggleWorkflow(workflow)}
-                          >
-                            {workflow.enabled ? "Desactivar" : "Activar"}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteWorkflow(workflow)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            {workflow.enabled ? "Activo" : "Inactivo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Switch
+                              checked={workflow.enabled}
+                              onCheckedChange={() =>
+                                handleToggleWorkflow(workflow)
+                              }
+                              disabled={loading}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditWorkflow(workflow)}
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteWorkflow(workflow)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
 
-                  {/* Renderizar reglas tradicionales */}
+                  {/* Renderizar reglas tradicionales (excluyendo las de tipo schedule que ya se muestran como workflows) */}
                   {rules?.map((rule) => {
                     if (rule.actionVariable === "") return null;
+                    // Excluir reglas de tipo schedule (ya se muestran en la sección de workflows)
+                    if (rule.ruleType === "schedule") return null;
                     return (
                       <TableRow key={`rule-${rule._id}`}>
                         <TableCell>
@@ -1762,87 +1916,107 @@ const RuleEngine = () => {
               className="md:hidden grid grid-cols-1 gap-4"
             >
               {/* Renderizar workflows en cards */}
-              {workflows?.map((workflow) => (
-                <Card
-                  key={`workflow-mobile-${workflow._id}`}
-                  className="overflow-hidden"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base flex items-center gap-2 text-left mb-2">
-                          <Network className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                          <span className="truncate">{workflow.name}</span>
-                        </CardTitle>
-                        <div className="text-xs text-muted-foreground text-left">
-                          Workflow creado el{" "}
-                          {new Date(
-                            workflow.createdAt || Date.now()
-                          ).toLocaleDateString("es-ES")}
+              {workflows?.map((workflow) => {
+                const isSchedule = isScheduleWorkflow(workflow);
+                return (
+                  <Card
+                    key={`workflow-mobile-${workflow._id}`}
+                    className="overflow-hidden"
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base flex items-center gap-2 text-left mb-2">
+                            {isSchedule ? (
+                              <Clock className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                            ) : (
+                              <Network className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                            )}
+                            <span className="truncate">{workflow.name}</span>
+                          </CardTitle>
+                          <div className="text-xs text-muted-foreground text-left">
+                            {isSchedule ? "Programada" : "Workflow"} creado el{" "}
+                            {new Date(
+                              workflow.createdAt || Date.now()
+                            ).toLocaleDateString("es-ES")}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2 items-end shrink-0">
+                          <Badge
+                            variant={isSchedule ? "outline" : "secondary"}
+                            className={`flex items-center gap-1 w-fit ${
+                              isSchedule
+                                ? "border-orange-400 text-orange-600"
+                                : ""
+                            }`}
+                          >
+                            {isSchedule ? (
+                              <Clock className="w-3 h-3" />
+                            ) : (
+                              <GitBranch className="w-3 h-3" />
+                            )}
+                            {isSchedule ? "Programada" : "Workflow"}
+                          </Badge>
+                          <Badge
+                            variant={workflow.enabled ? "default" : "secondary"}
+                            className={workflow.enabled ? "bg-green-500" : ""}
+                          >
+                            {workflow.enabled ? "Activo" : "Inactivo"}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2 items-end shrink-0">
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center gap-1 w-fit"
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {!isSchedule && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {workflow.visual?.nodes?.length || 0} nodos
+                          </Badge>
+                        </div>
+                      )}
+                      {isSchedule && workflow.metadata?.actionVariable && (
+                        <div className="text-sm text-muted-foreground text-left">
+                          Actuador:{" "}
+                          {selectedDevice?.template?.widgets?.find(
+                            (w) =>
+                              w.variable === workflow.metadata.actionVariable
+                          )?.variableFullName ||
+                            workflow.metadata.actionVariable}
+                        </div>
+                      )}
+                      <div className="flex gap-2 flex-wrap pt-2 items-center">
+                        <Switch
+                          checked={workflow.enabled}
+                          onCheckedChange={() => handleToggleWorkflow(workflow)}
+                          disabled={loading}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleEditWorkflow(workflow)}
                         >
-                          <GitBranch className="w-3 h-3" />
-                          Workflow
-                        </Badge>
-                        <Badge
-                          variant={workflow.enabled ? "default" : "secondary"}
-                          className={workflow.enabled ? "bg-green-500" : ""}
+                          <Edit className="w-3 h-3 mr-1" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteWorkflow(workflow)}
                         >
-                          {workflow.enabled ? "Activo" : "Inactivo"}
-                        </Badge>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {/* <div className="text-sm text-muted-foreground text-left">
-                      {workflow.description || "Workflow visual"}
-                    </div> */}
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {workflow.visual?.nodes?.length || 0} nodos
-                      </Badge>
-                    </div>
-                    <div className="flex gap-2 flex-wrap pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleEditWorkflow(workflow._id)}
-                      >
-                        <Edit className="w-3 h-3 mr-1" />
-                        Editar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleToggleWorkflow(workflow)}
-                      >
-                        {workflow.enabled ? (
-                          <PowerOff className="w-3 h-3" />
-                        ) : (
-                          <Power className="w-3 h-3" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteWorkflow(workflow)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
 
-              {/* Renderizar reglas en cards */}
+              {/* Renderizar reglas en cards (excluyendo tipo schedule) */}
               {rules
-                ?.filter((rule) => rule.actionVariable !== "")
+                ?.filter(
+                  (rule) =>
+                    rule.actionVariable !== "" && rule.ruleType !== "schedule"
+                )
                 .map((rule) => {
                   const actuatorWidget =
                     selectedDevice?.template?.widgets?.find(
@@ -1997,6 +2171,8 @@ const RuleEngine = () => {
                 {rules &&
                   rules.map((rule) => {
                     if (rule.actionVariable === "") return null;
+                    // Excluir reglas de tipo schedule
+                    if (rule.ruleType === "schedule") return null;
                     return (
                       <TableRow key={rule._id}>
                         <TableCell className="text-left">
