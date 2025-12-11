@@ -30,7 +30,8 @@ import { setSinglePID } from "../services/public";
 const PIDForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
   const { loading, callEndpoint } = useFetchAndLoad();
-  const [config, setConfig] = useState({
+
+  const getInitialConfig = () => ({
     pid_kp: widget.pidConfig?.pid_kp || 1.0,
     pid_ki: widget.pidConfig?.pid_ki || 0.1,
     pid_kd: widget.pidConfig?.pid_kd || 0.05,
@@ -38,7 +39,14 @@ const PIDForm = ({ userId, dId, widget }) => {
     sensor_input: widget.pidConfig?.sensor_input || 0,
   });
 
+  const [config, setConfig] = useState(getInitialConfig());
+  const [savedConfig, setSavedConfig] = useState(getInitialConfig());
+
   const [errors, setErrors] = useState({});
+
+  // Determina si hay cambios pendientes respecto al último guardado
+  const isDirty = JSON.stringify(config) !== JSON.stringify(savedConfig);
+  const isButtonDisabled = !isDirty || loading;
 
   const sensorOptions = [
     { value: 0, label: "Temperatura (°C)" },
@@ -122,6 +130,8 @@ const PIDForm = ({ userId, dId, widget }) => {
     const res = await callEndpoint(setSinglePID(pidConfig, dId));
     if (res?.data?.status === "success") {
       console.log("PID configuration saved successfully");
+      // Actualizar savedConfig para deshabilitar el botón tras guardar exitosamente
+      setSavedConfig({ ...config });
     }
   };
 
@@ -473,7 +483,12 @@ const PIDForm = ({ userId, dId, widget }) => {
           </div>
         </div>
 
-        <Button onClick={sendPIDConfig} className="w-full" disabled={loading}>
+        <Button
+          onClick={sendPIDConfig}
+          className="w-full"
+          variant={isDirty ? "default" : "outline"}
+          disabled={isButtonDisabled}
+        >
           {loading ? "Guardando..." : "Aplicar Configuración PID"}
         </Button>
       </div>

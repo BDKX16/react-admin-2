@@ -18,6 +18,7 @@ const TimersForm = ({ userId, timers, dId }) => {
   const { loading, callEndpoint } = useFetchAndLoad();
   const [horaEncendido, setHoraEncendido] = useState(null);
   const [horaApagado, setHoraApagado] = useState(null);
+  const [savedConfig, setSavedConfig] = useState(null);
 
   useEffect(() => {
     if (timers) {
@@ -26,23 +27,20 @@ const TimersForm = ({ userId, timers, dId }) => {
 
       setHoraEncendido(encendidoHour.toString());
       setHoraApagado(apagadoHour.toString());
+      setSavedConfig({
+        encendido: encendidoHour.toString(),
+        apagado: apagadoHour.toString(),
+      });
     }
   }, [timers]);
 
-  const buttonLogic = () => {
-    const encendidoHour = Math.floor(timers.encendido / (1000 * 60 * 60));
-    const apagadoHour = Math.floor(timers.apagado / (1000 * 60 * 60));
+  // Determina si hay cambios pendientes respecto al último guardado
+  const isDirty =
+    savedConfig &&
+    (savedConfig.encendido !== horaEncendido ||
+      savedConfig.apagado !== horaApagado);
 
-    if (
-      (encendidoHour.toString() != horaEncendido ||
-        apagadoHour.toString() != horaApagado) &&
-      !loading
-    ) {
-      return false;
-    } else {
-      return true;
-    }
-  };
+  const isButtonDisabled = !isDirty || loading;
 
   const handleSubmit = async () => {
     const encendidoMillis = parseInt(horaEncendido) * 60 * 60 * 1000;
@@ -67,7 +65,11 @@ const TimersForm = ({ userId, timers, dId }) => {
       variable: timers.variable,
     };
 
-    await callEndpoint(setSingleTimer(timer, dId));
+    const res = await callEndpoint(setSingleTimer(timer, dId));
+    if (res?.data?.status === "success") {
+      // Actualizar savedConfig para deshabilitar el botón tras guardar exitosamente
+      setSavedConfig({ encendido: horaEncendido, apagado: horaApagado });
+    }
   };
 
   if (!horaEncendido || !horaApagado) return null;
@@ -186,8 +188,8 @@ const TimersForm = ({ userId, timers, dId }) => {
 
       <div className="flex justify-end">
         <Button
-          variant="outline"
-          disabled={buttonLogic()}
+          variant={isDirty ? "default" : "outline"}
+          disabled={isButtonDisabled}
           onClick={handleSubmit}
           className="min-w-32"
         >

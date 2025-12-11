@@ -30,14 +30,22 @@ import { setSinglePI } from "../services/public";
 const PIForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
   const { loading, callEndpoint } = useFetchAndLoad();
-  const [config, setConfig] = useState({
+
+  const getInitialConfig = () => ({
     pid_kp: widget.piConfig?.pid_kp || 1.5,
     pid_ki: widget.piConfig?.pid_ki || 0.2,
     pid_setpoint: widget.piConfig?.pid_setpoint || 25.0,
     sensor_input: widget.piConfig?.sensor_input || 0,
   });
 
+  const [config, setConfig] = useState(getInitialConfig());
+  const [savedConfig, setSavedConfig] = useState(getInitialConfig());
+
   const [errors, setErrors] = useState({});
+
+  // Determina si hay cambios pendientes respecto al último guardado
+  const isDirty = JSON.stringify(config) !== JSON.stringify(savedConfig);
+  const isButtonDisabled = !isDirty || loading;
 
   const sensorOptions = [
     { value: 0, label: "Temperatura (°C)" },
@@ -114,6 +122,8 @@ const PIForm = ({ userId, dId, widget }) => {
     const res = await callEndpoint(setSinglePI(piConfig, dId));
     if (res?.data?.status === "success") {
       console.log("PI configuration saved successfully");
+      // Actualizar savedConfig para deshabilitar el botón tras guardar exitosamente
+      setSavedConfig({ ...config });
     }
   };
 
@@ -381,7 +391,12 @@ const PIForm = ({ userId, dId, widget }) => {
           </div>
         </div>
 
-        <Button onClick={sendPIConfig} className="w-full" disabled={loading}>
+        <Button
+          onClick={sendPIConfig}
+          className="w-full"
+          variant={isDirty ? "default" : "outline"}
+          disabled={isButtonDisabled}
+        >
           {loading ? "Guardando..." : "Aplicar Configuración PI"}
         </Button>
       </div>

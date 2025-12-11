@@ -18,12 +18,20 @@ import { setSinglePWM } from "../services/public";
 const PWMForm = ({ userId, dId, widget }) => {
   const { setSend } = useMqtt();
   const { loading, callEndpoint } = useFetchAndLoad();
-  const [config, setConfig] = useState({
+
+  const getInitialConfig = () => ({
     pwm_frequency: widget.pwmConfig?.pwm_frequency || 1000,
     pwm_duty_cycle: widget.pwmConfig?.pwm_duty_cycle || 50,
   });
 
+  const [config, setConfig] = useState(getInitialConfig());
+  const [savedConfig, setSavedConfig] = useState(getInitialConfig());
+
   const [errors, setErrors] = useState({});
+
+  // Determina si hay cambios pendientes respecto al último guardado
+  const isDirty = JSON.stringify(config) !== JSON.stringify(savedConfig);
+  const isButtonDisabled = !isDirty || loading;
 
   const handleFrequencyChange = (value) => {
     const frequency = parseInt(value) || 1;
@@ -88,6 +96,8 @@ const PWMForm = ({ userId, dId, widget }) => {
     const res = await callEndpoint(setSinglePWM(pwmConfig, dId));
     if (res?.data?.status === "success") {
       console.log("PWM configuration saved successfully");
+      // Actualizar savedConfig para deshabilitar el botón tras guardar exitosamente
+      setSavedConfig({ ...config });
     }
   };
 
@@ -282,7 +292,12 @@ const PWMForm = ({ userId, dId, widget }) => {
           </p>
         </div>
 
-        <Button onClick={sendPWMConfig} className="w-full" disabled={loading}>
+        <Button
+          onClick={sendPWMConfig}
+          className="w-full"
+          variant={isDirty ? "default" : "outline"}
+          disabled={isButtonDisabled}
+        >
           {loading ? "Guardando..." : "Aplicar Configuración PWM"}
         </Button>
       </div>
