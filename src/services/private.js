@@ -987,6 +987,29 @@ export const unlinkGoogleAccount = () => {
  * OTA UPDATES
  ************/
 
+export const getOnboardingStatus = () => {
+  const controller = loadAbort();
+  const headers = getAxiosHeaders();
+  if (!headers) {
+    return;
+  }
+  return {
+    call: axios
+      .get(
+        import.meta.env.VITE_BASE_URL + "/onboarding/status",
+        headers,
+        {
+          signal: controller.signal,
+        }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 export const getDeviceOTAStatus = (dId) => {
   const controller = loadAbort();
   const headers = getAxiosHeaders();
