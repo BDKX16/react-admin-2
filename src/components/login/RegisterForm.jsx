@@ -44,8 +44,8 @@ const RegisterForm = ({ onSwitchToLogin }) => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
+    if (formData.password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres");
       return;
     }
 
@@ -168,12 +168,12 @@ const RegisterForm = ({ onSwitchToLogin }) => {
                 id="password"
                 name="password"
                 type="password"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 value={formData.password}
                 onChange={handleChange}
                 required
                 disabled={loading}
-                minLength={6}
+                minLength={8}
               />
             </div>
 
@@ -188,7 +188,7 @@ const RegisterForm = ({ onSwitchToLogin }) => {
                 onChange={handleChange}
                 required
                 disabled={loading}
-                minLength={6}
+                minLength={8}
               />
             </div>
 

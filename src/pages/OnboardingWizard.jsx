@@ -32,6 +32,7 @@ const OnboardingWizard = () => {
   const [cropType, setCropType] = useState("");
   const [actuatorConfig, setActuatorConfig] = useState({});
   const [otaStatus, setOtaStatus] = useState(null);
+  const [infoMessage, setInfoMessage] = useState("");
 
   // Paso 1: Bienvenida + Input Serial
   const handleDeviceSubmit = async (e) => {
@@ -41,13 +42,14 @@ const OnboardingWizard = () => {
 
     try {
       const token = localStorage.getItem("token");
+      const serialTrimmed = deviceSerial.trim();
 
       // POST request para registrar el dispositivo
       const response = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/device`,
         {
           newDevice: {
-            dId: deviceSerial.trim(),
+            dId: serialTrimmed,
             name: "Mi Dispositivo",
           },
         },
@@ -61,6 +63,11 @@ const OnboardingWizard = () => {
 
       if (response.data.status === "success") {
         setDeviceData(response.data);
+
+        // Mostrar mensaje si el dispositivo ya estaba reclamado
+        if (response.data.alreadyClaimed) {
+          setInfoMessage("Este dispositivo ya está vinculado a tu cuenta. Continuaremos con su configuración.");
+        }
 
         // Verificar estado OTA del dispositivo recién registrado
         try {
@@ -92,6 +99,8 @@ const OnboardingWizard = () => {
       }
     } catch (err) {
       console.error("Error registering device:", err);
+      
+      // Mostrar el error del backend
       setError(
         err.response?.data?.error ||
           "Error al registrar el dispositivo. Verifica el serial e intenta nuevamente."
@@ -109,6 +118,8 @@ const OnboardingWizard = () => {
     }
 
     setIsLoading(true);
+    setError("");
+    setInfoMessage("");
     try {
       const token = localStorage.getItem("token");
 
@@ -139,6 +150,8 @@ const OnboardingWizard = () => {
   // Paso 3: Completar setup y pasar a OTA
   const handleDeviceSetupComplete = async () => {
     setIsLoading(true);
+    setError("");
+    setInfoMessage("");
     try {
       const token = localStorage.getItem("token");
 
@@ -250,6 +263,14 @@ const OnboardingWizard = () => {
                 </Alert>
               )}
 
+              {infoMessage && (
+                <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                  <AlertDescription className="text-blue-800 dark:text-blue-200">
+                    {infoMessage}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <form
                 onSubmit={handleDeviceSubmit}
                 className="space-y-6 max-w-md mx-auto"
@@ -263,7 +284,11 @@ const OnboardingWizard = () => {
                     type="text"
                     placeholder="Ej: ABC123XYZ456"
                     value={deviceSerial}
-                    onChange={(e) => setDeviceSerial(e.target.value)}
+                    onChange={(e) => {
+                      setDeviceSerial(e.target.value);
+                      setError("");
+                      setInfoMessage("");
+                    }}
                     className="text-lg h-12"
                     required
                     disabled={isLoading}
