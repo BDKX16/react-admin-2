@@ -451,7 +451,7 @@ const OnboardingWizard = () => {
                     </div>
 
                     <Button
-                      className="w-full h-12 text-lg bg-green-600 hover:bg-green-700 text-white"
+                      className="w-full h-12 text-lg bg-white hover:bg-gray-100 text-black"
                       onClick={() => {
                         // Si es confiplant y no tiene cropType, ir al selector
                         if (
