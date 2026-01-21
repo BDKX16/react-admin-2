@@ -13,6 +13,7 @@ import {
   Leaf,
   BarChart3,
   Zap,
+  Pencil,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import CropTypeSelector from "../components/onboarding/CropTypeSelector";
@@ -35,6 +36,9 @@ const OnboardingWizard = () => {
   const [otaStatus, setOtaStatus] = useState(null);
   const [infoMessage, setInfoMessage] = useState("");
   const [hasExistingDevice, setHasExistingDevice] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedDeviceName, setEditedDeviceName] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
 
   // Verificar estado de onboarding al cargar
   useEffect(() => {
@@ -63,23 +67,59 @@ const OnboardingWizard = () => {
             "Ya tienes un dispositivo vinculado. Continuemos con su configuración."
           );
 
-          // Si es confiplant, verificar si tiene cropType
-          if (template.type !== "tecmat") {
-            if (device.cropType) {
-              setCropType(device.cropType);
-              setCurrentStep(2); // Ir directo al dashboard de setup
-            } else {
-              setCurrentStep(1); // Ir al selector de cultivo
-            }
-          } else {
-            setCurrentStep(2); // Tecmat va directo al setup
+          // Guardar el cropType si existe, pero NO cambiar el step
+          // El usuario debe ver el step 0 con el card del dispositivo
+          if (device.cropType) {
+            setCropType(device.cropType);
           }
+          // Mantener currentStep en 0 para mostrar la pantalla inicial con el card
         }
       }
     } catch (err) {
       console.error("Error checking onboarding status:", err);
     } finally {
       setIsCheckingStatus(false);
+    }
+  };
+
+  // Guardar nombre del dispositivo editado
+  const handleSaveDeviceName = async () => {
+    if (!editedDeviceName.trim() || editedDeviceName === deviceData.device.name) {
+      setIsEditingName(false);
+      return;
+    }
+
+    setIsSavingName(true);
+    setError("");
+
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/device-config`,
+        {
+          dId: deviceData.device.dId,
+          deviceName: editedDeviceName,
+        },
+        {
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Actualizar el estado local
+      setDeviceData({
+        ...deviceData,
+        device: { ...deviceData.device, name: editedDeviceName },
+      });
+      setIsEditingName(false);
+    } catch (err) {
+      console.error("Error updating device name:", err);
+      setError("Error al actualizar el nombre del dispositivo");
+    } finally {
+      setIsSavingName(false);
     }
   };
 
@@ -99,7 +139,7 @@ const OnboardingWizard = () => {
         {
           newDevice: {
             dId: serialTrimmed,
-            name: "Mi Dispositivo",
+            name: "Indoor 1",
           },
         },
         {
@@ -329,35 +369,89 @@ const OnboardingWizard = () => {
                   </Alert>
                 )}
 
-                {/* Si ya tiene dispositivo, mostrar tarjeta del dispositivo */}
+                {/* Si ya tiene dispositivo, mostrar tarjeta del dispositivo como seleccionado */}
                 {hasExistingDevice && deviceData ? (
-                  <div className="max-w-md mx-auto space-y-6">
-                    <div className="p-6 border-2 border-primary rounded-lg bg-primary/5">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            Tu dispositivo
-                          </p>
-                          <h3 className="text-xl font-bold">
-                            {deviceData.device.name}
-                          </h3>
+                  <div className="max-w-2xl mx-auto space-y-6">
+                    <div className="space-y-3">
+                      <div className="relative p-6 border-2 border-green-500 rounded-lg bg-black shadow-lg shadow-green-500/30 transition-all hover:shadow-xl hover:shadow-green-500/40">
+                        {/* Badge de seleccionado - Movido a la derecha */}
+                        <div className="absolute -top-3 right-4 px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Dispositivo vinculado
                         </div>
-                        <CheckCircle2 className="h-8 w-8 text-green-500" />
-                      </div>
-                      <div className="space-y-2 text-sm">
-                        <p>
-                          <span className="font-semibold">Serial:</span>{" "}
-                          {deviceData.device.dId}
-                        </p>
-                        <p>
-                          <span className="font-semibold">Modelo:</span>{" "}
-                          {deviceData.device.modelId}
-                        </p>
+
+                        {/* Layout horizontal */}
+                        <div className="flex items-start justify-between gap-6">
+                          {/* Izquierda: Nombre del dispositivo editable */}
+                          <div className="flex-1">
+                            <Label className="text-xs text-gray-400 mb-2 block text-left">
+                              Nombre del dispositivo
+                            </Label>
+                            {isEditingName ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={editedDeviceName}
+                                  onChange={(e) => setEditedDeviceName(e.target.value)}
+                                  className="h-10 bg-gray-900 border-gray-700 text-white"
+                                  autoFocus
+                                  disabled={isSavingName}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !isSavingName) {
+                                      handleSaveDeviceName();
+                                    }
+                                    if (e.key === "Escape") {
+                                      setEditedDeviceName(deviceData.device.name);
+                                      setIsEditingName(false);
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={handleSaveDeviceName}
+                                  disabled={isSavingName}
+                                  className="hover:bg-gray-800"
+                                >
+                                  {isSavingName ? (
+                                    <Loader2 className="h-4 w-4 text-green-500 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                  )}
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 group">
+                                <h3 className="text-xl font-bold text-white">
+                                  {deviceData.device.name}
+                                </h3>
+                                <button
+                                  onClick={() => {
+                                    setEditedDeviceName(deviceData.device.name);
+                                    setIsEditingName(true);
+                                  }}
+                                  className="p-1.5 rounded-md hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Pencil className="h-4 w-4 text-green-500" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Derecha: Número de serie */}
+                          <div className="text-right">
+                            <Label className="text-xs text-gray-400 mb-2 block text-right">
+                              Número de serie
+                            </Label>
+                            <p className="text-lg font-mono font-semibold text-white">
+                              {deviceData.device.dId}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
                     <Button
-                      className="w-full h-12 text-lg"
+                      className="w-full h-12 text-lg bg-green-600 hover:bg-green-700 text-white"
                       onClick={() => {
                         // Si es confiplant y no tiene cropType, ir al selector
                         if (
@@ -371,7 +465,7 @@ const OnboardingWizard = () => {
                         }
                       }}
                     >
-                      Continuar con la configuración
+                      Siguiente: Configurar dispositivo
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </div>
