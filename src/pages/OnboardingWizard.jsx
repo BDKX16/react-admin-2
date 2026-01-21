@@ -42,19 +42,36 @@ const OnboardingWizard = () => {
 
   // Verificar estado de onboarding al cargar
   useEffect(() => {
+    console.log("🔵 OnboardingWizard mounted - checking onboarding status");
     checkOnboardingStatus();
   }, []);
 
   const checkOnboardingStatus = async () => {
     try {
+      console.log("🟡 Calling backend to check onboarding status...");
       setIsCheckingStatus(true);
       const response = await callEndpoint(getOnboardingStatus());
+      console.log("🟢 Backend response:", response);
 
       if (!response.error && response.data) {
         const { needsOnboarding, hasDevice, device, template } = response.data;
 
+        console.log("📊 Onboarding status:", {
+          needsOnboarding,
+          hasDevice,
+          deviceName: device?.name,
+        });
+
         // Si no necesita onboarding, redirigir al dashboard
         if (!needsOnboarding) {
+          console.log("✅ No onboarding needed - updating localStorage and redirecting to dashboard");
+          
+          // IMPORTANTE: Actualizar localStorage ANTES de navegar
+          // para evitar que OnboardingGuard nos redirija de vuelta
+          const storedUserData = JSON.parse(localStorage.getItem("userData") || "{}");
+          storedUserData.needsOnboarding = false;
+          localStorage.setItem("userData", JSON.stringify(storedUserData));
+          
           navigate("/", { replace: true });
           return;
         }
