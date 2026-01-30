@@ -36,7 +36,10 @@ const LoginFormulario = () => {
           const result = await callEndpoint(loginWithGoogle(idToken));
           if (result.error === true) {
             console.error("❌ Google login falló:", result);
-            alert("Error al iniciar sesión con Google. Inténtalo de nuevo.");
+            // Mostrar error solo si hay un problema real del servidor
+            if (result.code) {
+              alert("Error al iniciar sesión con Google. Inténtalo de nuevo.");
+            }
             setGoogleLoading(false);
             return;
           }
@@ -131,6 +134,7 @@ const LoginFormulario = () => {
       if (result.error === true) {
         console.error("❌ Google login falló:", result);
         alert("Error al iniciar sesión con Google. Inténtalo de nuevo.");
+        setGoogleLoading(false);
         return;
       }
 
@@ -151,33 +155,8 @@ const LoginFormulario = () => {
       navigate(redirectPath);
     } catch (error) {
       console.error("❌ Error en Google login:", error);
-
-      // Mensaje de error más específico
-      let errorMessage = "Error al conectar con Google.";
-
-      if (
-        error.message?.includes("origin") ||
-        error.message?.includes("not allowed")
-      ) {
-        errorMessage =
-          "⚠️ Configuración de Google incorrecta:\n\n" +
-          "1. Ve a https://console.cloud.google.com/apis/credentials\n" +
-          "2. Edita tu OAuth Client ID\n" +
-          "3. Agrega 'http://localhost:5173' en 'Authorized JavaScript origins'\n" +
-          "4. Guarda y espera 1-2 minutos\n" +
-          "5. Recarga la página (Ctrl+Shift+R)";
-      } else if (
-        error.message?.includes("popup") ||
-        error.message?.includes("not displayed")
-      ) {
-        errorMessage =
-          "El popup de Google fue bloqueado. Verifica:\n" +
-          "1. Que tu navegador permita popups\n" +
-          "2. Que http://localhost:5173 esté autorizado en Google Cloud Console";
-      }
-
-      alert(errorMessage);
-    } finally {
+      // No mostrar alert - el servicio ya maneja el fallback automáticamente
+      // Solo registrar en consola para debugging
       setGoogleLoading(false);
     }
   };

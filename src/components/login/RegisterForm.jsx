@@ -140,13 +140,11 @@ const RegisterForm = ({ onSwitchToLogin }) => {
 
     try {
       await googleAuthService.signIn();
+      // Si llegamos aquí, el popup funcionó y recibiremos el callback
     } catch (error) {
       console.error("❌ Error en Google Sign-In:", error);
-      setError("Error al conectar con Google. Inténtalo de nuevo.");
+      // No mostrar error - el servicio ya maneja el fallback automáticamente
       setGoogleLoading(false);
-    } finally {
-      // No seteamos a false aquí porque estamos redirigiendo
-      // setGoogleLoading(false);
     }
   };
 

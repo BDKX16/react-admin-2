@@ -103,8 +103,15 @@ class GoogleAuthService {
     }
 
     return new Promise((resolve, reject) => {
+      let isResolved = false;
+      let timeoutId = null;
+
       // Sobrescribir el callback para esta instancia específica
       this.handleCredentialResponse = (response) => {
+        if (isResolved) return;
+        isResolved = true;
+        if (timeoutId) clearTimeout(timeoutId);
+
         if (response.credential) {
           resolve(response.credential);
         } else {
@@ -120,8 +127,20 @@ class GoogleAuthService {
         cancel_on_tap_outside: false,
       });
 
+      // Timeout para fallback a redirect
+      timeoutId = setTimeout(() => {
+        if (!isResolved) {
+          console.warn("⚠️ Popup timeout, using redirect flow as fallback");
+          isResolved = true;
+          this.signInWithRedirect();
+          // No resolvemos ni rechazamos, solo redirigimos
+        }
+      }, 3000);
+
       // Mostrar prompt de Google
       window.google.accounts.id.prompt((notification) => {
+        if (isResolved) return;
+
         console.log("🔔 Prompt notification:", notification);
         console.log("📊 Notification details:", {
           isDisplayed: !notification.isNotDisplayed(),
@@ -134,23 +153,26 @@ class GoogleAuthService {
 
         if (notification.isNotDisplayed()) {
           const reason = notification.getNotDisplayedReason?.();
-          console.error("❌ Popup no mostrado. Razón:", reason);
+          console.warn("⚠️ Popup no mostrado. Razón:", reason, "- usando redirect");
 
-          if (reason === "unregistered_origin") {
-            reject(
-              new Error(
-                "origin not allowed - El origin http://localhost:5173 no está autorizado en Google Cloud Console"
-              )
-            );
-          } else {
-            reject(
-              new Error(`El popup de Google no se pudo mostrar: ${reason}`)
-            );
-          }
+          // En lugar de rechazar, usar redirect como fallback
+          isResolved = true;
+          if (timeoutId) clearTimeout(timeoutId);
+          
+          // Usar redirect flow como fallback automático
+          console.log("🔄 Usando redirect flow como alternativa...");
+          this.signInWithRedirect();
         } else if (notification.isSkippedMoment()) {
           const reason = notification.getSkippedReason?.();
-          console.warn("⚠️ Popup omitido. Razón:", reason);
-          reject(new Error(`El popup fue omitido: ${reason}`));
+          console.warn("⚠️ Popup omitido. Razón:", reason, "- usando redirect");
+          
+          // En lugar de rechazar, usar redirect como fallback
+          isResolved = true;
+          if (timeoutId) clearTimeout(timeoutId);
+          
+          // Usar redirect flow como fallback automático
+          console.log("🔄 Usando redirect flow como alternativa...");
+          this.signInWithRedirect();
         }
       });
     });
