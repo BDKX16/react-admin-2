@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ChartDashboard from "./pages/ChartDashboard.jsx";
 import ConfirmEmailChange from "./pages/ConfirmEmailChange.jsx";
@@ -50,6 +52,21 @@ const Layout = () => {
         <Route
           path="/register"
           element={userState?.token ? <Navigate to="/" /> : <Register />}
+          caseSensitive={false}
+        ></Route>
+        <Route
+          path="/forgot-password"
+          element={userState?.token ? <Navigate to="/" /> : <ForgotPassword />}
+          caseSensitive={false}
+        ></Route>
+        <Route
+          path="/reset-password"
+          element={userState?.token ? <Navigate to="/" /> : <ResetPassword />}
+          caseSensitive={false}
+        ></Route>
+        <Route
+          path="/cambiopass"
+          element={userState?.token ? <Navigate to="/" /> : <ResetPassword />}
           caseSensitive={false}
         ></Route>
         <Route

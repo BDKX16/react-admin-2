@@ -185,9 +185,13 @@ const LoginFormulario = () => {
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Password</Label>
-                <a href="#" className="ml-auto inline-block text-sm underline">
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="ml-auto inline-block text-sm underline hover:text-primary"
+                >
                   Forgot your password?
-                </a>
+                </button>
               </div>
               <Input id="password" name="password" type="password" required />
             </div>

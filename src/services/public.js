@@ -575,6 +575,40 @@ export const loginWithGoogle = (idToken) => {
   };
 };
 
+export const forgotPassword = (email) => {
+  const controller = loadAbort();
+  return {
+    call: axios
+      .post(
+        import.meta.env.VITE_BASE_URL + "/recuperarpassword",
+        { email },
+        { signal: controller.signal }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
+export const resetPassword = (token, password) => {
+  const controller = loadAbort();
+  return {
+    call: axios
+      .put(
+        import.meta.env.VITE_BASE_URL + "/nuevapassword",
+        { token, password },
+        { signal: controller.signal }
+      )
+      .catch((error) => {
+        notifyError(error);
+        return { error: true };
+      }),
+    controller,
+  };
+};
+
 /**********
  * FUNCTIONS
  ************/
