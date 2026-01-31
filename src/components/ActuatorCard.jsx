@@ -10,6 +10,9 @@ import {
   Settings,
   Gauge,
   Droplet,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -46,9 +49,16 @@ import PWMForm from "./PWMForm";
 import PIDForm from "./PIDForm";
 import PIForm from "./PIForm";
 import ProportionalForm from "./ProportionalForm";
+import axios from "axios";
+import { enqueueSnackbar } from "notistack";
+import { Input } from "@/components/ui/input";
 
 export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
   const [currentValue, setCurrentValue] = React.useState(null);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editedName, setEditedName] = React.useState(widget.variableFullName || "");
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
 
   const { recived, setSend } = useMqtt();
   const { isPro } = useSubscription();
@@ -464,13 +474,104 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
     setSend({ msg: toSend.msg, topic: toSend.topic });
   };
 
+  // Función para guardar el nombre del actuador
+  const handleSaveName = async () => {
+    if (!editedName.trim() || editedName === widget.variableFullName) {
+      setIsEditing(false);
+      setEditedName(widget.variableFullName || "");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem("token");
+
+      // Encontrar el index del actuador en la configuración del dispositivo
+      // Necesitamos actualizar solo este actuador específico
+      const response = await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/device-config`,
+        {
+          dId: dId,
+          configs: [
+            {
+              variable: widget.variable,
+              variableFullName: editedName.trim(),
+            },
+          ],
+        },
+        {
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.status === "success") {
+        // Actualizar el widget con el nuevo nombre
+        widget.variableFullName = editedName.trim();
+        enqueueSnackbar("Nombre actualizado correctamente", {
+          variant: "success",
+        });
+        setIsEditing(false);
+      } else {
+        throw new Error("Error al actualizar el nombre");
+      }
+    } catch (error) {
+      console.error("Error updating actuator name:", error);
+      enqueueSnackbar("Error al actualizar el nombre", { variant: "error" });
+      setEditedName(widget.variableFullName || "");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Manejar tecla Enter para guardar
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSaveName();
+    } else if (e.key === "Escape") {
+      setIsEditing(false);
+      setEditedName(widget.variableFullName || "");
+    }
+  };
+
   return (
-    <Card className="text-left p-3 md:p-6">
+    <Card 
+      className="text-left p-3 md:p-6 relative group" 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Mobile: Compact 1-column layout */}
       <div className="md:hidden">
-        {/* Name at top */}
-        <div className="text-xs font-bold text-muted-foreground">
-          {mapName(widget.variableFullName)}
+        {/* Name at top - editable */}
+        <div className="text-xs font-bold text-muted-foreground mb-1">
+          {isEditing ? (
+            <div className="flex items-center gap-1">
+              <Input
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleSaveName}
+                disabled={isSaving}
+                className="h-[1.2em] text-xs py-0 px-2 w-auto min-w-[120px] max-w-[250px]"
+                autoFocus
+              />
+              {isSaving && (
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-600"></div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <span>{mapName(widget.variableFullName)}</span>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <Pencil className="h-3 w-3 text-green-400/60 drop-shadow-[0_1px_2px_rgba(74,222,128,0.2)] translate-y-[1px]" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Subtitle for PID/PI/P modes showing setpoint */}
@@ -652,8 +753,56 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
       {/* Desktop: Original layout */}
       <div className="hidden md:block">
         <CardHeader className="p-0 pb-3 pl-1">
-          <CardTitle className="text-lg md:text-xl lg:text-2xl xl:text-3xl ">
-            {mapName(widget.variableFullName)}
+          <CardTitle className="text-lg md:text-xl lg:text-2xl xl:text-3xl">
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isSaving}
+                  className="text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold h-[1.2em] py-0 px-2 w-auto min-w-[200px] max-w-[400px]"
+                  autoFocus
+                />
+                <button
+                  onClick={handleSaveName}
+                  disabled={isSaving}
+                  className="opacity-70 hover:opacity-100 transition-opacity"
+                  title="Guardar"
+                >
+                  {isSaving ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+                  ) : (
+                    <Check className="h-5 w-5 text-green-600 drop-shadow-[0_1px_2px_rgba(22,163,74,0.3)]" />
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedName(widget.variableFullName || "");
+                  }}
+                  disabled={isSaving}
+                  className="opacity-70 hover:opacity-100 transition-opacity"
+                  title="Cancelar"
+                >
+                  <X className="h-5 w-5 text-red-600 drop-shadow-[0_1px_2px_rgba(220,38,38,0.3)]" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span>{mapName(widget.variableFullName)}</span>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className={`
+                    opacity-0 group-hover:opacity-70 hover:!opacity-100
+                    transition-opacity duration-300
+                  `}
+                  title="Editar nombre"
+                >
+                  <Pencil className="h-4 w-4 md:h-5 md:w-5 text-green-400/60 drop-shadow-[0_1px_2px_rgba(74,222,128,0.2)] translate-y-[2px]" />
+                </button>
+              </div>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className=" flex-1 p-0 ">
