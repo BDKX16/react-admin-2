@@ -336,8 +336,62 @@ const OnboardingWizard = () => {
     }
   };
 
+  // Función para saltar el onboarding
+  const handleSkipOnboarding = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      // Marcar onboarding como completado
+      await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/complete-initial-onboarding`,
+        {},
+        {
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Actualizar userData en localStorage
+      const storedUserData = JSON.parse(
+        localStorage.getItem("userData") || "{}"
+      );
+      storedUserData.needsOnboarding = false;
+      localStorage.setItem("userData", JSON.stringify(storedUserData));
+
+      // Redirigir al dashboard sin mostrar el modal de bienvenida
+      navigate("/");
+    } catch (err) {
+      console.error("Error skipping onboarding:", err);
+      setError("Error al saltar el onboarding");
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      {/* Botón de Saltar Onboarding - Esquina superior derecha */}
+      {!isCheckingStatus && (
+        <button
+          onClick={handleSkipOnboarding}
+          className="fixed top-6 right-6 group flex items-center gap-0 transition-all duration-300 ease-in-out hover:gap-3 z-50 !outline-none !shadow-none focus:!outline-none focus:!shadow-none focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 active:!outline-none hover:!outline-none"
+          title="Saltar Onboarding"
+          style={{ outline: 'none', boxShadow: 'none', border: 'none' }}
+        >
+          {/* Texto que aparece al hacer hover */}
+          <span className="opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out text-sm font-medium text-muted-foreground whitespace-nowrap overflow-hidden max-w-0 group-hover:max-w-xs pr-0 group-hover:pr-3">
+            Saltar Onboard
+          </span>
+          
+          {/* Círculo con flecha */}
+          <div className="relative !outline-none" style={{ outline: 'none' }}>
+            <div className="w-12 h-12 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:border-muted-foreground/60 group-hover:bg-muted/20 !outline-none" style={{ outline: 'none' }}>
+              <ArrowRight className="h-5 w-5 text-muted-foreground/60 transition-all duration-300 ease-in-out group-hover:text-muted-foreground group-hover:translate-x-0.5" />
+            </div>
+          </div>
+        </button>
+      )}
+
       {/* Mostrar loader mientras se verifica el estado */}
       {isCheckingStatus ? (
         <Card className="w-full max-w-md">

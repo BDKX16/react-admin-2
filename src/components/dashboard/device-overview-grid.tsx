@@ -356,7 +356,7 @@ function isGrowthDevice(widgets: any[]): boolean {
 // Helper function to extract sensor data from widgets
 function extractSensors(widgets: any[]): Sensor[] {
   if (!widgets) return [];
-
+  
   return widgets
     .filter((w) => w.widgetType === "Indicator" && w.sensor === true)
     .map((w) => ({
@@ -382,15 +382,25 @@ function extractControls(widgets: any[]): Array<{
 
   return widgets
     .filter((w) => w.widgetType === "Indicator" && w.sensor !== true)
-    .map((w) => ({
-      name: w.variableFullName || w.name || "Control",
-      status: "off" as "on" | "off",
-      modes: Array.isArray(w.mode) ? w.mode : w.mode ? [w.mode] : ["Manual"],
-      variable: w.variable,
-      initialName: w.initialName || w.variableFullName,
-      mode: "off",
-      isOn: false,
-    }));
+    .map((w) => {
+      // Buscar el Switch correspondiente usando la propiedad slave del Indicator
+      // El Indicator tiene un 'slave' que apunta al 'variable' del Switch
+      const relatedSwitch = widgets.find(
+        (sw) => sw.widgetType === "Switch" && sw.slave === w.variable
+      );
+      // Usar el nombre del Switch si existe, sino usar el del Indicator
+      const displayName = relatedSwitch?.variableFullName || w.variableFullName || w.name || "Control";
+      
+      return {
+        name: displayName,
+        status: "off" as "on" | "off",
+        modes: Array.isArray(w.mode) ? w.mode : w.mode ? [w.mode] : ["Manual"],
+        variable: w.variable,
+        initialName: displayName,
+        mode: "off",
+        isOn: false,
+      };
+    });
 }
 
 // Helper function to calculate light cycle from timers
