@@ -1237,6 +1237,9 @@ const RuleEngine = () => {
                   >
                     <Network className="w-4 h-4" /> Compuesta (con varias
                     condiciones)
+                    <Badge variant="outline" className="text-xs ml-auto bg-yellow-50 border-yellow-400 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-500">
+                      Experimental
+                    </Badge>
                   </Button>
                   <Button
                     variant="outline"
