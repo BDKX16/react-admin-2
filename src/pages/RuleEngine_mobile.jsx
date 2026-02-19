@@ -67,7 +67,12 @@ export const MobileAutomationTypeSelector = ({
           <CardContent className="pt-4 flex gap-3">
             <Monitor className="w-5 h-5 text-orange-600 flex-shrink-0 mt-1" />
             <div className="flex flex-col gap-1">
-              <p className="font-semibold text-sm">Automatización Compuesta</p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-sm">Automatización Compuesta</p>
+                <Badge variant="outline" className="text-xs bg-yellow-50 border-yellow-400 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-500">
+                  Experimental
+                </Badge>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Para crear automatizaciones avanzadas, accede desde una
                 computadora.
