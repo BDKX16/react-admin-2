@@ -488,7 +488,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
 
       // Encontrar el index del actuador en la configuración del dispositivo
       // Necesitamos actualizar solo este actuador específico
-      const response = await axios.put(
+      const response = await axios.patch(
         `${import.meta.env.VITE_BASE_URL}/device-config`,
         {
           dId: dId,

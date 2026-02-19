@@ -113,7 +113,7 @@ const OnboardingWizard = () => {
       const token = localStorage.getItem("token");
 
       await axios.put(
-        `${import.meta.env.VITE_BASE_URL}/device-config`,
+        `${import.meta.env.VITE_BASE_URL}/device-initial-config`,
         {
           dId: deviceData.device.dId,
           deviceName: editedDeviceName,
@@ -261,7 +261,7 @@ const OnboardingWizard = () => {
     try {
       const token = localStorage.getItem("token");
 
-      // Guardar configuración de actuadores usando el endpoint device-config
+      // Guardar configuración de actuadores usando el endpoint device-initial-config
       const configs = Object.entries(actuatorConfig).map(
         ([variable, config]) => ({
           variable,
