@@ -68,6 +68,16 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
         return "Humedad ambiente";
       case "Hum suelo":
         return "Humedad del suelo";
+      case "Temp Ambiente":
+        return "Temperatura ambiente";
+      case "Hum Ambiente":
+        return "Humedad ambiente";
+      case "Temp Agua":
+        return "Temperatura del agua";
+      case "pH Agua":
+        return "pH del agua";
+      default:
+        return variableFullName;
     }
   };
 
@@ -169,8 +179,9 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
     // Valor normal - formatear si es número con decimales
     let formattedValue = value;
     if (typeof value === "number" && !Number.isInteger(value)) {
-      // Si tiene decimales, redondear a 1 dígito
-      formattedValue = value.toFixed(1);
+      // pH requiere 2 decimales, otros sensores 1 decimal
+      const decimals = unidad === "pH" ? 2 : 1;
+      formattedValue = value.toFixed(decimals);
     }
 
     return formattedValue + " " + unidad;

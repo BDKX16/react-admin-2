@@ -25,8 +25,9 @@ export function generateDeviceTour(
   deviceName?: string,
   modelId?: string
 ): OnboardingStep[] {
-  // Determine if it's TecMat or ConfiPlant
+  // Determine if it's TecMat, ConfiPlant, or ConfiHydro
   const isTecMat = modelId === "tecmat";
+  const isConfiHydro = modelId === "confi_hydro";
   const isConfiPlant =
     modelId?.startsWith("default") ||
     modelId === "confi-plant" ||
@@ -34,6 +35,8 @@ export function generateDeviceTour(
 
   if (isTecMat) {
     return getTecMatTour(deviceTemplate, deviceName);
+  } else if (isConfiHydro) {
+    return getConfiHydroTour(deviceTemplate, deviceName);
   } else if (isConfiPlant) {
     return getConfiPlantTour(deviceTemplate, deviceName);
   }
@@ -141,6 +144,130 @@ function getTecMatTour(
         title: "Sistema Listo",
         description:
           "Todo configurado. Personaliza alertas, actualiza firmware y ajusta comportamientos. Tu TecMat está listo para controlar tus procesos de forma eficiente. ✅",
+        side: "top",
+        align: "start",
+      },
+      icon: createElement(CheckCircle, {
+        size: 20,
+        className: "inline-block",
+      }),
+    },
+  ];
+}
+
+/**
+ * ConfiHydro Tour - Specialized for hydroponic cultivation
+ */
+function getConfiHydroTour(
+  deviceTemplate: any,
+  deviceName?: string
+): OnboardingStep[] {
+  const displayName = deviceName || "tu Sistema Hidropónico";
+  const widgets = deviceTemplate?.widgets || [];
+
+  // Check for specific hydroponic sensors
+  const hasPHSensor = widgets.some(
+    (w: any) =>
+      w?.sensor &&
+      (w?.variableFullName?.toLowerCase().includes("ph") ||
+        w?.name?.toLowerCase().includes("ph"))
+  );
+  const hasWaterTempSensor = widgets.some(
+    (w: any) =>
+      w?.sensor &&
+      (w?.variableFullName?.toLowerCase().includes("temp agua") ||
+        w?.variableFullName?.toLowerCase().includes("temp water") ||
+        w?.name?.toLowerCase().includes("temperatura del agua"))
+  );
+
+  return [
+    {
+      element: '[data-tour="device-card"]:first-child',
+      popover: {
+        title: "Bienvenida a la Hidroponía Inteligente",
+        description: `<div class="space-y-3">
+          <img src="https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=400&h=200&fit=crop" alt="Hydroponic System" class="w-full h-32 object-cover rounded-lg mb-2" />
+          <p>Este es <strong>${displayName}</strong>, tu control centralizado para cultivo hidropónico. Monitorea pH, temperatura del agua, ambiente y controla tu sistema de riego con precisión botánica.</p>
+        </div>`,
+        side: "top",
+        align: "start",
+      },
+      icon: createElement(Droplets, { size: 20, className: "inline-block" }),
+    },
+    {
+      element: '[data-tour="device-sensors"]',
+      popover: {
+        title: "Sensores Especializados",
+        description: `<div class="space-y-2">
+          <p class="font-medium mb-2">Monitoreo completo de tu sistema:</p>
+          <ul class="space-y-1 text-sm">
+            <li><strong>🌡️ Temperatura ambiente:</strong> Control del clima del cultivo</li>
+            <li><strong>💧 Humedad ambiente:</strong> Previene estrés hídrico</li>
+            ${
+              hasWaterTempSensor
+                ? "<li><strong>🌊 Temperatura del agua:</strong> Crítica para absorción de nutrientes</li>"
+                : ""
+            }
+            ${
+              hasPHSensor
+                ? "<li><strong>⚗️ pH del agua:</strong> Esencial para disponibilidad de nutrientes (ideal 5.5-6.5)</li>"
+                : ""
+            }
+          </ul>
+          <p class="text-xs text-muted-foreground mt-2">Todos en tiempo real</p>
+        </div>`,
+        side: "top",
+        align: "start",
+      },
+      icon: createElement(Activity, { size: 20, className: "inline-block" }),
+    },
+    {
+      element: '[data-tour="device-controls"]',
+      popover: {
+        title: "Control de Bomba Hidropónica",
+        description: `<div class="space-y-3">
+          <p>Controla tu bomba según el sistema hidropónico que uses:</p>
+          <ul class="space-y-1 text-sm">
+            <li><strong>Eco:</strong> Ahorro de energía (10/20 min)</li>
+            <li><strong>Normal:</strong> Para torres verticales (15/15 min)</li>
+            <li><strong>NFT:</strong> Flujo casi continuo (20/5 min)</li>
+            <li><strong>DWC:</strong> Oxigenación equilibrada (30/30 min)</li>
+            <li><strong>Aeropónico:</strong> Nebulización frecuente (30 seg ON)</li>
+            <li><strong>Silencio:</strong> Modo nocturno bajo ruido</li>
+            <li><strong>Personalizado:</strong> Configura tus propios ciclos</li>
+          </ul>
+          <p class="text-xs text-muted-foreground mt-2">Además, controla luces y otros dispositivos con el segundo enchufe</p>
+        </div>`,
+        side: "top",
+        align: "start",
+      },
+      icon: createElement(Zap, { size: 20, className: "inline-block" }),
+    },
+    {
+      element: '[data-tour="device-config-btn"]',
+      popover: {
+        title: "Historial y Análisis",
+        description:
+          "Activa el almacenamiento de datos para ver tendencias de pH, temperatura y ajustar tu sistema. El pH del agua es crítico: debe mantenerse entre 5.5-6.5 para óptima absorción de nutrientes.",
+        side: "top",
+        align: "start",
+      },
+      icon: createElement(Database, { size: 20, className: "inline-block" }),
+    },
+    {
+      element: '[data-tour="device-card"]:first-child',
+      popover: {
+        title: "Sistema Hidropónico Listo",
+        description: `<div class="space-y-2">
+          <p>Todo configurado para tu cultivo sin suelo. Recuerda:</p>
+          <ul class="text-xs space-y-1 mt-2">
+            <li>• Revisa el pH diariamente</li>
+            <li>• Temperatura del agua ideal: 18-22°C</li>
+            <li>• Ajusta el modo de bomba según tu sistema</li>
+            <li>• Monitorea humedad para prevenir hongos</li>
+          </ul>
+          <p class="text-sm mt-2">Tu ConfiHydro está listo para optimizar tu cosecha. 🌱✅</p>
+        </div>`,
         side: "top",
         align: "start",
       },

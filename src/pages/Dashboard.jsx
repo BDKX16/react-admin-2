@@ -2,6 +2,7 @@ import { InputCard } from "@/components/InputCard";
 import { FusionCard } from "@/components/FusionCard";
 import useDevices from "@/hooks/useDevices";
 import ActuatorCard from "../components/ActuatorCard";
+import HydroponicPumpCard from "../components/HydroponicPumpCard";
 import useAuth from "../hooks/useAuth";
 import WelcomeCard from "../components/WelcomeCard";
 import { useOnboarding } from "@/contexts/OnboardingContext";
@@ -134,7 +135,11 @@ const Dashboard = () => {
             if (
               item.variableFullName === "Temp" ||
               item.variableFullName === "Hum" ||
-              item.variableFullName === "Hum suelo"
+              item.variableFullName === "Hum suelo" ||
+              item.variableFullName === "Temp Ambiente" ||
+              item.variableFullName === "Hum Ambiente" ||
+              item.variableFullName === "Temp Agua" ||
+              item.variableFullName === "pH Agua"
             ) {
               return (
                 <InputCard
@@ -212,6 +217,21 @@ const Dashboard = () => {
                 console.log("No timer found for variable:", item.variable);
                 return;
               }
+
+              // Detectar bomba hidropónica por variableFullName
+              if (item.variableFullName === "Bomba") {
+                return (
+                  <HydroponicPumpCard
+                    key={item.variable}
+                    widget={item}
+                    ciclo={widgetCiclo}
+                    dId={selectedDevice.dId}
+                    userId={auth.userData.id}
+                  />
+                );
+              }
+
+              // Renderizar ActuatorCard estándar para otros actuadores
               if (!widgetCiclo) {
                 console.log("No ciclo found for variable:", item.variable);
                 return;
