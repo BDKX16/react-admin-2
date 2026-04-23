@@ -157,7 +157,7 @@ export const HydroponicPumpCard = ({ widget, dId, userId, ciclo }) => {
   };
 
   // Función para enviar valores del preset cuando se cambia de modo
-  const sendModePreset = (mode, type = hydroType) => {
+  const sendModePreset = async (mode, type = hydroType) => {
     // Solo enviar si es un preset (no custom)
     if (mode === "custom") {
       return;
@@ -198,6 +198,30 @@ export const HydroponicPumpCard = ({ widget, dId, userId, ciclo }) => {
     };
 
     setSend({ msg: toSend.msg, topic: toSend.topic });
+
+    // Guardar en base de datos para que el dispositivo inicie con estos valores al reiniciarse
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/ciclo`,
+        {
+          ciclo: {
+            variable: widget.variable,
+            tiempoEncendido: tiempoEncendidoSeg,
+            tiempoTotal: tiempoTotalSeg,
+          },
+          dId: dId,
+        },
+        {
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error guardando ciclo en DB:", error);
+    }
   };
 
   // Manejar cambio de modo

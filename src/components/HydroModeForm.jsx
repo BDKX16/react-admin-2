@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Info, Droplets, Wind, Moon, Sprout, Waves, Cloud } from "lucide-react";
+import axios from "axios";
 import useMqtt from "@/hooks/useMqtt";
 import useFetchAndLoad from "@/hooks/useFetchAndLoad";
 import { setSingleCicle } from "../services/public";
@@ -309,7 +310,7 @@ const HydroModeForm = ({ userId, dId, mode, hydroType, variable, currentConfig }
 
     setSend({ msg: toSend.msg, topic: toSend.topic });
 
-    // Persist to database
+    // Persist ciclo timing to database
     const cicloConfig = {
       tiempoEncendido: tiempoEncendidoSeg,
       tiempoTotal: tiempoTotalSeg,
@@ -317,6 +318,31 @@ const HydroModeForm = ({ userId, dId, mode, hydroType, variable, currentConfig }
     };
 
     await callEndpoint(setSingleCicle(cicloConfig, dId));
+
+    // Persist hydroMode to device-config
+    try {
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `${import.meta.env.VITE_BASE_URL}/device-config`,
+        {
+          dId: dId,
+          configs: [
+            {
+              variable: variable,
+              hydroMode: mode,
+            },
+          ],
+        },
+        {
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error guardando hydroMode en device-config:", error);
+    }
   };
 
   const PresetIcon = preset?.icon;
