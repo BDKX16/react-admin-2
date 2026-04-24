@@ -207,6 +207,10 @@ export const MqttProvider = ({ children }) => {
             dId: splittedTopic[1],
             value: valor.value,
             topic: topic,
+            // Calibration fields (pH) — present only when ESP32 sends them
+            calib_state: valor.calib_state ?? null,
+            calib_progress: valor.calib_progress ?? null,
+            calib_save: valor.save ?? null,
           };
 
           // ⚠️ LIMPIEZA AUTOMÁTICA DE MENSAJES OTA
@@ -257,10 +261,10 @@ export const MqttProvider = ({ children }) => {
             );
 
             if (existingItem) {
-              // Si existe, actualizar el valor del item existente
+              // Si existe, actualizar todos los campos del item existente
               return prevRecived.map((item) =>
                 item.topic === newItem.topic
-                  ? { ...item, value: newItem.value }
+                  ? { ...item, ...newItem }
                   : item
               );
             } else {

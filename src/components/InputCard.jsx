@@ -33,6 +33,7 @@ import {
 
 import MiniChart from "./MiniChart";
 import CalibrationTimer from "./CalibrationTimer";
+import PhCalibrationModal from "./PhCalibrationModal";
 import useMqtt from "../hooks/useMqtt";
 
 export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
@@ -42,6 +43,7 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
   };
   const { recived, setSend } = useMqtt();
   const [isCalibrating, setIsCalibrating] = React.useState(false);
+  const [isPhCalibrating, setIsPhCalibrating] = React.useState(false);
 
   // Reset value when device changes
   React.useEffect(() => {
@@ -141,6 +143,11 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
     );
   };
 
+  // Verificar si es sensor de pH
+  const isPhSensor = () => {
+    return widget.variableFullName === "pH Agua";
+  };
+
   const errorHandeOnValue = (value, unidad) => {
     // Códigos de error del sensor con iconos
     const errorCodes = {
@@ -201,7 +208,20 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
       className="text-left flex md:flex-col p-6 relative border-0 sm:border"
       data-tour={dataTour}
     >
-      {/* Botón de calibración en la esquina superior derecha */}
+      {/* Botón de calibración pH en la esquina superior derecha */}
+      {isPhSensor() && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsPhCalibrating(true)}
+          className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-foreground"
+          title="Calibrar sonda de pH"
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </Button>
+      )}
+
+      {/* Botón de calibración de humedad en la esquina superior derecha */}
       {isSoilHumiditySensor() && !isCalibrating && (
         <Button
           variant="ghost"
@@ -237,7 +257,7 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
         />
       </CardContent>
 
-      {/* Modal de calibración */}
+      {/* Modal de calibración de humedad del suelo */}
       <Dialog open={isCalibrating} onOpenChange={setIsCalibrating}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -255,6 +275,15 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Modal de calibración de pH */}
+      <PhCalibrationModal
+        open={isPhCalibrating}
+        onOpenChange={setIsPhCalibrating}
+        deviceId={dId}
+        userId={userId}
+        phVariableId={widget.variable}
+      />
     </Card>
   );
 };
