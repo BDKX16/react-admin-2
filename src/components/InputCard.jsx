@@ -55,6 +55,8 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
       //console.log(recived);
       recived.map((item) => {
         if (item.dId === dId && item.variable === widget.variable) {
+          // During pH calibration "value" is voltage (V), not pH units — skip card update
+          if (item.calib_state && item.calib_state !== "idle") return;
           //setConfig({ ...config, value: item.value });
           setValue(item.value);
         }
