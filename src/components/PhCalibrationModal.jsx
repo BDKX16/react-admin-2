@@ -80,32 +80,40 @@ const ProbeTip = ({ color }) => (
   </div>
 );
 
-/** Mini voltage sparkline */
-const VoltageSparkline = ({ readings, stable }) => {
+/** pH stability sparkline — stretches to fill container width */
+const PhSparkline = ({ readings, stable }) => {
   if (!readings || readings.length < 2) return null;
-  const W = 130, H = 40, PAD = 5;
+  const H = 44, PAD = 5;
+  // Use a viewBox-based SVG so it scales to 100% width automatically
+  const VW = 300; // arbitrary viewBox width
   const minV = Math.min(...readings) - 0.03;
   const maxV = Math.max(...readings) + 0.03;
   const range = maxV - minV || 0.1;
   const pts = readings
     .map((v, i) => {
-      const x = PAD + (i / (readings.length - 1)) * (W - PAD * 2);
+      const x = PAD + (i / (readings.length - 1)) * (VW - PAD * 2);
       const y = H - PAD - ((v - minV) / range) * (H - PAD * 2);
       return `${x},${y}`;
     })
     .join(" ");
 
   return (
-    <svg width={W} height={H} className="overflow-visible">
+    <svg
+      viewBox={`0 0 ${VW} ${H}`}
+      preserveAspectRatio="none"
+      className="w-full overflow-visible"
+      style={{ height: H }}
+    >
       {/* Reference band */}
-      <rect x={PAD} y={PAD} width={W - PAD * 2} height={H - PAD * 2} rx="3" fill="currentColor" opacity="0.04" />
+      <rect x={PAD} y={PAD} width={VW - PAD * 2} height={H - PAD * 2} rx="3" fill="currentColor" opacity="0.04" />
       <polyline
         points={pts}
         fill="none"
         stroke={stable ? "#22c55e" : "#94a3b8"}
-        strokeWidth="2"
+        strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
       />
     </svg>
   );
@@ -476,12 +484,12 @@ export default function PhCalibrationModal({
             )}
           </div>
 
-          {/* Voltage panel */}
+          {/* pH stability panel */}
           <div className="mx-4 rounded-xl border bg-card p-3.5">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <Activity className="w-3 h-3" />
-                Voltaje en tiempo real
+                Estabilidad de la sonda
               </span>
               <Badge
                 variant="outline"
@@ -495,22 +503,11 @@ export default function PhCalibrationModal({
               </Badge>
             </div>
 
-            {/* Big voltage number */}
-            <div className="flex items-baseline gap-1 mb-2">
-              <span
-                className="text-3xl font-bold tabular-nums transition-colors duration-300"
-                style={{ color: stable ? "#22c55e" : undefined }}
-              >
-                {voltage !== null ? voltage.toFixed(3) : "—"}
-              </span>
-              <span className="text-sm text-muted-foreground">V</span>
-            </div>
-
             {/* Sparkline */}
-            <VoltageSparkline readings={voltageHistory.current} stable={stable} />
+            <PhSparkline readings={voltageHistory.current} stable={stable} />
 
             <p className="text-[10px] text-muted-foreground mt-1">
-              El voltaje es estable cuando varía menos de ±0.015 V
+              Confirma cuando la señal deje de variar
             </p>
           </div>
 
