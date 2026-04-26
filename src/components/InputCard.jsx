@@ -2,6 +2,9 @@ import * as React from "react";
 import {
   Settings,
   Clock,
+  Droplets,
+  FlaskConical,
+  RefreshCw,
   AlertCircle,
   Unplug,
   AlertTriangle,
@@ -30,6 +33,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import MiniChart from "./MiniChart";
 import CalibrationTimer from "./CalibrationTimer";
@@ -38,31 +47,107 @@ import useMqtt from "../hooks/useMqtt";
 
 export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
   const valueRef = React.useRef(null);
+  const lastPhMessageRef = React.useRef(null);
   const setValue = (newValue) => {
     valueRef.current = newValue;
   };
   const { recived, setSend } = useMqtt();
   const [isCalibrating, setIsCalibrating] = React.useState(false);
   const [isPhCalibrating, setIsPhCalibrating] = React.useState(false);
+  const [phReadState, setPhReadState] = React.useState(null);
+  const [isForcePhReadPending, setIsForcePhReadPending] = React.useState(false);
+  const isPhWidget = widget.variableFullName === "pH Agua";
 
   // Reset value when device changes
   React.useEffect(() => {
     setValue(null);
+    setPhReadState(null);
+    setIsForcePhReadPending(false);
+    lastPhMessageRef.current = null;
   }, [dId]);
 
   React.useEffect(() => {
     if (recived) {
+      let nextPhReadState = null;
+
       //console.log(recived);
-      recived.map((item) => {
+      recived.forEach((item) => {
+        if (
+          isPhWidget &&
+          item.dId === dId &&
+          (item.variable === widget.variable || item.variable === "updater")
+        ) {
+          const currentMessage = {
+            dId: item.dId,
+            variable: item.variable,
+            topic: item.topic,
+            value: item.value ?? null,
+            ph_read_state: item.ph_read_state ?? null,
+            calib_state: item.calib_state ?? null,
+            calib_progress: item.calib_progress ?? null,
+          };
+          const currentSignature = JSON.stringify(currentMessage);
+
+          if (!lastPhMessageRef.current) {
+            console.log("[pH-force-read] first mqtt message, value: "+ currentMessage.value+ ", ph_state: " + currentMessage.ph_read_state);
+            lastPhMessageRef.current = {
+              signature: currentSignature,
+              data: currentMessage,
+            };
+          } else if (lastPhMessageRef.current.signature !== currentSignature) {
+            console.log("[pH-force-read] new mqtt message changed, value: "+ currentMessage.value+ ", ph_state: " + currentMessage.ph_read_state);
+            lastPhMessageRef.current = {
+              signature: currentSignature,
+              data: currentMessage,
+            };
+          }
+        }
+
+        if (
+          isPhWidget &&
+          item.dId === dId &&
+          (item.variable === widget.variable || item.variable === "updater") &&
+          item.ph_read_state !== null &&
+          item.ph_read_state !== undefined
+        ) {
+          nextPhReadState = item.ph_read_state;
+        }
+
         if (item.dId === dId && item.variable === widget.variable) {
           // During pH calibration "value" is voltage (V), not pH units — skip card update
           if (item.calib_state && item.calib_state !== "idle") return;
+          if (item.value === null || item.value === undefined) return;
           //setConfig({ ...config, value: item.value });
           setValue(item.value);
         }
       });
+
+      if (isPhWidget) {
+        setPhReadState(nextPhReadState);
+      }
     }
   }, [recived]);
+
+  const forcePhRead = () => {
+    if (isForcePhReadPending) return;
+
+    const toSend = {
+      topic: userId + "/" + dId + "/updater/actdata",
+      msg: {
+        value: "read_ph",
+      },
+    };
+    setIsForcePhReadPending(true);
+    console.log("[pH-force-read] publish read_ph", {
+      dId,
+      variable: widget.variable,
+      topic: toSend.topic,
+      msg: toSend.msg,
+      currentPhReadState: phReadState,
+      currentValue: valueRef.current,
+    });
+    setSend({ msg: toSend.msg, topic: toSend.topic });
+  };
 
   const mapName = (variableFullName) => {
     switch (variableFullName) {
@@ -140,8 +225,7 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
   // Verificar si es sensor de humedad del suelo
   const isSoilHumiditySensor = () => {
     return (
-      widget.variableFullName === "Hum suelo" ||
-      (widget.variable && widget.variable.includes("s"))
+      widget.variableFullName === "Hum suelo"
     );
   };
 
@@ -205,6 +289,67 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
     );
   };
 
+  const isPhWaitingRead = isPhSensor() && phReadState === "waiting_pump_off";
+  const isPhStabilizing = isPhSensor() && phReadState === "stabilizing";
+  const isPhSampling = isPhSensor() && phReadState === "sampling";
+  const isPhValueMissing = valueRef.current === null || valueRef.current === undefined;
+
+  React.useEffect(() => {
+    if (!isPhWidget) return;
+    if (
+      phReadState === "waiting_pump_off" ||
+      phReadState === "stabilizing" ||
+      phReadState === "sampling"
+    ) {
+      console.log("[pH-force-read] state update: " + phReadState);
+    }
+
+    if (isForcePhReadPending && phReadState === "sampling") {
+      console.log("[pH-force-read] first sampling received, enabling button again");
+      setIsForcePhReadPending(false);
+    }
+  }, [isPhWidget, phReadState, dId, widget.variable, isForcePhReadPending]);
+
+  const renderCardValue = () => {
+    if (isPhSampling) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-2" aria-label="Tomando muestra de pH">
+                <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-sky-500" />
+                <span className="text-2xl sm:text-3xl text-white">pH</span>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Tomando muestra de pH...</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    if (isPhStabilizing) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-2" aria-label="Estabilizando agua para lectura de pH">
+                <Droplets className="h-5 w-5 sm:h-6 sm:w-6 text-cyan-500 animate-pulse [animation-duration:1200ms]" />
+                <span className="text-2xl sm:text-3xl text-white">pH</span>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Estabilizando agua tras apagar la bomba...</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return errorHandeOnValue(valueRef.current, widget.unidad);
+  };
+
   return (
     <Card
       className="text-left flex md:flex-col p-6 relative border-0 sm:border"
@@ -246,7 +391,46 @@ export const InputCard = ({ widget, dId, userId, "data-tour": dataTour }) => {
           {mapName(widget.variableFullName)}
         </CardDescription>
         <CardTitle className="text-2xl sm:text-3xl">
-          {errorHandeOnValue(valueRef.current, widget.unidad)}
+          <div className="flex items-center gap-2">
+            {renderCardValue()}
+            {isPhSensor() && (isPhWaitingRead || isPhStabilizing) && !isPhSampling && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={forcePhRead}
+                      disabled={isForcePhReadPending || isPhStabilizing}
+                      className={`h-7 w-7 transition-colors ${
+                        isPhValueMissing
+                          ? "text-amber-600 hover:text-amber-700"
+                          : "text-amber-400 hover:text-amber-500"
+                      }`}
+                      aria-label="Forzar lectura de pH"
+                    >
+                      {isPhStabilizing ? (
+                        <Clock className="h-4 w-4 opacity-70" />
+                      ) : isPhValueMissing ? (
+                        <Clock className="h-4 w-4 animate-pulse [animation-duration:700ms]" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4 opacity-80" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {isPhStabilizing
+                        ? "Estabilizando agua..."
+                        : `Esperando a que se apague la bomba${
+                            valueRef.current ? " para tomar una nueva lectura" : ""
+                          }. Click para forzar lectura de pH.`}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
 

@@ -199,7 +199,13 @@ export const MqttProvider = ({ children }) => {
           return;
         } else if (msgType == "sdata") {
           const valor = JSON.parse(message);
-          if (valor === null || valor.value === null || valor.value === "") {
+
+          if (
+            valor === null ||
+            ((valor.value === null || valor.value === "" || valor.value === undefined) &&
+              valor.ph_read_state === undefined &&
+              valor.calib_state === undefined)
+          ) {
             return;
           }
           const newItem = {
@@ -207,10 +213,19 @@ export const MqttProvider = ({ children }) => {
             dId: splittedTopic[1],
             value: valor.value,
             topic: topic,
-            // Calibration fields (pH) — present only when ESP32 sends them
-            calib_state: valor.calib_state ?? null,
-            calib_progress: valor.calib_progress ?? null,
-            calib_save: valor.save ?? null,
+            // Calibration/read-state fields are attached only when present.
+            ...(Object.prototype.hasOwnProperty.call(valor, "calib_state")
+              ? { calib_state: valor.calib_state }
+              : {}),
+            ...(Object.prototype.hasOwnProperty.call(valor, "calib_progress")
+              ? { calib_progress: valor.calib_progress }
+              : {}),
+            ...(Object.prototype.hasOwnProperty.call(valor, "save")
+              ? { calib_save: valor.save }
+              : {}),
+            ...(Object.prototype.hasOwnProperty.call(valor, "ph_read_state")
+              ? { ph_read_state: valor.ph_read_state }
+              : {}),
           };
 
           // ⚠️ LIMPIEZA AUTOMÁTICA DE MENSAJES OTA
@@ -229,7 +244,7 @@ export const MqttProvider = ({ children }) => {
               const updated = existingItem
                 ? prevRecived.map((item) =>
                     item.topic === newItem.topic
-                      ? { ...item, value: newItem.value }
+                      ? { ...item, ...newItem, value: newItem.value ?? item.value }
                       : item
                   )
                 : [...prevRecived, newItem];
