@@ -477,12 +477,7 @@ const CustomTooltipContent = ({ active, payload, label, config }) => {
                         </span>
                       </div>
                     )}
-                    {cyclePayload.tiempoTotal != null && (
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Ciclo</span>
-                        <span className="font-mono">{formatSecs(cyclePayload.tiempoTotal)}</span>
-                      </div>
-                    )}
+                   
                   </div>
                 )}
               </div>
