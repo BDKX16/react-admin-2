@@ -145,6 +145,7 @@ const CiclosForm = ({ userId, ciclo, dId }) => {
       tiempoEncendido: tiempoEncendidoSeg,
       tiempoTotal: tiempoTotalSeg,
       variable: ciclo.variable,
+      slave: ciclo.slave,
     };
 
     await callEndpoint(setSingleCicle(cicloConfig, dId));

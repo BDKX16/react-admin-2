@@ -660,7 +660,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                   <div className="border-t pt-4">
                     <CiclosForm
                       userId={userId}
-                      ciclo={widget.cicloConfig || ciclo}
+                      ciclo={{ ...(widget.cicloConfig || ciclo), slave: widget.slave }}
                       dId={dId}
                     />
                   </div>
@@ -868,7 +868,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                       <div className="hidden md:block w-full">
                         <CiclosForm
                           userId={userId}
-                          ciclo={widget.cicloConfig || ciclo}
+                          ciclo={{ ...(widget.cicloConfig || ciclo), slave: widget.slave }}
                           dId={dId}
                         />
                       </div>
@@ -883,7 +883,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                             </DrawerHeader>
                             <CiclosForm
                               userId={userId}
-                              ciclo={widget.cicloConfig || ciclo}
+                              ciclo={{ ...(widget.cicloConfig || ciclo), slave: widget.slave }}
                               dId={dId}
                             />
                             <DrawerFooter>
@@ -1108,7 +1108,7 @@ export const ActuatorCard = ({ widget, dId, userId, timer, ciclo }) => {
                           <div className="px-4">
                             <CiclosForm
                               userId={userId}
-                              ciclo={widget.cicloConfig || ciclo}
+                              ciclo={{ ...(widget.cicloConfig || ciclo), slave: widget.slave }}
                               dId={dId}
                             />
                           </div>

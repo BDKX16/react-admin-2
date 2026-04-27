@@ -207,6 +207,7 @@ export const HydroponicPumpCard = ({ widget, dId, userId, ciclo }) => {
         {
           ciclo: {
             variable: widget.variable,
+            slave: widget.slave,
             tiempoEncendido: tiempoEncendidoSeg,
             tiempoTotal: tiempoTotalSeg,
           },
