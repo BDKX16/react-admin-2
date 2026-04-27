@@ -161,54 +161,222 @@ const eventConfig = {
   },
 };
 
-// Componente de tooltip personalizado para parsear valores de actuadores
+// ─── Mapeo de códigos de error de sensores ───────────────────────────────────
+const SENSOR_ERROR_MESSAGES: Record<string, string> = {
+  "-1": "Timeout",
+  "-2": "Error lectura",
+  "-3": "Desconectado",
+  "-4": "Datos inválidos",
+  "-5": "Error I2C",
+  "-6": "Error calibración",
+  "-7": "Error alimentación",
+  "-8": "Error inicialización",
+  "-9": "Fuera de rango",
+  "-10": "Múltiples desconectados",
+  "-11": "Conflicto WiFi-ADC2",
+  "-12": "Error buffer",
+  "-13": "Error frecuencia",
+};
+
+// ─── Función pura de transformación de datos ─────────────────────────────────
+// Recibe los datos crudos del backend y devuelve un array listo para Recharts.
+// Corre 4 pasadas:
+//   1. Normalizar: sensores con error → null + flag _error; actuadores → valor display
+//   2. Forward-fill de actuadores: rellenar nulls con el último estado conocido
+//   3. Interpolación lineal de sensores: rellenar nulls entre lecturas reales
+//      (los gaps de error quedan como null — Recharts los dibuja como vacíos)
+//   4. Devolver el array transformado
+function processChartData(
+  rawRows: Record<string, any>[],
+  availableVariables: any[]
+): Record<string, any>[] {
+  if (!rawRows.length) return [];
+
+  // ── Pass 1: Normalizar ────────────────────────────────────────────────────
+  let actuatorIndex = 0;
+  // Pre-calcular índice de actuadores para que el escalonado sea consistente
+  const actuatorOrder: Record<string, number> = {};
+  availableVariables.forEach((w) => {
+    if (w.isActuator) {
+      const name = (w.variableFullName ?? w.variable ?? "").toLowerCase();
+      const isLight =
+        name.includes("luz") || name.includes("light") || name.includes("luces");
+      if (!isLight) {
+        actuatorOrder[w.variable] = actuatorIndex++;
+      }
+    }
+  });
+
+  const normalized = rawRows.map((row) => {
+    const out: Record<string, any> = { ...row };
+    availableVariables.forEach((widget) => {
+      const key = widget.variable;
+      const raw = out[key];
+      if (widget.isActuator) {
+        const name = (widget.variableFullName ?? widget.variable ?? "").toLowerCase();
+        const isLight =
+          name.includes("luz") || name.includes("light") || name.includes("luces");
+        if (raw === undefined || raw === null) {
+          out[key] = null; // Se forward-filleará en Pass 2
+        } else if (isLight) {
+          out[key] = raw === 1 || raw === 3 ? 100 : 0;
+        } else {
+          const idx = actuatorOrder[key] ?? 0;
+          const base = -(idx * 5 + 1);
+          if (raw === 5) {
+            // Modo ciclo: posicionar en la banda según duty cycle (tiempoEncendido / tiempoTotal)
+            const payload = out[`${key}_payload`];
+            const dutyRatio =
+              payload?.tiempoEncendido != null && payload?.tiempoTotal > 0
+                ? payload.tiempoEncendido / payload.tiempoTotal
+                : 0.5;
+            out[key] = base - dutyRatio * 4;
+            out[`${key}_isCiclo`] = true;
+          } else {
+            out[key] = raw === 1 ? base - 4 : base;
+          }
+        }
+      } else {
+        // Sensor
+        if (raw === undefined || raw === null) {
+          out[key] = null;
+        } else if (typeof raw === "number" && raw < 0) {
+          out[`${key}_error`] = raw; // guardar código de error original
+          out[key] = null;           // gap visual en el gráfico
+        }
+        // valor positivo → queda tal cual
+      }
+    });
+    return out;
+  });
+
+  // ── Pass 2: Forward-fill de actuadores ───────────────────────────────────
+  // Determinar valor "OFF" base para cada actuador no-luz
+  const actuatorOffValue: Record<string, number> = {};
+  availableVariables.forEach((widget) => {
+    if (!widget.isActuator) return;
+    const name = (widget.variableFullName ?? widget.variable ?? "").toLowerCase();
+    const isLight =
+      name.includes("luz") || name.includes("light") || name.includes("luces");
+    if (!isLight) {
+      const idx = actuatorOrder[widget.variable] ?? 0;
+      actuatorOffValue[widget.variable] = -(idx * 5 + 1); // valor OFF base
+    }
+  });
+
+  availableVariables.forEach((widget) => {
+    if (!widget.isActuator) return;
+    const key = widget.variable;
+    let lastKnown: number | null = null;
+    let lastKnownPayload: any = null;
+    let lastKnownIsCiclo = false;
+    for (let i = 0; i < normalized.length; i++) {
+      const val = normalized[i][key];
+      if (val !== null && val !== undefined) {
+        lastKnown = val as number;
+        lastKnownPayload = normalized[i][`${key}_payload`] ?? null;
+        lastKnownIsCiclo = !!normalized[i][`${key}_isCiclo`];
+      } else {
+        // Rellenar con último estado conocido, o OFF si no hay ninguno aún
+        if (lastKnown !== null) {
+          normalized[i][key] = lastKnown;
+          if (lastKnownPayload) normalized[i][`${key}_payload`] = lastKnownPayload;
+          if (lastKnownIsCiclo) normalized[i][`${key}_isCiclo`] = true;
+        } else {
+          // Sin dato previo: usar valor OFF del actuador si existe, o 0 para luces
+          const name = (widget.variableFullName ?? widget.variable ?? "").toLowerCase();
+          const isLight =
+            name.includes("luz") || name.includes("light") || name.includes("luces");
+          normalized[i][key] = isLight ? 0 : (actuatorOffValue[key] ?? 0);
+          // No actualizar lastKnown — todavía no hay un dato real
+        }
+      }
+    }
+  });
+
+  // ── Pass 3: Interpolación lineal de sensores ──────────────────────────────
+  availableVariables.forEach((widget) => {
+    if (widget.isActuator) return;
+    const key = widget.variable;
+    let lastValidIdx = -1;
+    let lastValidVal = 0;
+
+    for (let i = 0; i < normalized.length; i++) {
+      const val = normalized[i][key];
+      const hasError = normalized[i][`${key}_error`] !== undefined;
+
+      if (hasError) {
+        // No interpolar a través de puntos de error — reset
+        lastValidIdx = -1;
+        continue;
+      }
+
+      if (val !== null && val !== undefined) {
+        // Tenemos una lectura real
+        if (lastValidIdx !== -1 && i - lastValidIdx > 1) {
+          // Hay un gap entre lastValidIdx e i → interpolar
+          const steps = i - lastValidIdx;
+          for (let j = lastValidIdx + 1; j < i; j++) {
+            if (!normalized[j][`${key}_error`]) {
+              const t = (j - lastValidIdx) / steps;
+              normalized[j][key] = lastValidVal + (val - lastValidVal) * t;
+              normalized[j][`${key}_interpolated`] = true;
+            }
+          }
+        }
+        lastValidIdx = i;
+        lastValidVal = val as number;
+      }
+    }
+  });
+
+  return normalized;
+}
+
+// ─── Tooltip personalizado ────────────────────────────────────────────────────
 const CustomTooltipContent = ({ active, payload, label, config }) => {
   if (!active || !payload?.length) return null;
 
-
-
-  // Verificar si hay evento en este punto
   const eventData = payload[0]?.payload;
-  const hasEvent = eventData?.eventType;
+  const hasEvent = !!eventData?.eventType;
   const eventConf = hasEvent ? eventConfig[eventData.eventType] : null;
 
+  // Filtrar entradas irrelevantes y nulls antes de renderizar
+  const visibleEntries = payload.filter((entry) => {
+    if (entry.dataKey === "_backgroundArea" || entry.dataKey === "eventY") return false;
+    if (entry.value === null || entry.value === undefined) return false;
+    if (!config?.[entry.dataKey]) return false;
+    return true;
+  });
 
   return (
     <div className="rounded-lg border bg-background p-2 shadow-md">
       <div className="grid gap-2">
-        {!hasEvent && (
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-foreground mb-1">
-              <Calendar className="inline-block mr-1 w-4 h-4 mb-1" />{" "}
-              {label || eventData?.time || "Tiempo no disponible"}
-            </span>
-          </div>
-        )}
-        {/* Mostrar información del evento si existe */}
+        {/* Fecha/hora siempre visible */}
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-foreground mb-1">
+            <Calendar className="inline-block mr-1 w-4 h-4 mb-1" />{" "}
+            {hasEvent
+              ? (eventData?.originalTime || label || eventData?.time)
+              : (label || eventData?.time || "Tiempo no disponible")}
+          </span>
+        </div>
+
+        {/* Información del evento (Pro) */}
         {hasEvent && eventConf && (
-          <div className="border-b pb-2 mb-2">
+          <div className="border-b pb-2 mb-1">
             <div className="flex items-center gap-2">
               <div
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: eventConf.color }}
               />
               <span className="font-semibold text-sm">{eventConf.label}</span>
-              <span className="text-xs font-medium text-gray-500 ml-1 flex justify-center items-center">
-                {eventData?.originalTime || label || eventData?.time}
-              </span>
             </div>
-            <div className="flex flex-col">
-              <div className="text-xs text-gray-600 mt-1 text-left">
-                {eventConf.description}
-              </div>
+            <div className="text-xs text-gray-600 mt-1 text-left">
+              {eventConf.description}
             </div>
-            {/* Información adicional del evento si está disponible */}
             {eventData.eventDetails && (
-              <div className="space-y-1 pt-2 mt-2">
-                <div className="text-xs font-medium text-foreground mb-1">
-                  Detalles del Evento:
-                </div>
-
+              <div className="space-y-1 pt-2 mt-1">
                 {eventData.eventDetails.sensor_value !== undefined && (
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Valor Sensor:</span>
@@ -227,15 +395,12 @@ const CustomTooltipContent = ({ active, payload, label, config }) => {
                 )}
                 {eventData.eventDetails.output !== undefined && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">
-                      Salida Control:
-                    </span>
+                    <span className="text-muted-foreground">Salida Control:</span>
                     <span className="font-mono text-foreground">
                       {Number(eventData.eventDetails.output).toFixed(1)}%
                     </span>
                   </div>
                 )}
-                {/* Mostrar el actuador relacionado si está disponible */}
                 {eventData.eventDetails.actuatorName && (
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Actuador:</span>
@@ -249,82 +414,100 @@ const CustomTooltipContent = ({ active, payload, label, config }) => {
           </div>
         )}
 
-        {payload.map((entry, index) => {
+        {/* Valores de sensores y actuadores */}
+        {visibleEntries.map((entry, index) => {
           const configKey = entry.dataKey;
+          const itemConfig = config[configKey];
+          const isError = entry.payload?.[`${configKey}_error`] !== undefined;
 
-          // Filtrar elementos que no queremos mostrar
-          if (configKey === "_backgroundArea" || configKey === "eventY")
-            return null;
-
-          const itemConfig = config?.[configKey];
-
-          if (!itemConfig) return null;
-          let displayValue = entry.value;
-          let isError = false;
-          let errorMessage = "";
-
-          // Para actuadores (excepto luces), convertir valores numéricos a ON/OFF
           if (itemConfig.type === "area") {
-            const variableName = itemConfig.label?.toLowerCase() || "";
-            if (
-              variableName.includes("luz") ||
-              variableName.includes("light") ||
-              variableName.includes("luces")
-            ) {
-              // Para luces, mostrar ON/OFF basado en si es 100 o 0
-              displayValue = entry.value === 100 ? "ON" : "OFF";
+            const isCiclo = !!entry.payload?.[`${configKey}_isCiclo`];
+
+            // Actuador: determinar estado mostrado
+            let displayValue: string;
+            if (isCiclo) {
+              displayValue = "CICLO";
             } else {
-              // Para otros actuadores (valores negativos), ON si el valor absoluto mod 5 es 0, OFF si mod 5 es 1
-              const absValue = Math.abs(entry.value);
-              displayValue = absValue % 5 === 0 ? "ON" : "OFF";
+              const name = (itemConfig.label ?? "").toLowerCase();
+              const isLight =
+                name.includes("luz") || name.includes("light") || name.includes("luces");
+              displayValue = isLight
+                ? entry.value === 100 ? "ON" : "OFF"
+                : Math.abs(entry.value as number) % 5 === 0 ? "ON" : "OFF";
             }
+
+            // Modo ciclos: mostrar tiempoEncendido/tiempoTotal
+            const cyclePayload = entry.payload?.[`${configKey}_payload`];
+            const hasCycles =
+              isCiclo &&
+              cyclePayload &&
+              (cyclePayload.tiempoEncendido != null || cyclePayload.tiempoTotal != null);
+
+            const formatSecs = (secs: number) => {
+              if (secs >= 3600) return `${(secs / 3600).toFixed(1)}h`;
+              if (secs >= 60) return `${Math.round(secs / 60)}min`;
+              return `${secs}s`;
+            };
+
+            return (
+              <div key={index}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                    style={{ backgroundColor: itemConfig.color }}
+                  />
+                  <div className="flex items-center justify-between w-full min-w-[120px]">
+                    <span className="text-sm text-muted-foreground">{itemConfig.label}</span>
+                    <span className="font-mono text-sm font-bold ml-2">{displayValue}</span>
+                  </div>
+                </div>
+                {hasCycles && (
+                  <div className="ml-4 mt-0.5 space-y-0.5">
+                    {cyclePayload.tiempoEncendido != null && (
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Enc.</span>
+                        <span className="font-mono">{formatSecs(cyclePayload.tiempoEncendido)}</span>
+                      </div>
+                    )}
+                    {cyclePayload.tiempoTotal != null && cyclePayload.tiempoEncendido != null && (
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Apag.</span>
+                        <span className="font-mono">
+                          {formatSecs(cyclePayload.tiempoTotal - cyclePayload.tiempoEncendido)}
+                        </span>
+                      </div>
+                    )}
+                    {cyclePayload.tiempoTotal != null && (
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Ciclo</span>
+                        <span className="font-mono">{formatSecs(cyclePayload.tiempoTotal)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // Sensor
+          let displayValue: string;
+          if (isError) {
+            const code = entry.payload[`${configKey}_error`];
+            displayValue = SENSOR_ERROR_MESSAGES[String(code)] ?? `Error (${code})`;
           } else {
-            // Para sensores, verificar si hay código de error
-            const errorCode = entry.payload?.[`${configKey}_error`];
-            if (errorCode !== undefined && errorCode < 0) {
-              isError = true;
-              // Mapear códigos de error a mensajes (igual que en InputCard.jsx)
-              const errorMessages = {
-                "-1": "Timeout",
-                "-2": "Error lectura",
-                "-3": "Desconectado",
-                "-4": "Datos inválidos",
-                "-5": "Error I2C",
-                "-6": "Error calibración",
-                "-7": "Error alimentación",
-                "-8": "Error inicialización",
-                "-9": "Fuera de rango",
-                "-10": "Múltiples desconectados",
-                "-11": "Conflicto WiFi-ADC2",
-                "-12": "Error buffer",
-                "-13": "Error frecuencia",
-              };
-              errorMessage =
-                errorMessages[errorCode.toString()] || `Error (${errorCode})`;
-              displayValue = errorMessage;
-            } else {
-              // Mostrar el valor normal con unidad si existe
-              displayValue = `${entry.value}${itemConfig.unit || ""}`;
-            }
+            const numVal = typeof entry.value === "number" ? entry.value : Number(entry.value);
+            displayValue = `${numVal.toFixed(2)}${itemConfig.unit ?? ""}`;
           }
 
           return (
             <div key={index} className="flex items-center gap-2">
               <div
                 className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
-                style={{
-                  backgroundColor: isError ? "#ef4444" : itemConfig.color,
-                }}
+                style={{ backgroundColor: isError ? "#ef4444" : itemConfig.color }}
               />
               <div className="flex items-center justify-between w-full min-w-[120px]">
-                <span className="text-sm text-muted-foreground">
-                  {itemConfig.label}
-                </span>
-                <span
-                  className={`font-mono text-sm font-bold ml-2 ${
-                    isError ? "text-red-500" : ""
-                  }`}
-                >
+                <span className="text-sm text-muted-foreground">{itemConfig.label}</span>
+                <span className={`font-mono text-sm font-bold ml-2 ${isError ? "text-red-500" : ""}`}>
                   {displayValue}
                 </span>
               </div>
@@ -861,54 +1044,8 @@ export default function Chart({ device }) {
             }
             return;
           }
-          // Aplicar transformaciones necesarias para actuadores y códigos de error
-          const transformedData = chartData.map((dataPoint) => {
-            const newDataPoint = { ...dataPoint };
-
-            // Aplicar lógica de escalonado para actuadores (excepto luces) y códigos de error para sensores
-            let actuatorIndex = 0;
-            availableVariables.forEach((widget) => {
-              if (
-                widget.isActuator &&
-                newDataPoint[widget.variable] !== undefined
-              ) {
-                const name = widget.variableFullName?.toLowerCase() || "";
-                const rawValue = newDataPoint[widget.variable];
-
-                if (
-                  name.includes("luz") ||
-                  name.includes("light") ||
-                  name.includes("luces")
-                ) {
-                  // Para luces: convertir a 0 o 100
-                  newDataPoint[widget.variable] =
-                    rawValue === 1 || rawValue === 3 ? 100 : 0;
-                } else {
-                  // Para otros actuadores: escalonar en zona negativa
-                  const baseValue = -(actuatorIndex * 5 + 1);
-                  newDataPoint[widget.variable] =
-                    rawValue === 1 ? baseValue - 4 : baseValue;
-                  actuatorIndex++;
-                }
-              } else if (
-                !widget.isActuator &&
-                newDataPoint[widget.variable] !== undefined
-              ) {
-                // Para sensores, detectar códigos de error y guardar el original
-                const rawValue = newDataPoint[widget.variable];
-                if (rawValue < 0) {
-                  // Guardar el código de error original
-                  newDataPoint[`${widget.variable}_error`] = rawValue;
-                  // Mostrar en 0 en el gráfico
-                  newDataPoint[widget.variable] = 0;
-                }
-              }
-            });
-
-            return newDataPoint;
-          });
-
-          setData(transformedData);
+          // ── Transformar datos con el pipeline limpio ───────────────────
+          const processed = processChartData(chartData, availableVariables);
 
           if (isPro) {
             // Procesar eventos del backend si están disponibles
@@ -924,7 +1061,7 @@ export default function Chart({ device }) {
               // Convertir eventos a puntos scatter
               const eventPoints = backendEvents.map((event) => {
                 const maxValue = Math.max(
-                  ...transformedData.flatMap(
+                  ...processed.flatMap(
                     (item) =>
                       Object.entries(item)
                         .filter(
@@ -936,28 +1073,21 @@ export default function Chart({ device }) {
                         .map(([, value]) =>
                           typeof value === "number" ? value : 0
                         )
-                        .filter((value) => value < 1000000) // Filtrar timestamps grandes
+                        .filter((value) => value < 1000000)
                   ),
-                  50 // Valor por defecto
+                  50
                 );
 
-
-                // Buscar el widget/actuador correspondiente a la variable del evento
                 const relatedWidget = device.template.widgets.find(
                   (widget) => widget.variable === event.variable
                 );
 
-             
-                // Calcular posición Y del evento
                 let eventYPosition;
                 const sensorValue = event.payload?.sensor_value;
 
                 if (sensorValue && sensorValue > 0) {
-                  // Si hay sensor_value mayor a 0, posicionar a esa altura
                   eventYPosition = sensorValue;
-                  
                 } else {
-                  // Posición por defecto cerca del máximo
                   eventYPosition = Math.max(50, maxValue * 0.9);
                 }
 
@@ -977,10 +1107,10 @@ export default function Chart({ device }) {
                       minute: "2-digit",
                       second: "2-digit",
                     }
-                  ), // Tiempo original preciso con segundos
+                  ),
                   eventY: eventYPosition,
                   eventType: event.payload?.event_type,
-                  eventVariable: event.variable, // Agregar la variable del evento
+                  eventVariable: event.variable,
                   eventDetails: {
                     sensor_value: event.payload?.sensor_value,
                     setpoint: event.payload?.setpoint,
@@ -990,18 +1120,15 @@ export default function Chart({ device }) {
                           "es-ES"
                         )
                       : null,
-                    actuatorName: relatedWidget?.variableFullName || null, // Nombre del actuador
+                    actuatorName: relatedWidget?.variableFullName || null,
                   },
                 };
 
                 return eventPoint;
               });
 
-          
-
               // Función para encontrar el punto de datos más cercano al evento
               const findClosestDataPoint = (eventTime, dataPoints) => {
-                // Convertir tiempo de evento a Date para comparación
                 const eventDate = new Date(
                   eventTime.replace(
                     /(\d{1,2})\/(\d{1,2}), (\d{1,2}):(\d{2})/,
@@ -1013,7 +1140,6 @@ export default function Chart({ device }) {
                 let minDiff = Infinity;
 
                 dataPoints.forEach((point, index) => {
-                  // Convertir tiempo de data point a Date
                   const pointDate = new Date(
                     point.time.replace(
                       /(\d{1,2})\/(\d{1,2}), (\d{1,2}):(\d{2})/,
@@ -1033,37 +1159,35 @@ export default function Chart({ device }) {
                 return closestPoint;
               };
 
-              // Mezclar eventos con datos principales del gráfico
-              const dataWithEvents = [...transformedData];
+              // Mezclar eventos en los datos ya procesados (no en los crudos)
+              const dataWithEvents = processed.map((p) => ({ ...p }));
 
-              eventPoints.forEach((event, eventIndex) => {
+              eventPoints.forEach((event) => {
                 const closestIndex = findClosestDataPoint(
                   event.time,
-                  transformedData
+                  processed
                 );
                 if (closestIndex !== null) {
-                 
-
                   dataWithEvents[closestIndex] = {
                     ...dataWithEvents[closestIndex],
                     eventY: event.eventY,
                     eventType: event.eventType,
                     eventVariable: event.eventVariable,
-                    originalTime: event.originalTime, // Tiempo original preciso
+                    originalTime: event.originalTime,
                     eventDetails: event.eventDetails,
                   };
                 }
               });
 
-           
-
-              // Actualizar datos principales con eventos mezclados
               setData(dataWithEvents);
               setEvents(eventPoints);
             } else {
-              // Usar eventos mock si no hay eventos del backend
+              // Sin eventos del backend: usar datos procesados directamente
+              setData(processed);
               setEvents(filteredEvents);
             }
+          } else {
+            setData(processed);
           }
         } else {
           // Error en la respuesta del API
@@ -1111,7 +1235,9 @@ export default function Chart({ device }) {
 
         if (!config) return null;
 
-        // Si es un actuador (area), renderizar como área
+        // Si es un actuador (area), renderizar como área escalonada
+        // connectNulls={false}: tras el forward-fill no hay nulls intermedios;
+        // queremos que los gaps al inicio del dataset (antes del primer dato) no se conecten.
         if (config.type === "area") {
           return (
             <Area
@@ -1122,10 +1248,12 @@ export default function Chart({ device }) {
               strokeWidth={2}
               fill={config.fillColor}
               dot={false}
+              connectNulls={false}
             />
           );
         }
 
+        // Sensor: línea continua; nulls solo quedan en períodos de error → gap intencional
         return (
           <Line
             key={variableKey}
@@ -1134,6 +1262,7 @@ export default function Chart({ device }) {
             stroke={config.color}
             strokeWidth={2}
             dot={false}
+            connectNulls={true}
           />
         );
       })
