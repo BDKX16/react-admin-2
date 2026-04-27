@@ -59,7 +59,8 @@ export default function MiniChart({ color, variable, dId, sensorName }) {
 
       for (const key in combined) {
         if (Math.abs(key - time) <= threshold) {
-          combined[key]["value"] = item.value;
+          // Valores negativos son códigos de error (ej: -3 = sensor desconectado)
+          combined[key]["value"] = item.value < 0 ? null : item.value;
           found = true;
           break;
         }
@@ -67,7 +68,8 @@ export default function MiniChart({ color, variable, dId, sensorName }) {
 
       if (!found) {
         combined[time] = { time: item.time };
-        combined[time]["value"] = item.value;
+        // Valores negativos son códigos de error (ej: -3 = sensor desconectado)
+        combined[time]["value"] = item.value < 0 ? null : item.value;
       }
     };
 
