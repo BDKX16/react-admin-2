@@ -204,7 +204,8 @@ export const MqttProvider = ({ children }) => {
             valor === null ||
             ((valor.value === null || valor.value === "" || valor.value === undefined) &&
               valor.ph_read_state === undefined &&
-              valor.calib_state === undefined)
+              valor.calib_state === undefined &&
+              valor.calib_v1 === undefined)
           ) {
             return;
           }
@@ -225,6 +226,21 @@ export const MqttProvider = ({ children }) => {
               : {}),
             ...(Object.prototype.hasOwnProperty.call(valor, "ph_read_state")
               ? { ph_read_state: valor.ph_read_state }
+              : {}),
+            ...(Object.prototype.hasOwnProperty.call(valor, "calib_v1")
+              ? { calib_v1: valor.calib_v1 }
+              : {}),
+            ...(Object.prototype.hasOwnProperty.call(valor, "calib_v2")
+              ? { calib_v2: valor.calib_v2 }
+              : {}),
+            ...(Object.prototype.hasOwnProperty.call(valor, "calib_slope")
+              ? { calib_slope: valor.calib_slope }
+              : {}),
+            ...(Object.prototype.hasOwnProperty.call(valor, "calib_offset")
+              ? { calib_offset: valor.calib_offset }
+              : {}),
+            ...(Object.prototype.hasOwnProperty.call(valor, "calib_source")
+              ? { calib_source: valor.calib_source }
               : {}),
           };
 

@@ -17,6 +17,7 @@ import {
   Droplets,
   Info,
   Activity,
+  RefreshCw,
 } from "lucide-react";
 import useMqtt from "@/hooks/useMqtt";
 
@@ -195,6 +196,8 @@ export default function PhCalibrationModal({
   const [stable, setStable] = useState(false);
   const [calibResult, setCalibResult] = useState(null);
   const [autoCloseLeft, setAutoCloseLeft] = useState(5);
+  const [currentCalib, setCurrentCalib] = useState(null);
+  const [calibFetching, setCalibFetching] = useState(false);
 
   const voltageHistory = useRef([]);
   const autoCloseInterval = useRef(null);
@@ -208,6 +211,8 @@ export default function PhCalibrationModal({
       setStable(false);
       setCalibResult(null);
       setAutoCloseLeft(5);
+      setCurrentCalib(null);
+      setCalibFetching(false);
       voltageHistory.current = [];
       clearInterval(autoCloseInterval.current);
     } else {
@@ -238,6 +243,19 @@ export default function PhCalibrationModal({
     if (!open || !recived) return;
 
     recived.forEach((item) => {
+      // get_calib response
+      if (item.dId === deviceId && item.variable === phVariableId && item.calib_v1 !== undefined) {
+        setCurrentCalib({
+          v1: item.calib_v1,
+          v2: item.calib_v2,
+          slope: item.calib_slope,
+          offset: item.calib_offset,
+          source: item.calib_source,
+        });
+        setCalibFetching(false);
+        return;
+      }
+
       // pH variable calibration states
       if (item.dId === deviceId && item.variable === phVariableId) {
         const state = item.calib_state;
@@ -307,6 +325,11 @@ export default function PhCalibrationModal({
     [userId, deviceId, setSend]
   );
 
+  const handleGetCalib = () => {
+    setCalibFetching(true);
+    publish("get_calib");
+  };
+
   const handleStart = () => {
     setCalibState("starting");
     publish("calib_ph");
@@ -352,6 +375,18 @@ export default function PhCalibrationModal({
             <DialogDescription className="sr-only">Proceso de calibración en dos puntos para la sonda de pH</DialogDescription>
           </DialogHeader>
 
+          {/* Refresh button */}
+          <div className="flex justify-end px-1 pt-1 -mb-1">
+            <button
+              onClick={handleGetCalib}
+              disabled={calibFetching}
+              title="Actualizar calibración actual"
+              className="flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${calibFetching ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+
           {/* Icon */}
           <div className="flex justify-center pt-2 pb-1">
             <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
@@ -365,6 +400,73 @@ export default function PhCalibrationModal({
             <p className="text-sm text-muted-foreground mt-1">
               Configura los dos puntos de referencia para mediciones precisas
             </p>
+          </div>
+
+          {/* Current calibration card */}
+          <div className="mx-4 mb-3 rounded-xl border bg-muted/30 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b bg-muted/20">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Calibración actual
+              </span>
+              {currentCalib && (
+                <Badge
+                  variant="outline"
+                  className={
+                    currentCalib.source === "nvs"
+                      ? "text-green-600 border-green-300 bg-green-50 dark:bg-green-900/20"
+                      : "text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20"
+                  }
+                >
+                  {currentCalib.source === "nvs" ? "Guardada en NVS" : "Por defecto"}
+                </Badge>
+              )}
+            </div>
+
+            {calibFetching && !currentCalib ? (
+              <div className="flex items-center justify-center gap-2 py-5 text-xs text-muted-foreground">
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Consultando dispositivo...
+              </div>
+            ) : currentCalib ? (
+              <div className="grid grid-cols-2 divide-x divide-y">
+                <div className="p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">V pH 4.01</p>
+                  <p className="text-sm font-bold tabular-nums">
+                    {currentCalib.v1 != null ? parseFloat(currentCalib.v1).toFixed(3) : "—"}{" "}
+                    <span className="text-xs font-normal text-muted-foreground">V</span>
+                  </p>
+                </div>
+                <div className="p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">V pH 6.86</p>
+                  <p className="text-sm font-bold tabular-nums">
+                    {currentCalib.v2 != null ? parseFloat(currentCalib.v2).toFixed(3) : "—"}{" "}
+                    <span className="text-xs font-normal text-muted-foreground">V</span>
+                  </p>
+                </div>
+                {currentCalib.slope != null && (
+                  <div className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Pendiente</p>
+                    <p className="text-sm font-bold tabular-nums">
+                      {parseFloat(currentCalib.slope).toFixed(4)}{" "}
+                      <span className="text-xs font-normal text-muted-foreground">pH/V</span>
+                    </p>
+                  </div>
+                )}
+                {currentCalib.offset != null && (
+                  <div className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Offset</p>
+                    <p className="text-sm font-bold tabular-nums">
+                      {parseFloat(currentCalib.offset).toFixed(4)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-1.5 py-5 text-xs text-muted-foreground">
+                <Info className="w-3.5 h-3.5" />
+                Sin datos. Pulsa actualizar.
+              </div>
+            )}
           </div>
 
           {/* Steps overview */}
