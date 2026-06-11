@@ -242,6 +242,9 @@ export const MqttProvider = ({ children }) => {
             ...(Object.prototype.hasOwnProperty.call(valor, "calib_source")
               ? { calib_source: valor.calib_source }
               : {}),
+            ...(Object.prototype.hasOwnProperty.call(valor, "live_voltage")
+              ? { live_voltage: valor.live_voltage }
+              : {}),
           };
 
           // ⚠️ LIMPIEZA AUTOMÁTICA DE MENSAJES OTA

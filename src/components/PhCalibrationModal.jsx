@@ -18,6 +18,9 @@ import {
   Info,
   Activity,
   RefreshCw,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import useMqtt from "@/hooks/useMqtt";
 
@@ -198,6 +201,8 @@ export default function PhCalibrationModal({
   const [autoCloseLeft, setAutoCloseLeft] = useState(5);
   const [currentCalib, setCurrentCalib] = useState(null);
   const [calibFetching, setCalibFetching] = useState(false);
+  const [editingField, setEditingField] = useState(null); // 'v1' | 'v2' | null
+  const [editValue, setEditValue] = useState("");
 
   const voltageHistory = useRef([]);
   const autoCloseInterval = useRef(null);
@@ -213,6 +218,8 @@ export default function PhCalibrationModal({
       setAutoCloseLeft(5);
       setCurrentCalib(null);
       setCalibFetching(false);
+      setEditingField(null);
+      setEditValue("");
       voltageHistory.current = [];
       clearInterval(autoCloseInterval.current);
     } else {
@@ -251,6 +258,7 @@ export default function PhCalibrationModal({
           slope: item.calib_slope,
           offset: item.calib_offset,
           source: item.calib_source,
+          voltage: item.live_voltage != null ? parseFloat(item.live_voltage) : null,
         });
         setCalibFetching(false);
         return;
@@ -324,6 +332,21 @@ export default function PhCalibrationModal({
     },
     [userId, deviceId, setSend]
   );
+
+  const handleSaveCalibEdit = (field) => {
+    const trimmed = editValue.trim();
+    if (!trimmed || isNaN(parseFloat(trimmed))) return;
+    const cmd = field === "v1"
+      ? `set_calib_v1:${trimmed}`
+      : `set_calib_v2:${trimmed}`;
+    publish(cmd);
+    setCurrentCalib((prev) => ({
+      ...prev,
+      [field]: trimmed,
+    }));
+    setEditingField(null);
+    setEditValue("");
+  };
 
   const handleGetCalib = () => {
     setCalibFetching(true);
@@ -429,19 +452,86 @@ export default function PhCalibrationModal({
               </div>
             ) : currentCalib ? (
               <div className="grid grid-cols-2 divide-x divide-y">
+                {/* V pH 4.01 */}
                 <div className="p-3">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">V pH 4.01</p>
-                  <p className="text-sm font-bold tabular-nums">
-                    {currentCalib.v1 != null ? parseFloat(currentCalib.v1).toFixed(3) : "—"}{" "}
-                    <span className="text-xs font-normal text-muted-foreground">V</span>
-                  </p>
+                  {editingField === "v1" ? (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <input
+                        autoFocus
+                        type="number"
+                        step="0.001"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveCalibEdit("v1");
+                          if (e.key === "Escape") { setEditingField(null); setEditValue(""); }
+                        }}
+                        className="w-20 text-sm font-bold tabular-nums bg-transparent border-b border-primary outline-none"
+                      />
+                      <button onClick={() => handleSaveCalibEdit("v1")} className="text-green-600 hover:text-green-700">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => { setEditingField(null); setEditValue(""); }} className="text-muted-foreground hover:text-foreground">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-bold tabular-nums">
+                        {currentCalib.v1 != null ? parseFloat(currentCalib.v1).toFixed(3) : "—"}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">V</span>
+                      </p>
+                      <button
+                        onClick={() => { setEditingField("v1"); setEditValue(currentCalib.v1 != null ? String(parseFloat(currentCalib.v1).toFixed(3)) : ""); }}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        title="Editar V pH 4.01"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                {/* V pH 6.86 */}
                 <div className="p-3">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">V pH 6.86</p>
-                  <p className="text-sm font-bold tabular-nums">
-                    {currentCalib.v2 != null ? parseFloat(currentCalib.v2).toFixed(3) : "—"}{" "}
-                    <span className="text-xs font-normal text-muted-foreground">V</span>
-                  </p>
+                  {editingField === "v2" ? (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <input
+                        autoFocus
+                        type="number"
+                        step="0.001"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveCalibEdit("v2");
+                          if (e.key === "Escape") { setEditingField(null); setEditValue(""); }
+                        }}
+                        className="w-20 text-sm font-bold tabular-nums bg-transparent border-b border-primary outline-none"
+                      />
+                      <button onClick={() => handleSaveCalibEdit("v2")} className="text-green-600 hover:text-green-700">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => { setEditingField(null); setEditValue(""); }} className="text-muted-foreground hover:text-foreground">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-bold tabular-nums">
+                        {currentCalib.v2 != null ? parseFloat(currentCalib.v2).toFixed(3) : "—"}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">V</span>
+                      </p>
+                      <button
+                        onClick={() => { setEditingField("v2"); setEditValue(currentCalib.v2 != null ? String(parseFloat(currentCalib.v2).toFixed(3)) : ""); }}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        title="Editar V pH 6.86"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 {currentCalib.slope != null && (
                   <div className="p-3">
@@ -457,6 +547,15 @@ export default function PhCalibrationModal({
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Offset</p>
                     <p className="text-sm font-bold tabular-nums">
                       {parseFloat(currentCalib.offset).toFixed(4)}
+                    </p>
+                  </div>
+                )}
+                {currentCalib.voltage != null && !isNaN(currentCalib.voltage) && (
+                  <div className="p-3 col-span-2">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Voltaje actual</p>
+                    <p className="text-sm font-bold tabular-nums">
+                      {currentCalib.voltage.toFixed(3)}{" "}
+                      <span className="text-xs font-normal text-muted-foreground">V</span>
                     </p>
                   </div>
                 )}
